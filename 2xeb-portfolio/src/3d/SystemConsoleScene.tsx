@@ -13,9 +13,9 @@ const MODULE_HEIGHT = 0.15;
 const MODULE_DEPTH = 1.2;
 
 const NodeLabel: React.FC<{ node: GraphNode; laneColor: string }> = ({ node, laneColor }) => {
-  const { hoveredNodeId, focusedDiscipline, highlightedNodeIds } = useConsole();
+  const { hoveredNodeId, focusedDiscipline, isNodeHighlighted } = useConsole();
   const isHovered = hoveredNodeId === node.id;
-  const isHighlighted = highlightedNodeIds.includes(node.id);
+  const isHighlighted = isNodeHighlighted(node.id);
   const isLaneActive = focusedDiscipline === node.lane || focusedDiscipline === null;
   
   // Always show if hovered or highlighted, otherwise only if lane is active
@@ -39,7 +39,7 @@ const NodeLabel: React.FC<{ node: GraphNode; laneColor: string }> = ({ node, lan
 
 const LaneModules = ({ lane, onNavigate }: { lane: ConsoleLane, onNavigate: (path: string) => void }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
-  const { hoveredNodeId, setHoveredNodeId, focusedDiscipline, highlightedNodeIds } = useConsole();
+  const { hoveredNodeId, setHoveredNodeId, focusedDiscipline, isNodeHighlighted } = useConsole();
   const nodes = useMemo(() => GRAPH_DATA.nodes.filter(n => n.lane === lane), [lane]);
   
   // Helper object for positioning
@@ -62,7 +62,7 @@ const LaneModules = ({ lane, onNavigate }: { lane: ConsoleLane, onNavigate: (pat
 
     nodes.forEach((node, i) => {
       const isHovered = hoveredNodeId === node.id;
-      const isHighlighted = highlightedNodeIds.includes(node.id);
+      const isHighlighted = isNodeHighlighted(node.id);
       const isLaneFocused = focusedDiscipline === lane || focusedDiscipline === null;
       
       // Check if we should dim this node (because another lane is focused)
@@ -156,31 +156,41 @@ const LaneModules = ({ lane, onNavigate }: { lane: ConsoleLane, onNavigate: (pat
   );
 };
 
-// Simplified connection renderer
+// Pre-computed connection points to avoid per-frame allocations
+const connectionPoints = GRAPH_DATA.edges.map(edge => {
+  const sourceNode = GRAPH_DATA.nodes.find(n => n.id === edge.source);
+  const targetNode = GRAPH_DATA.nodes.find(n => n.id === edge.target);
+  if (!sourceNode || !targetNode) return null;
+  return {
+    edge,
+    sourceNode,
+    targetNode,
+    points: [
+      new THREE.Vector3(sourceNode.x, -0.1, sourceNode.z),
+      new THREE.Vector3(sourceNode.x, -0.1, (sourceNode.z + targetNode.z) / 2),
+      new THREE.Vector3(targetNode.x, -0.1, (sourceNode.z + targetNode.z) / 2),
+      new THREE.Vector3(targetNode.x, -0.1, targetNode.z)
+    ]
+  };
+}).filter(Boolean);
+
+// Simplified connection renderer with pre-computed geometry
 const SimpleConnections = () => {
-    const { highlightedNodeIds, focusedDiscipline } = useConsole();
+    const { isNodeHighlighted, focusedDiscipline } = useConsole();
 
     return (
         <group>
-            {GRAPH_DATA.edges.map((edge, i) => {
-                const sourceNode = GRAPH_DATA.nodes.find(n => n.id === edge.source);
-                const targetNode = GRAPH_DATA.nodes.find(n => n.id === edge.target);
-                if (!sourceNode || !targetNode) return null;
+            {connectionPoints.map((conn, i) => {
+                if (!conn) return null;
+                const { sourceNode, targetNode, points } = conn;
 
-                const isHighlighted = highlightedNodeIds.includes(edge.source) || highlightedNodeIds.includes(edge.target);
+                const isHighlighted = isNodeHighlighted(sourceNode.id) || isNodeHighlighted(targetNode.id);
                 const isDimmed = focusedDiscipline && (sourceNode.lane !== focusedDiscipline && targetNode.lane !== focusedDiscipline) && !isHighlighted;
 
                 if (isDimmed) return null;
 
                 const color = isHighlighted ? '#FFFFFF' : '#444444';
                 const opacity = isHighlighted ? 0.8 : 0.4;
-
-                const points = [
-                    new THREE.Vector3(sourceNode.x, -0.1, sourceNode.z),
-                    new THREE.Vector3(sourceNode.x, -0.1, (sourceNode.z + targetNode.z) / 2),
-                    new THREE.Vector3(targetNode.x, -0.1, (sourceNode.z + targetNode.z) / 2),
-                    new THREE.Vector3(targetNode.x, -0.1, targetNode.z)
-                ];
 
                 return (
                     <line key={i}>

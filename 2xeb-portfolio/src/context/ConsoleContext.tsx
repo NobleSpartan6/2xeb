@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import { ConsoleLane } from '../lib/types';
 
 interface ConsoleContextType {
@@ -6,8 +6,9 @@ interface ConsoleContextType {
   setHoveredNodeId: (id: string | null) => void;
   focusedDiscipline: ConsoleLane | null;
   setFocusedDiscipline: (lane: ConsoleLane | null) => void;
-  highlightedNodeIds: string[]; // For AI search results
+  highlightedNodeIds: Set<string>;
   setHighlightedNodeIds: (ids: string[]) => void;
+  isNodeHighlighted: (id: string) => boolean;
   isAgentOpen: boolean;
   setIsAgentOpen: (isOpen: boolean) => void;
 }
@@ -17,20 +18,41 @@ export const ConsoleContext = createContext<ConsoleContextType | undefined>(unde
 export const ConsoleProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [focusedDiscipline, setFocusedDiscipline] = useState<ConsoleLane | null>(null);
-  const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([]);
+  const [highlightedNodeIds, setHighlightedNodeIdsState] = useState<Set<string>>(new Set());
   const [isAgentOpen, setIsAgentOpen] = useState(false);
 
+  // Memoized setter that converts array to Set
+  const setHighlightedNodeIds = useCallback((ids: string[]) => {
+    setHighlightedNodeIdsState(new Set(ids));
+  }, []);
+
+  // O(1) lookup helper
+  const isNodeHighlighted = useCallback((id: string) => {
+    return highlightedNodeIds.has(id);
+  }, [highlightedNodeIds]);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo(() => ({
+    hoveredNodeId,
+    setHoveredNodeId,
+    focusedDiscipline,
+    setFocusedDiscipline,
+    highlightedNodeIds,
+    setHighlightedNodeIds,
+    isNodeHighlighted,
+    isAgentOpen,
+    setIsAgentOpen
+  }), [
+    hoveredNodeId,
+    focusedDiscipline,
+    highlightedNodeIds,
+    setHighlightedNodeIds,
+    isNodeHighlighted,
+    isAgentOpen
+  ]);
+
   return (
-    <ConsoleContext.Provider value={{
-      hoveredNodeId,
-      setHoveredNodeId,
-      focusedDiscipline,
-      setFocusedDiscipline,
-      highlightedNodeIds,
-      setHighlightedNodeIds,
-      isAgentOpen,
-      setIsAgentOpen
-    }}>
+    <ConsoleContext.Provider value={value}>
       {children}
     </ConsoleContext.Provider>
   );

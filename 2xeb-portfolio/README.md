@@ -92,8 +92,10 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 │   │   └── SystemAgent.tsx
 │   │
 │   ├── /3d             # React Three Fiber scenes
-│   │   ├── SystemConsoleScene.tsx
-│   │   └── OrbitScene.tsx
+│   │   ├── ImmersiveScene.tsx       # Full-screen home visualization
+│   │   ├── SystemConsoleScene.tsx   # Project browser (isometric)
+│   │   ├── OrbitScene.tsx           # Animated background
+│   │   └── CLAUDE.md                # 3D-specific documentation
 │   │
 │   ├── /context        # React contexts
 │   │   └── ConsoleContext.tsx
@@ -111,10 +113,11 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 │   │
 │   └── /styles         # CSS files (if needed)
 │
-├── /supabase           # (future) Supabase Edge Functions
+├── /supabase           # Supabase Edge Functions (deployed)
+│   ├── CLAUDE.md       # Supabase-specific documentation
 │   └── /functions
-│       ├── ask-portfolio/
-│       └── submit-contact/
+│       ├── ask-portfolio/   # AI assistant endpoint
+│       └── submit-contact/  # Contact form endpoint
 │
 └── /dist               # Build output (gitignored)
 ```
@@ -138,7 +141,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 - [x] Create `/src/lib/api.ts` integration
 - [x] Wire up `AskPortfolioWidget` to Edge Function
 - [x] Wire up Contact form to Edge Function
-- [ ] **ACTION REQUIRED**: Set `GEMINI_API_KEY` secret in Supabase Dashboard
+- [x] **ACTION REQUIRED**: Set `GEMINI_API_KEY` secret in Supabase Dashboard
 
 ### Phase 3: Deployment ⬜
 - [ ] Configure Cloudflare Pages
@@ -148,13 +151,120 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 - [x] Verify production build
 - [ ] Configure custom domain
 
-### Phase 4: Polish ⬜
+### Phase 4: Polish (In Progress)
+- [x] Performance optimization (bundle reduced from 1.56MB to 1.17MB)
+- [x] Context state optimized with Set-based O(1) lookups
+- [x] Pre-computed geometry to avoid per-frame allocations
+- [x] Responsive 3D grid (24x24 mobile, 40x40 desktop)
+- [x] New immersive full-screen 3D visualization with Swiss precision
 - [ ] Add WebGL context loss handling
 - [ ] Add loading/error states for AI widget
 - [ ] Add loading/error states for contact form
-- [ ] Performance optimization (bundle size)
 - [ ] Accessibility audit
 - [ ] Final testing
+
+---
+
+## Performance Optimizations
+
+### Bundle Size Reduction
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| Bundle size | 1.56 MB | 1.17 MB | -25% |
+| Gzipped | ~430 KB | ~334 KB | -22% |
+
+### State Management Optimizations
+
+**Problem:** `highlightedNodeIds` used `Array.includes()` which is O(n) - called on every node in useFrame loop.
+
+**Solution:** Changed to `Set<string>` with O(1) `.has()` lookup:
+
+```typescript
+// Before (O(n) per lookup)
+const isHighlighted = highlightedNodeIds.includes(node.id);
+
+// After (O(1) per lookup)
+const isHighlighted = isNodeHighlighted(node.id); // Uses Set.has()
+```
+
+### 3D Rendering Optimizations
+
+**Pre-computed Geometry:**
+```typescript
+// Before: Allocating in every render
+const points = [
+  new THREE.Vector3(x1, y1, z1),  // GC pressure
+  new THREE.Vector3(x2, y2, z2),
+];
+
+// After: Pre-computed once
+const connectionPoints = useMemo(() =>
+  edges.map(edge => ({
+    points: [new THREE.Vector3(...), ...]
+  }))
+, []);
+```
+
+**Reusable Objects:**
+```typescript
+// Module-level singletons (no GC in render loop)
+const _dummy = new THREE.Object3D();
+const _color = new THREE.Color();
+const _vec3 = new THREE.Vector3();
+```
+
+### Responsive 3D Grid
+
+| Device | Grid Size | Total Cells | DPR | Antialiasing |
+|--------|-----------|-------------|-----|--------------|
+| Desktop | 40×40 | 1,600 | 1.5 | Enabled |
+| Mobile | 24×24 | 576 | 1.0 | Disabled |
+
+```typescript
+const getGridConfig = (isMobile: boolean) => ({
+  gridSize: isMobile ? 24 : 40,
+  cellSize: isMobile ? 0.6 : 0.5,
+  gap: 0.08,
+});
+```
+
+---
+
+## Documentation Files (CLAUDE.md)
+
+This project uses `CLAUDE.md` files for AI-assisted development documentation:
+
+| File | Purpose |
+|------|---------|
+| `/CLAUDE.md` | Root project documentation, architecture, constraints |
+| `/src/3d/CLAUDE.md` | 3D scene patterns, performance guidelines, pillar behaviors |
+| `/supabase/CLAUDE.md` | Edge Functions, database schema, deployment info |
+
+### When to Add CLAUDE.md
+
+Add a `CLAUDE.md` file when creating new directories that contain:
+- Complex patterns or constraints
+- Multiple related files
+- Integration requirements
+- Performance-critical code
+
+---
+
+## 3D Visualization: Three Pillars
+
+The home page features an immersive 3D visualization with three discipline "pillars":
+
+| Pillar | Discipline | Color | Movement Pattern |
+|--------|------------|-------|------------------|
+| **SWE** | CODE | Cyan `#06B6D4` | Grid-snapped cross (architectural precision) |
+| **ML** | VISION | Lime `#84CC16` | Lissajous curves (organic, neural-like) |
+| **VIDEO** | DESIGN | Amber `#F59E0B` | Linear sweep (timeline, scanning) |
+
+**Interaction:**
+- Mouse hover creates Swiss Blue (`#2563EB`) accent highlight
+- Hovering discipline text filters which pillar is active
+- Camera follows mouse with subtle parallax
 
 ---
 
@@ -191,16 +301,37 @@ import { EXPERIENCE } from '../data';
 import { GRAPH_DATA, COLORS } from '../data';
 ```
 
-### 3D Constraints
+### 3D Development Guidelines
 
+```typescript
+// ✅ DO: Reuse objects outside component
+const _dummy = new THREE.Object3D();
+const _color = new THREE.Color();
+
+// ✅ DO: Use Set for lookups in hot paths
+const isHighlighted = highlightedNodeIds.has(id);  // O(1)
+
+// ✅ DO: Pre-compute static data
+const gridData = useMemo(() => [...], [deps]);
+
+// ❌ DON'T: Allocate in useFrame
+useFrame(() => {
+  const vec = new THREE.Vector3();  // GC pressure!
+});
+
+// ❌ DON'T: Use Array.includes in hot paths
+highlightedNodeIds.includes(id);  // O(n)
+```
+
+**Key Constraints:**
 - **Single Canvas**: One `<Canvas>` per scene component
 - **No router hooks inside Canvas**: Pass callbacks via props
-- **Performance**: Reuse THREE objects in `useFrame`
+- **Context bridging**: Re-provide ConsoleContext inside Canvas
 - **Import pattern**: `import * as THREE from 'three'` (npm only)
 
 ---
 
-## Supabase Schema (Future)
+## Supabase Schema (Deployed)
 
 ### contact_messages
 ```sql

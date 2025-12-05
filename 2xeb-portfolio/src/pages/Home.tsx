@@ -1,90 +1,169 @@
-import React from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import SystemConsoleScene from '../3d/SystemConsoleScene';
+import ImmersiveScene from '../3d/ImmersiveScene';
 import { useConsole } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
 
+// Discipline data for hover states
+const DISCIPLINES = [
+  { lane: ConsoleLane.CODE, label: 'CODE', color: '#06B6D4', description: 'Software Engineering' },
+  { lane: ConsoleLane.VISION, label: 'VISION', color: '#84CC16', description: 'Machine Learning & AI' },
+  { lane: ConsoleLane.DESIGN, label: 'DESIGN', color: '#F59E0B', description: 'Video Production' },
+] as const;
+
 const Home: React.FC = () => {
-  const { setFocusedDiscipline, setIsAgentOpen } = useConsole();
-  
+  const { focusedDiscipline, setFocusedDiscipline, setIsAgentOpen } = useConsole();
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Fade in on mount
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoaded(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleDisciplineHover = useCallback((lane: ConsoleLane | null) => {
+    setFocusedDiscipline(lane);
+  }, [setFocusedDiscipline]);
+
   return (
     <div className="relative w-full h-screen overflow-hidden bg-[#050505]">
-      
-      {/* 3D Background Layer */}
+
+      {/* 3D Background - Full Screen Immersive */}
       <div className="absolute inset-0 z-0">
-         <SystemConsoleScene />
+        <ImmersiveScene />
       </div>
 
-      {/* Vignette & Grain */}
-      <div className="absolute inset-0 z-10 pointer-events-none opacity-20 mix-blend-overlay" 
-           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}>
+      {/* Gradient overlays for depth */}
+      <div className="absolute inset-0 z-10 pointer-events-none">
+        {/* Top fade */}
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#050505] to-transparent" />
+        {/* Bottom fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#050505] to-transparent" />
+        {/* Vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,transparent_50%,#050505_100%)]" />
       </div>
-      <div className="absolute inset-0 z-10 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,#050505_100%)]"></div>
 
-      {/* Content Overlay */}
-      <div className="absolute inset-0 z-20 pointer-events-none flex flex-col justify-center px-6 md:px-12 lg:px-24 pb-16">
-        <div className="max-w-6xl space-y-8">
-          
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-[1px] bg-[#2563EB]"></div>
-            <span className="text-[#2563EB] font-mono text-[10px] font-bold uppercase tracking-[0.4em]">System Console / 2025</span>
+      {/* Subtle grain texture */}
+      <div
+        className="absolute inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-overlay"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+        }}
+      />
+
+      {/* Content Layer */}
+      <div
+        className={`absolute inset-0 z-20 flex flex-col justify-between transition-opacity duration-1000 ${
+          isLoaded ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        {/* Top Section - System Label */}
+        <div className="px-6 md:px-12 lg:px-16 pt-24 md:pt-28">
+          <div className="flex items-center gap-3 pointer-events-none">
+            <div className="w-8 h-[1px] bg-[#2563EB]" />
+            <span className="text-[#2563EB] font-mono text-[9px] md:text-[10px] font-medium uppercase tracking-[0.3em]">
+              System Console / 2025
+            </span>
           </div>
+        </div>
 
-          {/* Main Typography with Interactive Hovers */}
-        <h1
-          className="font-bold font-space-grotesk text-white leading-[0.9] tracking-tighter mix-blend-difference pointer-events-auto select-none"
-          style={{ fontSize: 'clamp(3.2rem, 8vw + 0.5rem, 10rem)' }}
-        >
-            <span 
-              className="block hover:text-[#F59E0B] transition-colors duration-300 cursor-default"
-              onMouseEnter={() => setFocusedDiscipline(ConsoleLane.DESIGN)}
-              onMouseLeave={() => setFocusedDiscipline(null)}
-            >
-              DESIGN
-            </span>
-            <span 
-              className="block hover:text-[#06B6D4] transition-colors duration-300 cursor-default"
-              onMouseEnter={() => setFocusedDiscipline(ConsoleLane.CODE)}
-              onMouseLeave={() => setFocusedDiscipline(null)}
-            >
-              CODE
-            </span>
-            <span 
-              className="block hover:text-[#84CC16] transition-colors duration-300 cursor-default"
-              onMouseEnter={() => setFocusedDiscipline(ConsoleLane.VISION)}
-              onMouseLeave={() => setFocusedDiscipline(null)}
-            >
-              VISION
-            </span>
-          </h1>
+        {/* Center Section - Main Typography */}
+        <div className="flex-1 flex items-center px-6 md:px-12 lg:px-16">
+          <div className="w-full max-w-7xl">
+            <h1 className="font-space-grotesk font-bold leading-[0.85] tracking-tighter select-none">
+              {DISCIPLINES.map(({ lane, label, color }) => (
+                <span
+                  key={lane}
+                  className="block transition-all duration-500 ease-out cursor-default pointer-events-auto"
+                  style={{
+                    fontSize: 'clamp(3rem, 12vw, 11rem)',
+                    color: focusedDiscipline === lane ? color : '#ffffff',
+                    opacity: focusedDiscipline && focusedDiscipline !== lane ? 0.15 : 1,
+                    transform: focusedDiscipline === lane ? 'translateX(8px)' : 'translateX(0)',
+                    textShadow: focusedDiscipline === lane ? `0 0 60px ${color}40` : 'none',
+                  }}
+                  onMouseEnter={() => handleDisciplineHover(lane)}
+                  onMouseLeave={() => handleDisciplineHover(null)}
+                >
+                  {label}
+                </span>
+              ))}
+            </h1>
 
-          <div className="flex flex-col md:flex-row md:items-end gap-8 md:gap-12 pt-4 pointer-events-auto">
-            <p className="text-white/60 text-lg md:text-xl max-w-xl font-light leading-relaxed font-sans backdrop-blur-sm">
-              A multidisciplinary universe. <br/>Hover above to explore the system.
+            {/* Discipline description that appears on hover */}
+            <div
+              className="h-8 mt-6 overflow-hidden transition-all duration-300"
+              style={{ opacity: focusedDiscipline ? 1 : 0 }}
+            >
+              {DISCIPLINES.map(({ lane, description, color }) => (
+                <p
+                  key={lane}
+                  className="font-mono text-xs tracking-widest uppercase transition-all duration-300"
+                  style={{
+                    color: color,
+                    opacity: focusedDiscipline === lane ? 1 : 0,
+                    transform: focusedDiscipline === lane ? 'translateY(0)' : 'translateY(-100%)',
+                    position: focusedDiscipline === lane ? 'relative' : 'absolute',
+                  }}
+                >
+                  {description}
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Section - CTA & Description */}
+        <div className="px-6 md:px-12 lg:px-16 pb-12 md:pb-16">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
+            {/* Description */}
+            <p className="text-white/50 text-sm md:text-base max-w-md font-light leading-relaxed pointer-events-none">
+              A multidisciplinary portfolio exploring the intersection of software engineering,
+              machine learning, and visual storytelling.
             </p>
 
-            <div className="flex gap-3 sm:gap-4">
-              <Link 
-                to="/work" 
-                className="group relative px-7 sm:px-8 py-4 bg-[#2563EB] overflow-hidden transition-all hover:scale-105 border border-[#2563EB]"
+            {/* CTAs */}
+            <div className="flex gap-3 pointer-events-auto">
+              <Link
+                to="/work"
+                className="group relative px-6 md:px-8 py-3.5 md:py-4 bg-[#2563EB] overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98]"
               >
-                <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
-                <span className="relative font-bold tracking-widest text-xs uppercase text-white group-hover:text-black transition-colors z-10">View Work</span>
+                <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                <span className="relative font-medium tracking-widest text-[10px] md:text-xs uppercase text-white group-hover:text-black transition-colors z-10">
+                  View Work
+                </span>
               </Link>
-              <button 
+
+              <button
                 onClick={() => setIsAgentOpen(true)}
-                className="group px-7 sm:px-8 py-4 border border-white/20 hover:border-[#2563EB] backdrop-blur-md transition-all hover:scale-105 bg-black/30 flex items-center gap-2"
+                className="group px-6 md:px-8 py-3.5 md:py-4 border border-white/20 hover:border-[#2563EB] backdrop-blur-sm transition-all hover:scale-[1.02] active:scale-[0.98] bg-black/20 flex items-center gap-2"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-[#2563EB]">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#2563EB]"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
+                  />
                 </svg>
-                <span className="font-bold tracking-widest text-xs uppercase text-white">Ask EB</span>
+                <span className="font-medium tracking-widest text-[10px] md:text-xs uppercase text-white">
+                  Ask EB
+                </span>
               </button>
             </div>
           </div>
-          
         </div>
       </div>
+
+      {/* Corner accent lines - Swiss precision detail */}
+      <div className="absolute top-8 left-8 w-12 h-12 border-l border-t border-white/10 pointer-events-none z-20" />
+      <div className="absolute bottom-8 right-8 w-12 h-12 border-r border-b border-white/10 pointer-events-none z-20" />
     </div>
   );
 };

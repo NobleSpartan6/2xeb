@@ -77,6 +77,7 @@ VITE_SUPABASE_FUNCTIONS_URL=http://localhost:54321/functions/v1
 │   │   └── SystemAgent.tsx
 │   │
 │   ├── /3d                 # React Three Fiber scenes
+│   │   ├── ImmersiveScene.tsx      # Full-screen home visualization
 │   │   ├── SystemConsoleScene.tsx  # Interactive project nodes
 │   │   └── OrbitScene.tsx          # Animated grid floor
 │   │
@@ -91,13 +92,16 @@ VITE_SUPABASE_FUNCTIONS_URL=http://localhost:54321/functions/v1
 │   │
 │   ├── /lib                # Utilities
 │   │   ├── types.ts        # TypeScript interfaces
-│   │   ├── api.ts          # Edge Function helpers (future)
-│   │   └── geminiService.ts # Current AI service (client-side)
+│   │   ├── api.ts          # Supabase Edge Function helpers
+│   │   └── geminiService.ts # Legacy (deprecated - use api.ts)
 │   │
 │   └── /styles             # CSS (if needed)
 │
-└── /supabase               # (future) Edge Functions
+└── /supabase               # Supabase Edge Functions (deployed)
+    ├── CLAUDE.md           # Supabase-specific documentation
     └── /functions
+        ├── ask-portfolio/  # AI assistant endpoint
+        └── submit-contact/ # Contact form endpoint
 ```
 
 ## Key Patterns
@@ -116,9 +120,9 @@ import { Discipline, ConsoleLane, Project } from '../lib/types';
 
 ### AI Integration Flow
 1. SPA builds context string from `/src/data/projects.ts` using `buildProjectContext()`
-2. Sends `{ question, context }` to Edge Function (or current Gemini service)
-3. Returns `{ answer, relatedSlugs }`
-4. `relatedSlugs` written to `ConsoleContext.highlightedNodeIds` → 3D nodes glow
+2. Sends `{ question, context }` to Supabase Edge Function (`/ask-portfolio`)
+3. Returns `{ answer, projectSlugs }`
+4. `projectSlugs` written to `ConsoleContext.highlightedNodeIds` (Set) → 3D nodes glow
 
 ## Important Constraints
 
@@ -126,8 +130,14 @@ import { Discipline, ConsoleLane, Project } from '../lib/types';
 - **Single Canvas**: One `<Canvas>` per scene component
 - **Three.js imports**: Always `import * as THREE from 'three'` (npm, not CDN)
 - **Router hooks**: Never inside R3F tree — pass callbacks via props
-- **Performance**: Reuse `THREE.Vector3`, `THREE.Color` in `useFrame` (no allocations)
-- **Instanced meshes**: Use for repeated geometry
+- **Context bridging**: Re-provide ConsoleContext inside Canvas
+- **Instanced meshes**: Use for repeated geometry (single draw call)
+
+### Performance Patterns
+- **Set for lookups**: Use `highlightedNodeIds.has(id)` not `array.includes(id)`
+- **Reuse objects**: Pre-allocate `THREE.Object3D`, `THREE.Color` outside useFrame
+- **Pre-compute geometry**: Calculate static positions in `useMemo`
+- **Mobile optimization**: Reduce grid size, disable antialiasing, lower DPR
 
 ### Styling
 - Currently using Tailwind CDN in index.html
@@ -142,7 +152,7 @@ import { Discipline, ConsoleLane, Project } from '../lib/types';
 | ML | VISION | #84CC16 |
 | HYBRID | VISION | varies |
 
-## Supabase Integration (Planned)
+## Supabase Integration (Deployed)
 
 ### contact_messages Table
 ```sql
