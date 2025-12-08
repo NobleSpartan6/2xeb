@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { askPortfolio } from '../lib/api';
 import { buildProjectContext } from '../data';
-import { ChatMessage } from '../lib/types';
 import { PROJECTS } from '../data';
 import { useConsole } from '../context/ConsoleContext';
+import { MODELS, getModelByIdOrDefault } from '../lib/models';
 
 interface WidgetProps {
   compact?: boolean;
@@ -14,12 +14,20 @@ interface WidgetProps {
 const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus = false }) => {
   const [question, setQuestion] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [history, setHistory] = useState<ChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  
-  const { setHighlightedNodeIds } = useConsole();
+
+  // Use shared state from context
+  const {
+    setHighlightedNodeIds,
+    chatHistory,
+    addChatMessage,
+    selectedModelId,
+    setSelectedModelId,
+  } = useConsole();
+
+  const currentModel = getModelByIdOrDefault(selectedModelId);
 
   useEffect(() => {
     if (autoFocus && inputRef.current) {
@@ -35,30 +43,31 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
 
   useEffect(() => {
     scrollToBottom();
-  }, [history, isLoading]);
+  }, [chatHistory, isLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim() || isLoading) return;
 
-    const userMsg: ChatMessage = { role: 'user', text: question };
-    setHistory(prev => [...prev, userMsg]);
+    const userMsg = { role: 'user' as const, text: question };
+    addChatMessage(userMsg);
     setQuestion('');
     setIsLoading(true);
     setError(null);
 
     try {
       const context = buildProjectContext();
-      const { answer, projectSlugs } = await askPortfolio(userMsg.text, context);
+      const { answer, projectSlugs } = await askPortfolio(userMsg.text, context, selectedModelId);
       setHighlightedNodeIds(projectSlugs);
-      setHistory(prev => [...prev, {
+      addChatMessage({
         role: 'model',
         text: answer,
-        referencedSlugs: projectSlugs
-      }]);
+        referencedSlugs: projectSlugs,
+      });
     } catch (err) {
       console.error('AI widget error:', err);
-      setError('System unavailable. Try again.');
+      const errorMsg = err instanceof Error ? err.message : 'System unavailable. Try again.';
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -112,14 +121,12 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
         className={`flex-grow min-h-0 overflow-y-auto custom-scrollbar flex flex-col ${compact ? 'p-4' : 'p-5'}`}
         aria-live="polite"
       >
-        {history.length === 0 ? (
+        {chatHistory.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="flex flex-col items-center text-center px-4 gap-4 max-w-[320px] animate-fade-in">
-              {/* Icon */}
-              <div className="w-12 h-12 bg-[#080808] border border-[#1f2937] grid place-items-center text-[#2563EB]">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" className="block">
-                  <path d="M10 0L11.12 7.12L17.07 2.93L12.88 8.88L20 10L12.88 11.12L17.07 17.07L11.12 12.88L10 20L8.88 12.88L2.93 17.07L7.12 11.12L0 10L7.12 8.88L2.93 2.93L8.88 7.12L10 0Z" />
-                </svg>
+              {/* EB Block */}
+              <div className="w-12 h-12 bg-[#080808] border border-[#1f2937] grid place-items-center">
+                <span className="text-[#2563EB] font-bold text-sm font-space-grotesk tracking-tight">EB</span>
               </div>
               <p className="text-[#737373] text-sm leading-relaxed">
                 Hi! I can answer questions about Ebenezer's work, skills, and experience.
@@ -144,7 +151,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
         ) : (
           <div className="space-y-4">
         {/* Messages */}
-        {history.map((msg, idx) => (
+        {chatHistory.map((msg, idx) => (
           <div key={idx} className={`flex flex-col animate-fade-in ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
             <span className={`text-[9px] font-mono uppercase tracking-[0.15em] mb-1.5 text-[#525252] ${msg.role === 'user' ? 'mr-1' : 'ml-1'}`}>
               {msg.role === 'user' ? 'You' : 'EB'}
@@ -188,6 +195,27 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
 
       {/* Input Area */}
       <form onSubmit={handleSubmit} className="border-t border-[#1f2937] bg-[#080808] p-4">
+        {/* Model Selector */}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <span className="text-[9px] text-[#525252] font-mono uppercase tracking-widest">Model:</span>
+          <div className="flex gap-1 flex-wrap">
+            {MODELS.map((model) => (
+              <button
+                key={model.id}
+                type="button"
+                onClick={() => setSelectedModelId(model.id)}
+                title={model.description}
+                className={`text-[10px] font-mono tracking-wider px-2 py-1 border transition-colors ${
+                  selectedModelId === model.id
+                    ? 'border-[#2563EB] bg-[#2563EB]/10 text-[#2563EB]'
+                    : 'border-[#262626] text-[#525252] hover:border-[#404040] hover:text-[#737373]'
+                }`}
+              >
+                {model.name}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="relative flex items-center">
           <input
             ref={inputRef}
@@ -198,8 +226,8 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
             className="w-full bg-[#0A0A0A] border border-[#1f2937] pl-4 pr-12 py-3 text-white focus:outline-none focus:border-[#2563EB] transition-colors text-[13px] placeholder-[#525252]"
             aria-label="Ask EB about this portfolio"
           />
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={isLoading || !question.trim()}
             className="absolute right-2 w-8 h-8 flex items-center justify-center bg-[#2563EB] text-white hover:bg-[#1d4ed8] disabled:opacity-20 disabled:bg-[#262626] transition-all"
             aria-label="Send message"

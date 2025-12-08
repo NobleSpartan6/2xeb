@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
-import { ConsoleLane } from '../lib/types';
+import { ConsoleLane, ChatMessage } from '../lib/types';
+import { DEFAULT_MODEL_ID } from '../lib/models';
 
 interface ConsoleContextType {
   hoveredNodeId: string | null;
@@ -11,6 +12,12 @@ interface ConsoleContextType {
   isNodeHighlighted: (id: string) => boolean;
   isAgentOpen: boolean;
   setIsAgentOpen: (isOpen: boolean) => void;
+  // Shared chat state
+  chatHistory: ChatMessage[];
+  addChatMessage: (message: ChatMessage) => void;
+  clearChatHistory: () => void;
+  selectedModelId: string;
+  setSelectedModelId: (id: string) => void;
 }
 
 export const ConsoleContext = createContext<ConsoleContextType | undefined>(undefined);
@@ -20,6 +27,10 @@ export const ConsoleProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [focusedDiscipline, setFocusedDiscipline] = useState<ConsoleLane | null>(null);
   const [highlightedNodeIds, setHighlightedNodeIdsState] = useState<Set<string>>(new Set());
   const [isAgentOpen, setIsAgentOpen] = useState(false);
+
+  // Shared chat state - synced across all widget instances
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [selectedModelId, setSelectedModelId] = useState<string>(DEFAULT_MODEL_ID);
 
   // Memoized setter that converts array to Set
   const setHighlightedNodeIds = useCallback((ids: string[]) => {
@@ -31,6 +42,15 @@ export const ConsoleProvider: React.FC<{ children: ReactNode }> = ({ children })
     return highlightedNodeIds.has(id);
   }, [highlightedNodeIds]);
 
+  // Chat state helpers
+  const addChatMessage = useCallback((message: ChatMessage) => {
+    setChatHistory(prev => [...prev, message]);
+  }, []);
+
+  const clearChatHistory = useCallback(() => {
+    setChatHistory([]);
+  }, []);
+
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo(() => ({
     hoveredNodeId,
@@ -41,14 +61,23 @@ export const ConsoleProvider: React.FC<{ children: ReactNode }> = ({ children })
     setHighlightedNodeIds,
     isNodeHighlighted,
     isAgentOpen,
-    setIsAgentOpen
+    setIsAgentOpen,
+    chatHistory,
+    addChatMessage,
+    clearChatHistory,
+    selectedModelId,
+    setSelectedModelId,
   }), [
     hoveredNodeId,
     focusedDiscipline,
     highlightedNodeIds,
     setHighlightedNodeIds,
     isNodeHighlighted,
-    isAgentOpen
+    isAgentOpen,
+    chatHistory,
+    addChatMessage,
+    clearChatHistory,
+    selectedModelId,
   ]);
 
   return (

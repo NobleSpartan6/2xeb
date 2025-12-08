@@ -4,6 +4,65 @@ import ImmersiveScene from '../3d/ImmersiveScene';
 import { useConsole } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
 
+// --- REALTIME HOOKS ---
+
+// Live clock in EST timezone
+const useLiveClock = () => {
+  const [time, setTime] = useState('');
+  useEffect(() => {
+    const tick = () => {
+      const t = new Date().toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone: 'America/New_York',
+      });
+      setTime(t + ' EST');
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return time;
+};
+
+// Spotify now playing - polls Edge Function
+const useSpotifyNowPlaying = () => {
+  const [nowPlaying, setNowPlaying] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchNowPlaying = async () => {
+      try {
+        const baseUrl = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
+        if (!baseUrl) return;
+
+        const res = await fetch(`${baseUrl}/spotify-now-playing`);
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (data.isPlaying && data.track && data.artist) {
+          setNowPlaying(`${data.track} — ${data.artist}`);
+        } else {
+          setNowPlaying(null);
+        }
+      } catch {
+        // Silently fail - show IDLE
+        setNowPlaying(null);
+      }
+    };
+
+    // Initial fetch
+    fetchNowPlaying();
+
+    // Poll every 30 seconds
+    const id = setInterval(fetchNowPlaying, 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  return nowPlaying;
+};
+
 // Discipline data for hover states
 const DISCIPLINES = [
   { lane: ConsoleLane.CODE, label: 'CODE', color: '#06B6D4', description: 'Software Engineering' },
@@ -14,6 +73,8 @@ const DISCIPLINES = [
 const Home: React.FC = () => {
   const { focusedDiscipline, setFocusedDiscipline, setIsAgentOpen } = useConsole();
   const [isLoaded, setIsLoaded] = useState(false);
+  const clock = useLiveClock();
+  const nowPlaying = useSpotifyNowPlaying();
 
   // Fade in on mount
   useEffect(() => {
@@ -57,13 +118,31 @@ const Home: React.FC = () => {
           isLoaded ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        {/* Top Section - System Label */}
+        {/* Top Section - Live Status */}
         <div className="px-6 md:px-12 lg:px-16 pt-24 md:pt-28">
-          <div className="flex items-center gap-3 pointer-events-none">
-            <div className="w-8 h-[1px] bg-[#2563EB]" />
-            <span className="text-[#2563EB] font-mono text-[9px] md:text-[10px] font-medium uppercase tracking-[0.3em]">
-              System Console / 2025
-            </span>
+          <div className="flex items-start gap-3 pointer-events-none">
+            <div className="w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[6px]" />
+            <div className="font-mono text-[9px] md:text-[10px] font-medium uppercase tracking-[0.3em]">
+              {/* Desktop: single line */}
+              <div className="hidden md:flex items-center gap-2">
+                <span className="text-[#A3A3A3]">NYC</span>
+                <span className="text-[#525252]">·</span>
+                <span className="text-[#A3A3A3]">{clock || '...'}</span>
+                {nowPlaying && (
+                  <>
+                    <span className="text-[#525252]">·</span>
+                    <span className="text-[#2563EB]">♪ {nowPlaying}</span>
+                  </>
+                )}
+              </div>
+              {/* Mobile: two lines */}
+              <div className="md:hidden flex flex-col gap-1 max-w-[280px]">
+                <span className="text-[#A3A3A3]">{clock || '...'}</span>
+                {nowPlaying && (
+                  <span className="text-[#2563EB] truncate">♪ {nowPlaying}</span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -114,7 +193,7 @@ const Home: React.FC = () => {
         </div>
 
         {/* Bottom Section - CTA & Description */}
-        <div className="px-6 md:px-12 lg:px-16 pb-12 md:pb-16">
+        <div className="px-6 md:px-12 lg:px-16 pb-28 sm:pb-20 md:pb-16">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8">
             {/* Description */}
             <p className="text-white/50 text-sm md:text-base max-w-md font-light leading-relaxed pointer-events-none">
@@ -138,23 +217,14 @@ const Home: React.FC = () => {
                 onClick={() => setIsAgentOpen(true)}
                 className="group px-6 md:px-8 py-3.5 md:py-4 border border-white/20 hover:border-[#2563EB] backdrop-blur-sm transition-all hover:scale-[1.02] active:scale-[0.98] bg-black/20 flex items-center gap-2"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#2563EB]"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
-                  />
-                </svg>
                 <span className="font-medium tracking-widest text-[10px] md:text-xs uppercase text-white">
-                  Ask EB
+                  ASK
                 </span>
+                <div className="w-5 h-5 md:w-6 md:h-6 bg-[#0A0A0A] border border-white/30 grid place-items-center">
+                  <span className="text-[#2563EB] font-bold text-[9px] md:text-[10px] font-space-grotesk tracking-tight">
+                    EB
+                  </span>
+                </div>
               </button>
             </div>
           </div>

@@ -11,19 +11,29 @@ This directory contains Supabase Edge Functions for the 2xeb portfolio.
 ## Edge Functions
 
 ### submit-contact
-Handles contact form submissions. Inserts into `contact_messages` table.
+Handles contact form submissions. Inserts into `contact_messages` table and sends email notification via Resend.
 
 - **Endpoint**: `POST /functions/v1/submit-contact`
 - **Input**: `{ name, email, message, reason?, source_page? }`
 - **Output**: `{ success: true }` or error
+- **Email**: Sends notification to email (requires `RESEND_API_KEY`)
 
 ### ask-portfolio
-AI assistant for portfolio questions. Uses Gemini API server-side.
+AI assistant for portfolio questions. Supports multiple models via Groq and Gemini.
 
 - **Endpoint**: `POST /functions/v1/ask-portfolio`
-- **Input**: `{ question, context }`
-- **Output**: `{ answer, projectSlugs }`
-- **Requires**: `GEMINI_API_KEY` secret in Supabase
+- **Input**: `{ question, context, model?, provider? }`
+  - `model`: Specific model ID (e.g., `"llama-3.1-8b-instant"`)
+  - `provider`: `"groq"` (default) or `"gemini"`
+- **Output**: `{ answer, projectSlugs, model, provider }`
+- **Available Models**:
+  | Model ID | Provider | Daily Limit |
+  |----------|----------|-------------|
+  | `llama-3.1-8b-instant` | Groq | 14,400 |
+  | `llama-3.3-70b-versatile` | Groq | 1,000 |
+  | `gemini-2.0-flash` | Gemini | 1,500 |
+- **Security**: Server validates model ID against whitelist
+- **Requires**: `GROQ_API_KEY` and/or `GEMINI_API_KEY` secrets
 
 ## Database Schema
 
@@ -62,7 +72,9 @@ Edge Functions require these secrets (set in Supabase Dashboard > Project Settin
 
 | Secret | Description |
 |--------|-------------|
-| `GEMINI_API_KEY` | Google Gemini API key for ask-portfolio |
+| `GROQ_API_KEY` | Groq API key for ask-portfolio (default, recommended) |
+| `GEMINI_API_KEY` | Google Gemini API key for ask-portfolio (fallback) |
+| `RESEND_API_KEY` | Resend API key for email notifications (submit-contact) |
 
 ## CORS
 

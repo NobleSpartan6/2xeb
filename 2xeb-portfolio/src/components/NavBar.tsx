@@ -160,7 +160,7 @@ const NavBar: React.FC = () => {
             <div className="h-px bg-[#262626] w-full my-4" />
 
             {/* Agent Trigger */}
-            <button 
+            <button
                onClick={() => {
                  setIsOpen(false);
                  // Small delay to allow drawer to close
@@ -168,14 +168,12 @@ const NavBar: React.FC = () => {
                }}
                className="text-left group flex items-center gap-3"
             >
-               <div className="w-10 h-10 rounded-full border border-[#262626] flex items-center justify-center bg-[#0A0A0A] group-hover:border-[#2563EB] transition-colors">
-                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-[#2563EB]">
-                    <path fillRule="evenodd" d="M14.615 1.595a.75.75 0 01.359.852L12.982 9.75h7.268a.75.75 0 01.548 1.262l-10.5 11.25a.75.75 0 01-1.272-.71l1.992-7.302H3.75a.75.75 0 01-.548-1.262l10.5-11.25a.75.75 0 01.913-.143z" clipRule="evenodd" />
-                 </svg>
-               </div>
                <div>
-                 <span className="block text-white text-sm font-bold font-space-grotesk uppercase tracking-wider group-hover:text-[#2563EB] transition-colors">Ask AI Agent</span>
-                 <span className="block text-[#525252] text-[10px] font-mono uppercase tracking-widest">Interact with System</span>
+                 <span className="block text-white text-sm font-bold font-space-grotesk uppercase tracking-wider group-hover:text-[#2563EB] transition-colors">ASK</span>
+                 <span className="block text-[#525252] text-[10px] font-mono uppercase tracking-widest">Portfolio Assistant</span>
+               </div>
+               <div className="w-10 h-10 border border-[#262626] flex items-center justify-center bg-[#0A0A0A] group-hover:border-[#2563EB] transition-colors">
+                 <span className="text-[#2563EB] font-bold text-sm font-space-grotesk tracking-tight">EB</span>
                </div>
             </button>
           </div>

@@ -3,9 +3,13 @@ import AskPortfolioWidget from '../components/AskPortfolioWidget';
 import { PROJECTS } from '../data';
 import ProjectCard from '../components/ProjectCard';
 import { Discipline } from '../lib/types';
+import { useConsole } from '../context/ConsoleContext';
+import { getModelByIdOrDefault } from '../lib/models';
 
 const MLLab: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
+  const { selectedModelId } = useConsole();
+  const currentModel = getModelByIdOrDefault(selectedModelId);
 
   // Ensure we land at the top when navigating to this page
   useEffect(() => {
@@ -57,12 +61,12 @@ const MLLab: React.FC = () => {
               aria-controls="ml-widget-panel"
             >
               <div className="flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-[#2563EB]">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-                </svg>
                 <span className="text-[11px] uppercase tracking-[0.15em] text-[#a3a3a3]">
-                  Ask EB
+                  ASK
                 </span>
+                <div className="w-6 h-6 bg-[#0A0A0A] border border-[#1f2937] grid place-items-center">
+                  <span className="text-[#2563EB] font-bold text-[10px] font-space-grotesk tracking-tight">EB</span>
+                </div>
               </div>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -89,7 +93,7 @@ const MLLab: React.FC = () => {
                   <AskPortfolioWidget compact />
                 </div>
                 <p className="text-[10px] text-[#404040] text-center font-mono uppercase tracking-widest mt-3 pb-4">
-                  Model: Gemini 2.5 Flash · Context: Project Metadata
+                  Model: {currentModel.name} · Context: Project Metadata
                 </p>
               </div>
             </div>
