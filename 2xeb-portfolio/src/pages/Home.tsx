@@ -120,8 +120,8 @@ const Home: React.FC = () => {
           contentVisible ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        {/* Top Section - Live Status */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-16 md:pt-28 2xl:pt-32 3xl:pt-36 flex-shrink-0">
+        {/* Top Section - Live Status (hidden on mobile for space) */}
+        <div className="hidden sm:block px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-16 md:pt-28 2xl:pt-32 3xl:pt-36 flex-shrink-0">
           <div className="flex items-start gap-3 pointer-events-none">
             <div className="w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[6px]" />
             <div className="font-mono text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.3em]">
@@ -195,7 +195,7 @@ const Home: React.FC = () => {
         </div>
 
         {/* Bottom Section - CTA & Description */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-4 sm:pb-6 md:pb-16 2xl:pb-20 3xl:pb-24 flex-shrink-0">
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-16 sm:pb-6 md:pb-16 2xl:pb-20 3xl:pb-24 flex-shrink-0">
           <div className="flex flex-col-reverse md:flex-row md:items-end md:justify-between gap-3 sm:gap-4 md:gap-8 2xl:gap-12">
             {/* Description */}
             <p className="text-white/50 text-[11px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[280px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-relaxed pointer-events-none">
