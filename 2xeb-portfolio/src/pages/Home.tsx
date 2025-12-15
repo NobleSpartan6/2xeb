@@ -123,7 +123,7 @@ const Home: React.FC = () => {
         {/* Top Section - Live Status */}
         <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-16 md:pt-28 2xl:pt-32 3xl:pt-36 flex-shrink-0">
           <div className="flex items-start gap-3 pointer-events-none">
-            <div className="w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[6px] md:block hidden" />
+            <div className="w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[6px]" />
             <div className="font-mono text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.3em]">
               {/* Desktop: single line */}
               <div className="hidden md:flex items-center gap-2">
@@ -137,17 +137,11 @@ const Home: React.FC = () => {
                   </>
                 )}
               </div>
-              {/* Mobile: compact single line with song on second line if playing */}
-              <div className="md:hidden">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-[1px] bg-[#2563EB] flex-shrink-0" />
-                  <span className="text-[#A3A3A3]">{clock || '...'}</span>
-                </div>
+              {/* Mobile: two lines */}
+              <div className="md:hidden flex flex-col gap-1 max-w-[280px]">
+                <span className="text-[#A3A3A3]">{clock || '...'}</span>
                 {nowPlaying && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="w-6 h-[1px] bg-transparent flex-shrink-0" />
-                    <span className="text-[#2563EB] truncate max-w-[260px]">♪ {nowPlaying}</span>
-                  </div>
+                  <span className="text-[#2563EB] truncate">♪ {nowPlaying}</span>
                 )}
               </div>
             </div>
