@@ -126,7 +126,7 @@ const Home: React.FC = () => {
         }`}
       >
         {/* Top Section - Live Status */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-20 md:pt-28 2xl:pt-32 3xl:pt-36 flex-shrink-0">
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-24 md:pt-28 2xl:pt-32 3xl:pt-36 flex-shrink-0">
           <div className="flex items-start gap-2 sm:gap-3 pointer-events-none">
             <div className="w-6 sm:w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[5px] sm:mt-[6px]" />
             <div className="font-mono text-[8px] sm:text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.2em] sm:tracking-[0.3em]">
