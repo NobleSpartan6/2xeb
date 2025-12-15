@@ -89,7 +89,7 @@ const Home: React.FC = () => {
   }, [setFocusedDiscipline]);
 
   return (
-    <div className="relative w-full h-[100dvh] overflow-hidden bg-[#050505]" style={{ minHeight: '-webkit-fill-available' }}>
+    <div className="relative w-full h-[100dvh] overflow-hidden bg-[#050505]" style={{ height: '-webkit-fill-available' }}>
 
       {/* 3D Background - Full Screen Immersive */}
       <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${sceneReady ? 'opacity-100' : 'opacity-0'}`}>
