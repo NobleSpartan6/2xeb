@@ -381,7 +381,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
                     onKeyDown={handleEditKeyDown}
-                    className="w-full bg-[#0A0A0A] border border-[#1f2937] px-3 py-2 text-white focus:outline-none focus:border-[#2563EB] text-[13px] font-mono"
+                    className="w-full bg-[#0A0A0A] border border-[#1f2937] px-3 py-2 text-white focus:outline-none focus:border-[#2563EB] text-[16px] sm:text-[13px] font-mono"
                     placeholder="Edit your message..."
                   />
                   <div className="flex gap-2 justify-end">
@@ -549,7 +549,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
             onChange={(e) => setQuestion(e.target.value)}
             placeholder={editingIdx !== null ? "Finish editing above..." : "Ask me anything..."}
             disabled={editingIdx !== null}
-            className="w-full bg-[#0A0A0A] border border-[#1f2937] pl-4 pr-12 py-3 text-white focus:outline-none focus:border-[#2563EB] transition-colors text-[13px] placeholder-[#525252] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[#0A0A0A] border border-[#1f2937] pl-4 pr-12 py-3 text-white focus:outline-none focus:border-[#2563EB] transition-colors text-[16px] sm:text-[13px] placeholder-[#525252] disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Ask EB about this portfolio"
           />
           <button
