@@ -49,24 +49,24 @@ const NavBar: React.FC = () => {
       {/* Main Header */}
       <nav className="fixed top-0 left-0 w-full z-[100] text-white pointer-events-none">
         <div
-          className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12 pointer-events-auto"
+          className="max-w-[1800px] 3xl:max-w-[2200px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-20 3xl:px-24 pointer-events-auto"
           style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
         >
-          <div className="relative flex items-center justify-between h-[74px] sm:h-[82px] md:h-[100px] rounded-2xl px-4 md:px-6 lg:px-8 bg-gradient-to-b from-[#050505]/85 via-[#050505]/75 to-transparent backdrop-blur-xl border border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.25)]">
+          <div className="relative flex items-center justify-between h-[74px] sm:h-[82px] md:h-[100px] 2xl:h-[110px] 3xl:h-[120px] rounded-2xl px-4 md:px-6 lg:px-8 2xl:px-10 3xl:px-12 bg-gradient-to-b from-[#050505]/85 via-[#050505]/75 to-transparent backdrop-blur-xl border border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.25)]">
             <div className="flex-shrink-0 z-50">
-              <Link to="/" className="text-white font-bold text-xl sm:text-2xl tracking-tighter font-space-grotesk hover:text-[#2563EB] transition-colors">
+              <Link to="/" className="text-white font-bold text-xl sm:text-2xl 2xl:text-3xl 3xl:text-4xl tracking-tighter font-space-grotesk hover:text-[#2563EB] transition-colors">
                 2XEB
               </Link>
             </div>
             
             {/* Desktop Nav */}
             <div className="hidden md:block">
-              <div className="flex items-baseline space-x-6 lg:space-x-10">
+              <div className="flex items-baseline space-x-6 lg:space-x-10 2xl:space-x-12 3xl:space-x-14">
                 {navLinks.map((link) => (
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-200 font-mono ${
+                    className={`text-[11px] 2xl:text-xs 3xl:text-sm font-bold uppercase tracking-[0.15em] transition-all duration-200 font-mono ${
                       isActive(link.path)
                         ? 'text-[#2563EB]'
                         : 'text-[#A3A3A3] hover:text-white'

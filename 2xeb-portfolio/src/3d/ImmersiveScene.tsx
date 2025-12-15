@@ -5,11 +5,29 @@ import { useConsole, ConsoleContext } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
 
 // --- RESPONSIVE CONFIGURATION ---
-const getGridConfig = (isMobile: boolean) => ({
-  gridSize: isMobile ? 24 : 40,
-  cellSize: isMobile ? 0.6 : 0.5,
-  gap: 0.08,
-});
+type ScreenSize = 'mobile' | 'desktop' | 'large' | 'ultrawide';
+
+const getGridConfig = (screenSize: ScreenSize) => {
+  switch (screenSize) {
+    case 'mobile':
+      return { gridSize: 24, cellSize: 0.6, gap: 0.08 };
+    case 'desktop':
+      return { gridSize: 40, cellSize: 0.5, gap: 0.08 };
+    case 'large': // 1440p displays
+      return { gridSize: 50, cellSize: 0.45, gap: 0.07 };
+    case 'ultrawide': // 4K displays
+      return { gridSize: 56, cellSize: 0.42, gap: 0.06 };
+    default:
+      return { gridSize: 40, cellSize: 0.5, gap: 0.08 };
+  }
+};
+
+const getScreenSize = (width: number): ScreenSize => {
+  if (width < 768) return 'mobile';
+  if (width < 1920) return 'desktop';
+  if (width < 2400) return 'large';
+  return 'ultrawide';
+};
 
 const CELL_SIZE = 0.5;
 const GAP = 0.08;
@@ -323,35 +341,60 @@ interface ImmersiveSceneProps {
 
 const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '' }) => {
   const consoleCtx = useConsole();
-  const [isMobile, setIsMobile] = useState(false);
+  const [screenSize, setScreenSize] = useState<ScreenSize>('desktop');
 
-  // Detect mobile/small screens
+  // Detect screen size for responsive 3D rendering
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+    const checkScreenSize = () => {
+      setScreenSize(getScreenSize(window.innerWidth));
     };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  const config = getGridConfig(isMobile);
+  const config = getGridConfig(screenSize);
+  const isMobile = screenSize === 'mobile';
+  const isLargeScreen = screenSize === 'large' || screenSize === 'ultrawide';
+
+  // DPR settings based on screen size
+  const getDpr = (): [number, number] => {
+    if (isMobile) return [1, 1];
+    if (isLargeScreen) return [1, 2]; // Higher DPR for sharper rendering on 1440p+
+    return [1, 1.5];
+  };
+
+  // FOV settings - wider on mobile, narrower on large screens for more detail
+  const getFov = (): number => {
+    if (isMobile) return 55;
+    if (isLargeScreen) return 40;
+    return 45;
+  };
+
+  // Fog settings based on screen size
+  const getFog = (): [number, number] => {
+    if (isMobile) return [10, 30];
+    if (isLargeScreen) return [18, 50]; // More visible depth on large screens
+    return [15, 40];
+  };
+
+  const fogSettings = getFog();
 
   return (
     <div className={`w-full h-full ${className}`}>
       <Canvas
-        dpr={isMobile ? [1, 1] : [1, 1.5]} // Lower DPR on mobile
-        camera={{ position: [0, 12, 16], fov: isMobile ? 55 : 45, near: 0.1, far: 100 }}
+        dpr={getDpr()}
+        camera={{ position: [0, 12, 16], fov: getFov(), near: 0.1, far: 100 }}
         gl={{
           antialias: !isMobile, // Disable antialiasing on mobile for performance
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.2,
+          toneMappingExposure: isLargeScreen ? 1.3 : 1.2, // Slightly brighter on large screens
           powerPreference: 'high-performance',
         }}
       >
         <ConsoleContext.Provider value={consoleCtx}>
           <color attach="background" args={['#050505']} />
-          <fog attach="fog" args={['#050505', isMobile ? 10 : 15, isMobile ? 30 : 40]} />
+          <fog attach="fog" args={['#050505', fogSettings[0], fogSettings[1]]} />
 
           {/* Ambient lighting */}
           <ambientLight intensity={0.15} />
