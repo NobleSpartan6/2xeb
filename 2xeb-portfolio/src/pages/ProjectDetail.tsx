@@ -1,12 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { PROJECTS } from '../data';
+import { getCaseStudyBySlug } from '../data';
+import { useProject } from '../hooks/useProjects';
 import DisciplineChip from '../components/DisciplineChip';
+
+// Lazy load CaseStudyExplorer - only loaded when needed
+const CaseStudyExplorer = lazy(() => import('../components/CaseStudyExplorer'));
+
+const EPHEMERAL_HOURS_ODYSEE_EMBED =
+  'https://odysee.com/%24/embed/%40eb%3Aa%2Fephemeral-hours%3A3?r=2zdYftvSYxTuxhE2pwEBMC4xs2uQSbnC';
 
 const ProjectDetail: React.FC = () => {
   const { slug } = useParams();
-  const project = PROJECTS.find(p => p.slug === slug);
+  // SWR: static data immediately, DB fetch in background
+  const { project } = useProject(slug || '');
+  const caseStudy = slug ? getCaseStudyBySlug(slug) : undefined;
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showCaseStudy, setShowCaseStudy] = useState(false);
 
   if (!project) {
     return (
@@ -67,7 +77,8 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
-  const embedUrl = getEmbedUrl(project.videoUrl);
+  const isEphemeralHours = project.slug === 'ephemeral-hours';
+  const embedUrl = isEphemeralHours ? EPHEMERAL_HOURS_ODYSEE_EMBED : getEmbedUrl(project.videoUrl);
 
   return (
     <article className="min-h-screen pt-32 pb-20 px-6 md:px-12 max-w-6xl mx-auto bg-[#050505]">
@@ -99,17 +110,28 @@ const ProjectDetail: React.FC = () => {
 
       <div className="w-full aspect-video bg-[#0A0A0A] border border-[#262626] mb-16 relative overflow-hidden group">
         {embedUrl && isPlaying ? (
-           <iframe 
-             width="100%" 
-             height="100%" 
-             src={embedUrl}
-             title={project.title} 
-             frameBorder="0" 
-             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-             referrerPolicy="strict-origin-when-cross-origin"
-             allowFullScreen
-             className="absolute inset-0"
-           ></iframe>
+          isEphemeralHours ? (
+            <iframe
+              id="odysee-iframe"
+              style={{ width: '100%', aspectRatio: '16 / 9' }}
+              src={embedUrl}
+              title={project.title}
+              allowFullScreen
+              className="absolute inset-0 w-full h-full"
+            ></iframe>
+          ) : (
+            <iframe 
+              width="100%" 
+              height="100%" 
+              src={embedUrl}
+              title={project.title} 
+              frameBorder="0" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+              className="absolute inset-0"
+            ></iframe>
+          )
         ) : (
            <div className="absolute inset-0 cursor-pointer" onClick={() => embedUrl && setIsPlaying(true)}>
              <img 
@@ -178,8 +200,44 @@ const ProjectDetail: React.FC = () => {
             <h2 className="text-2xl text-white font-bold font-space-grotesk mb-4 tracking-tight">Overview</h2>
             <p>{project.longDesc || project.shortDesc}</p>
           </section>
+          
+          {/* Case Study Button - only for projects with case studies */}
+          {caseStudy && !showCaseStudy && (
+            <button
+              onClick={() => setShowCaseStudy(true)}
+              className="flex items-center gap-3 px-6 py-4 border border-[#2563EB] bg-[#2563EB]/5 hover:bg-[#2563EB]/10 transition-colors group"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-[#2563EB]">
+                <path d="M10.75 16.82A7.462 7.462 0 0115 15.5c.71 0 1.396.098 2.046.282A.75.75 0 0018 15.06v-11a.75.75 0 00-.546-.721A9.006 9.006 0 0015 3a8.963 8.963 0 00-4.25 1.065V16.82zM9.25 4.065A8.963 8.963 0 005 3c-.85 0-1.673.118-2.454.339A.75.75 0 002 4.06v11a.75.75 0 00.954.721A7.506 7.506 0 015 15.5c1.579 0 3.042.487 4.25 1.32V4.065z" />
+              </svg>
+              <div className="text-left">
+                <span className="text-white font-semibold block text-sm">Explore Case Study</span>
+                <span className="text-[#737373] text-xs">Technical deep-dive with code patterns</span>
+              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-[#525252] group-hover:text-[#2563EB] transition-colors ml-auto">
+                <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
+      
+      {/* Case Study Explorer - Lazy Loaded */}
+      {caseStudy && showCaseStudy && (
+        <div className="mt-16 border-t border-[#262626] pt-16">
+          <Suspense fallback={
+            <div className="flex items-center justify-center py-20">
+              <div className="flex gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-bounce" style={{ animationDelay: '0s' }}></span>
+                <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-bounce" style={{ animationDelay: '0.15s' }}></span>
+                <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-bounce" style={{ animationDelay: '0.3s' }}></span>
+              </div>
+            </div>
+          }>
+            <CaseStudyExplorer caseStudy={caseStudy} onClose={() => setShowCaseStudy(false)} />
+          </Suspense>
+        </div>
+      )}
     </article>
   );
 };

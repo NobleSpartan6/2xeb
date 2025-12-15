@@ -1,14 +1,26 @@
-import React, { useState } from 'react';
-import { PROJECTS } from '../data';
+import React, { useState, useMemo } from 'react';
+import { useProjects } from '../hooks/useProjects';
 import { Discipline } from '../lib/types';
 import ProjectCard from '../components/ProjectCard';
 
+const EPHEMERAL_HOURS_ODYSEE_EMBED =
+  'https://odysee.com/%24/embed/%40eb%3Aa%2Fephemeral-hours%3A3?r=2zdYftvSYxTuxhE2pwEBMC4xs2uQSbnC';
+
 const Video: React.FC = () => {
-  const videoProjects = PROJECTS.filter(p => p.primaryDiscipline === Discipline.VIDEO || p.primaryDiscipline === Discipline.HYBRID);
-  
+  // SWR: static data immediately, DB fetch in background
+  const { projects } = useProjects();
+
+  const videoProjects = useMemo(() =>
+    projects.filter(p => p.primaryDiscipline === Discipline.VIDEO || p.primaryDiscipline === Discipline.HYBRID),
+    [projects]
+  );
+
   // Find specific showreel project "Ephemeral Hours" or fallback to first video
-  const showreelProject = PROJECTS.find(p => p.slug === 'ephemeral-hours') || videoProjects[0];
-  
+  const showreelProject = useMemo(() =>
+    projects.find(p => p.slug === 'ephemeral-hours') || videoProjects[0],
+    [projects, videoProjects]
+  );
+
   const [isPlaying, setIsPlaying] = useState(false);
 
   const getEmbedUrl = (url?: string) => {
@@ -56,7 +68,10 @@ const Video: React.FC = () => {
     }
   };
 
-  const showreelEmbed = getEmbedUrl(showreelProject?.videoUrl);
+  const isEphemeralHoursShowreel = showreelProject?.slug === 'ephemeral-hours';
+  const showreelEmbed = isEphemeralHoursShowreel
+    ? EPHEMERAL_HOURS_ODYSEE_EMBED
+    : getEmbedUrl(showreelProject?.videoUrl);
 
   return (
     <div className="min-h-screen pt-28 md:pt-32 pb-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto bg-[#050505]">
@@ -70,27 +85,38 @@ const Video: React.FC = () => {
         <p className="text-[#A3A3A3] font-mono uppercase tracking-widest text-[11px] md:text-xs">Cinematography · Editing · Motion Design</p>
       </div>
 
-      {/* Showreel Section */}
-      {showreelProject && (
-        <div className="mb-32 max-w-6xl mx-auto">
-          <div className="aspect-video w-full bg-black overflow-hidden border border-[#262626] relative group">
-            {isPlaying && showreelEmbed ? (
-               <iframe 
-                 width="100%" 
-                 height="100%" 
-                 src={showreelEmbed}
-                 title={showreelProject.title} 
-                 frameBorder="0" 
-                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                 referrerPolicy="strict-origin-when-cross-origin"
-                 allowFullScreen
-                 className="absolute inset-0"
-               ></iframe>
-            ) : (
-               <div className="absolute inset-0 cursor-pointer" onClick={() => setIsPlaying(true)}>
-                 <img 
-                    src={showreelProject.imageUrl} 
-                    alt="Showreel Cover" 
+	      {/* Showreel Section */}
+	      {showreelProject && (
+	        <div className="mb-32 max-w-6xl mx-auto">
+	          <div className="aspect-video w-full bg-black overflow-hidden border border-[#262626] relative group">
+	            {isPlaying && showreelEmbed ? (
+                isEphemeralHoursShowreel ? (
+                  <iframe
+                    id="odysee-iframe"
+                    style={{ width: '100%', aspectRatio: '16 / 9' }}
+                    src={showreelEmbed}
+                    title={showreelProject.title}
+                    allowFullScreen
+                    className="absolute inset-0 w-full h-full"
+                  ></iframe>
+                ) : (
+                  <iframe 
+                    width="100%" 
+                    height="100%" 
+                    src={showreelEmbed}
+                    title={showreelProject.title} 
+                    frameBorder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                    className="absolute inset-0"
+                  ></iframe>
+                )
+              ) : (
+	               <div className="absolute inset-0 cursor-pointer" onClick={() => setIsPlaying(true)}>
+	                 <img 
+	                    src={showreelProject.imageUrl} 
+	                    alt="Showreel Cover" 
                     loading="lazy"
                     width="1920"
                     height="1080"
