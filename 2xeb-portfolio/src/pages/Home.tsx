@@ -88,6 +88,11 @@ const Home: React.FC = () => {
     setFocusedDiscipline(lane);
   }, [setFocusedDiscipline]);
 
+  // Tap to toggle on mobile
+  const handleDisciplineClick = useCallback((lane: ConsoleLane) => {
+    setFocusedDiscipline(prev => prev === lane ? null : lane);
+  }, [setFocusedDiscipline]);
+
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden bg-[#050505]" style={{ minHeight: '-webkit-fill-available' }}>
 
@@ -120,11 +125,11 @@ const Home: React.FC = () => {
           contentVisible ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        {/* Top Section - Live Status (hidden on mobile for space) */}
-        <div className="hidden sm:block px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-16 md:pt-28 2xl:pt-32 3xl:pt-36 flex-shrink-0">
-          <div className="flex items-start gap-3 pointer-events-none">
-            <div className="w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[6px]" />
-            <div className="font-mono text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.3em]">
+        {/* Top Section - Live Status */}
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-16 md:pt-28 2xl:pt-32 3xl:pt-36 flex-shrink-0">
+          <div className="flex items-start gap-2 sm:gap-3 pointer-events-none">
+            <div className="w-6 sm:w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[5px] sm:mt-[6px]" />
+            <div className="font-mono text-[8px] sm:text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.2em] sm:tracking-[0.3em]">
               {/* Desktop: single line */}
               <div className="hidden md:flex items-center gap-2">
                 <span className="text-[#A3A3A3]">NYC</span>
@@ -137,8 +142,8 @@ const Home: React.FC = () => {
                   </>
                 )}
               </div>
-              {/* Mobile: two lines */}
-              <div className="md:hidden flex flex-col gap-1 max-w-[280px]">
+              {/* Mobile/Tablet: compact */}
+              <div className="md:hidden flex flex-col gap-0.5 max-w-[260px]">
                 <span className="text-[#A3A3A3]">{clock || '...'}</span>
                 {nowPlaying && (
                   <span className="text-[#2563EB] truncate">♪ {nowPlaying}</span>
@@ -155,31 +160,32 @@ const Home: React.FC = () => {
               {DISCIPLINES.map(({ lane, label, color }) => (
                 <span
                   key={lane}
-                  className="block transition-all duration-500 ease-out cursor-default pointer-events-auto"
+                  className="block transition-all duration-500 ease-out cursor-pointer pointer-events-auto active:scale-[0.98]"
                   style={{
                     fontSize: 'clamp(2.75rem, 10vw, 14rem)',
                     color: focusedDiscipline === lane ? color : '#ffffff',
                     opacity: focusedDiscipline && focusedDiscipline !== lane ? 0.15 : 1,
-                    transform: focusedDiscipline === lane ? 'translateX(12px)' : 'translateX(0)',
+                    transform: focusedDiscipline === lane ? 'translateX(8px)' : 'translateX(0)',
                     textShadow: focusedDiscipline === lane ? `0 0 80px ${color}40` : 'none',
                   }}
                   onMouseEnter={() => handleDisciplineHover(lane)}
                   onMouseLeave={() => handleDisciplineHover(null)}
+                  onClick={() => handleDisciplineClick(lane)}
                 >
                   {label}
                 </span>
               ))}
             </h1>
 
-            {/* Discipline description that appears on hover - hidden on mobile (no hover) */}
+            {/* Discipline description that appears on hover/tap */}
             <div
-              className="hidden sm:block h-8 2xl:h-10 mt-6 2xl:mt-8 3xl:mt-10 overflow-hidden transition-all duration-300"
+              className="h-5 sm:h-8 2xl:h-10 mt-3 sm:mt-6 2xl:mt-8 3xl:mt-10 overflow-hidden transition-all duration-300"
               style={{ opacity: focusedDiscipline ? 1 : 0 }}
             >
               {DISCIPLINES.map(({ lane, description, color }) => (
                 <p
                   key={lane}
-                  className="font-mono text-xs 2xl:text-sm 3xl:text-base tracking-widest uppercase transition-all duration-300"
+                  className="font-mono text-[10px] sm:text-xs 2xl:text-sm 3xl:text-base tracking-widest uppercase transition-all duration-300"
                   style={{
                     color: color,
                     opacity: focusedDiscipline === lane ? 1 : 0,
