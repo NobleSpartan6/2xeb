@@ -37,6 +37,39 @@ const ScrollToTop = () => {
   return null;
 };
 
+// Dynamic page title hook
+const usePageTitle = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const pageTitles: Record<string, string> = {
+      '/': 'Home',
+      '/work': 'Work',
+      '/ml-lab': 'ML Lab',
+      '/video': 'Video',
+      '/about': 'About',
+      '/contact': 'Contact',
+    };
+
+    let title = 'Home';
+
+    if (pathname.startsWith('/admin')) {
+      title = 'Admin';
+    } else if (pathname.startsWith('/work/')) {
+      title = 'Project';
+    } else if (pageTitles[pathname]) {
+      title = pageTitles[pathname];
+    }
+
+    document.title = `eb - ${title}`;
+  }, [pathname]);
+};
+
+const PageTitle = () => {
+  usePageTitle();
+  return null;
+};
+
 // Close chat drawer on route change to avoid misalignment when navigating
 const CloseAgentOnRouteChange = () => {
   const { pathname } = useLocation();
@@ -123,6 +156,7 @@ const App: React.FC = () => {
       <ConsoleProvider>
         <Router>
           <ScrollToTop />
+          <PageTitle />
           <PublicLayout>
             <Routes>
               {/* Public routes */}
