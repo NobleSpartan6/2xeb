@@ -88,12 +88,6 @@ const Home: React.FC = () => {
     setFocusedDiscipline(lane);
   }, [setFocusedDiscipline]);
 
-  // Handle touch/click for mobile discipline selection
-  const handleDisciplineClick = useCallback((lane: ConsoleLane) => {
-    // Toggle: if already focused, unfocus; otherwise focus
-    setFocusedDiscipline(prev => prev === lane ? null : lane);
-  }, [setFocusedDiscipline]);
-
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden bg-[#050505]" style={{ minHeight: '-webkit-fill-available' }}>
 
@@ -122,12 +116,12 @@ const Home: React.FC = () => {
 
       {/* Content Layer */}
       <div
-        className={`absolute inset-0 z-20 flex flex-col transition-opacity duration-1000 ease-out ${
+        className={`absolute inset-0 z-20 flex flex-col justify-between transition-opacity duration-1000 ease-out ${
           contentVisible ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        {/* Desktop: Top Section - Live Status (hidden on mobile) */}
-        <div className="hidden sm:block px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-10 md:pt-28 2xl:pt-32 3xl:pt-36 flex-shrink-0">
+        {/* Top Section - Live Status (hidden on mobile for space) */}
+        <div className="hidden sm:block px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-16 md:pt-28 2xl:pt-32 3xl:pt-36 flex-shrink-0">
           <div className="flex items-start gap-3 pointer-events-none">
             <div className="w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[6px]" />
             <div className="font-mono text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.3em]">
@@ -143,51 +137,49 @@ const Home: React.FC = () => {
                   </>
                 )}
               </div>
-              {/* Tablet: two lines */}
-              <div className="md:hidden flex flex-col gap-0.5 max-w-[280px]">
+              {/* Mobile: two lines */}
+              <div className="md:hidden flex flex-col gap-1 max-w-[280px]">
                 <span className="text-[#A3A3A3]">{clock || '...'}</span>
                 {nowPlaying && (
-                  <span className="text-[#2563EB] truncate text-[8px]">♪ {nowPlaying}</span>
+                  <span className="text-[#2563EB] truncate">♪ {nowPlaying}</span>
                 )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col sm:justify-center px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-20 sm:pt-0">
+        {/* Center Section - Main Typography */}
+        <div className="flex-grow md:flex-1 flex items-center px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 min-h-0">
           <div className="w-full max-w-7xl 2xl:max-w-[1400px] 3xl:max-w-[1800px]">
-            {/* Main Typography */}
             <h1 className="font-space-grotesk font-bold leading-[0.85] tracking-tighter select-none">
               {DISCIPLINES.map(({ lane, label, color }) => (
                 <span
                   key={lane}
-                  className="block transition-all duration-500 ease-out cursor-pointer pointer-events-auto active:scale-[0.98]"
+                  className="block transition-all duration-500 ease-out cursor-default pointer-events-auto"
                   style={{
-                    fontSize: 'clamp(2.75rem, 13vw, 14rem)',
+                    fontSize: 'clamp(2.75rem, 10vw, 14rem)',
                     color: focusedDiscipline === lane ? color : '#ffffff',
                     opacity: focusedDiscipline && focusedDiscipline !== lane ? 0.15 : 1,
-                    transform: focusedDiscipline === lane ? 'translateX(8px)' : 'translateX(0)',
+                    transform: focusedDiscipline === lane ? 'translateX(12px)' : 'translateX(0)',
                     textShadow: focusedDiscipline === lane ? `0 0 80px ${color}40` : 'none',
                   }}
                   onMouseEnter={() => handleDisciplineHover(lane)}
                   onMouseLeave={() => handleDisciplineHover(null)}
-                  onClick={() => handleDisciplineClick(lane)}
                 >
                   {label}
                 </span>
               ))}
             </h1>
 
-            {/* Discipline description - shows on hover/tap */}
+            {/* Discipline description that appears on hover - hidden on mobile (no hover) */}
             <div
-              className="h-6 sm:h-8 2xl:h-10 mt-3 sm:mt-6 2xl:mt-8 3xl:mt-10 overflow-hidden transition-all duration-300"
+              className="hidden sm:block h-8 2xl:h-10 mt-6 2xl:mt-8 3xl:mt-10 overflow-hidden transition-all duration-300"
               style={{ opacity: focusedDiscipline ? 1 : 0 }}
             >
               {DISCIPLINES.map(({ lane, description, color }) => (
                 <p
                   key={lane}
-                  className="font-mono text-[10px] sm:text-xs 2xl:text-sm 3xl:text-base tracking-widest uppercase transition-all duration-300"
+                  className="font-mono text-xs 2xl:text-sm 3xl:text-base tracking-widest uppercase transition-all duration-300"
                   style={{
                     color: color,
                     opacity: focusedDiscipline === lane ? 1 : 0,
@@ -199,36 +191,23 @@ const Home: React.FC = () => {
                 </p>
               ))}
             </div>
-
-            {/* Mobile: Tap hint */}
-            <p
-              className="sm:hidden font-mono text-[9px] text-white/30 tracking-wider uppercase mt-4 transition-opacity duration-300"
-              style={{ opacity: focusedDiscipline ? 0 : 1 }}
-            >
-              Tap to explore
-            </p>
           </div>
         </div>
 
         {/* Bottom Section - CTA & Description */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-20 sm:pb-8 md:pb-16 2xl:pb-20 3xl:pb-24 flex-shrink-0">
-          {/* Mobile: Compact description */}
-          <p className="sm:hidden text-white/40 text-[10px] max-w-[280px] font-light leading-relaxed mb-4 pointer-events-none">
-            Software engineering, machine learning, and visual storytelling.
-          </p>
-
-          <div className="flex flex-col-reverse md:flex-row md:items-end md:justify-between gap-4 md:gap-8 2xl:gap-12">
-            {/* Desktop: Full description */}
-            <p className="hidden sm:block text-white/50 text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-relaxed pointer-events-none">
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-16 sm:pb-6 md:pb-16 2xl:pb-20 3xl:pb-24 flex-shrink-0">
+          <div className="flex flex-col-reverse md:flex-row md:items-end md:justify-between gap-3 sm:gap-4 md:gap-8 2xl:gap-12">
+            {/* Description */}
+            <p className="text-white/50 text-[11px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[280px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-relaxed pointer-events-none">
               A multidisciplinary portfolio exploring the intersection of software engineering,
               machine learning, and visual storytelling.
             </p>
 
-            {/* CTAs */}
+            {/* CTAs - rendered first on mobile due to flex-col-reverse */}
             <div className="flex gap-3 2xl:gap-4 pointer-events-auto flex-shrink-0">
               <Link
                 to="/work"
-                className="group relative px-6 md:px-8 2xl:px-10 3xl:px-12 py-3 md:py-4 2xl:py-5 bg-[#2563EB] overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center"
+                className="group relative px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 bg-[#2563EB] overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center"
               >
                 <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
                 <span className="relative font-medium tracking-widest text-[10px] md:text-xs 2xl:text-sm uppercase text-white group-hover:text-black transition-colors z-10 whitespace-nowrap">
@@ -238,7 +217,7 @@ const Home: React.FC = () => {
 
               <button
                 onClick={() => setIsAgentOpen(true)}
-                className="group px-6 md:px-8 2xl:px-10 3xl:px-12 py-3 md:py-4 2xl:py-5 border border-white/20 hover:border-[#2563EB] backdrop-blur-sm transition-all hover:scale-[1.02] active:scale-[0.98] bg-black/20 flex items-center gap-2 2xl:gap-3"
+                className="group px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 border border-white/20 hover:border-[#2563EB] backdrop-blur-sm transition-all hover:scale-[1.02] active:scale-[0.98] bg-black/20 flex items-center gap-2 2xl:gap-3"
               >
                 <span className="font-medium tracking-widest text-[10px] md:text-xs 2xl:text-sm uppercase text-white">
                   ASK
