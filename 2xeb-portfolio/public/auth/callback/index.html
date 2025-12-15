@@ -59,21 +59,26 @@
     <div class="logo pulse"><span>EB</span></div>
     <p class="status" id="status">Authenticating...</p>
     <p class="error" id="error" style="display:none;"></p>
-    <pre class="debug" id="debug"></pre>
+    <pre class="debug" id="debug" style="display:none;"></pre>
   </div>
 
   <script>
     const SUPABASE_URL = 'https://zrawfgpjfkohjaqcfgrd.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYXdmZ3BqZmtvaGphcWNmZ3JkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDE4ODYsImV4cCI6MjA4MDQxNzg4Nn0.D9PYBklsgjVjt7g7b7OfJuOGSOZu8tboXZRgBTMrj9g';
     const STORAGE_KEY = 'sb-zrawfgpjfkohjaqcfgrd-auth-token';
+    // Debug flag - set to false for production
+    const DEBUG = false;
 
     const statusEl = document.getElementById('status');
     const errorEl = document.getElementById('error');
     const debugEl = document.getElementById('debug');
 
     function log(msg) {
-      console.log('[Callback]', msg);
-      debugEl.textContent += msg + '\n';
+      if (DEBUG) {
+        debugEl.style.display = 'block';
+        console.log('[Callback]', msg);
+        debugEl.textContent += msg + '\n';
+      }
     }
 
     function showError(message) {
@@ -254,7 +259,7 @@
         }, 500);
 
       } catch (err) {
-        console.error('[Callback] Error:', err);
+        if (DEBUG) console.error('[Callback] Error:', err);
         showError(err.message);
 
         setTimeout(() => {
