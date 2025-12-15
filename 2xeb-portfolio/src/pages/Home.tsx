@@ -121,7 +121,7 @@ const Home: React.FC = () => {
         }`}
       >
         {/* Top Section - Live Status */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-16 md:pt-28 2xl:pt-32 3xl:pt-36 flex-shrink-0">
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-6 sm:pt-10 md:pt-28 2xl:pt-32 3xl:pt-36 flex-shrink-0">
           <div className="flex items-start gap-3 pointer-events-none">
             <div className="w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[6px]" />
             <div className="font-mono text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.3em]">
@@ -149,7 +149,7 @@ const Home: React.FC = () => {
         </div>
 
         {/* Center Section - Main Typography */}
-        <div className="flex-grow md:flex-1 flex items-center px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 min-h-0">
+        <div className="flex-1 flex items-start sm:items-center px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 min-h-0 pt-4 sm:pt-0">
           <div className="w-full max-w-7xl 2xl:max-w-[1400px] 3xl:max-w-[1800px]">
             <h1 className="font-space-grotesk font-bold leading-[0.85] tracking-tighter select-none">
               {DISCIPLINES.map(({ lane, label, color }) => (
@@ -157,7 +157,7 @@ const Home: React.FC = () => {
                   key={lane}
                   className="block transition-all duration-500 ease-out cursor-default pointer-events-auto"
                   style={{
-                    fontSize: 'clamp(2.75rem, 10vw, 14rem)',
+                    fontSize: 'clamp(2.5rem, 12vw, 14rem)',
                     color: focusedDiscipline === lane ? color : '#ffffff',
                     opacity: focusedDiscipline && focusedDiscipline !== lane ? 0.15 : 1,
                     transform: focusedDiscipline === lane ? 'translateX(12px)' : 'translateX(0)',
@@ -195,7 +195,7 @@ const Home: React.FC = () => {
         </div>
 
         {/* Bottom Section - CTA & Description */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-4 sm:pb-6 md:pb-16 2xl:pb-20 3xl:pb-24 flex-shrink-0">
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-6 sm:pb-8 md:pb-16 2xl:pb-20 3xl:pb-24 flex-shrink-0">
           <div className="flex flex-col-reverse md:flex-row md:items-end md:justify-between gap-3 sm:gap-4 md:gap-8 2xl:gap-12">
             {/* Description */}
             <p className="text-white/50 text-[11px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[280px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-relaxed pointer-events-none">
