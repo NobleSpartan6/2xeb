@@ -28,7 +28,7 @@ const About: React.FC = () => {
               </span>
             </a>
             <a
-              href="https://github.com/2xeb"
+              href="https://github.com/NobleSpartan6"
               target="_blank"
               rel="noreferrer"
               aria-label="GitHub"
@@ -41,7 +41,7 @@ const About: React.FC = () => {
               </span>
             </a>
             <a
-              href="mailto:hello@2xeb.com"
+              href="mailto:ebenezereshetu@gmail.com"
               aria-label="Email"
               className="hover:text-white transition-colors"
             >
