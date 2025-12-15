@@ -7,8 +7,13 @@ import DisciplineChip from '../components/DisciplineChip';
 // Lazy load CaseStudyExplorer - only loaded when needed
 const CaseStudyExplorer = lazy(() => import('../components/CaseStudyExplorer'));
 
-const EPHEMERAL_HOURS_ODYSEE_EMBED =
-  'https://odysee.com/%24/embed/%40eb%3Aa%2Fephemeral-hours%3A3?r=2zdYftvSYxTuxhE2pwEBMC4xs2uQSbnC';
+// Gumlet embed URLs for specific projects
+const GUMLET_EMBEDS: Record<string, string> = {
+  'mirror-shrapnel': 'https://play.gumlet.io/embed/693f4b873cf0cd39b98f8ba6?autoplay=false&loop=false&disableControls=false',
+  'ephemeral-hours': 'https://play.gumlet.io/embed/693f47fe3cf0cd39b98f6061?autoplay=false&loop=false&disableControls=false',
+  '2003-recap': 'https://play.gumlet.io/embed/693fb6e4b45f2098f40cad3d?autoplay=false&loop=false&disableControls=false',
+  'lord-of-chaos': 'https://play.gumlet.io/embed/693fbebf7ada4a233337bca8?autoplay=false&loop=false&disableControls=false',
+};
 
 const ProjectDetail: React.FC = () => {
   const { slug } = useParams();
@@ -17,6 +22,9 @@ const ProjectDetail: React.FC = () => {
   const caseStudy = slug ? getCaseStudyBySlug(slug) : undefined;
   const [isPlaying, setIsPlaying] = useState(false);
   const [showCaseStudy, setShowCaseStudy] = useState(false);
+
+  // Check if this project has a direct Gumlet embed
+  const gumletEmbed = slug ? GUMLET_EMBEDS[slug] : undefined;
 
   if (!project) {
     return (
@@ -35,15 +43,20 @@ const ProjectDetail: React.FC = () => {
     if (!url) return null;
     try {
         const urlObj = new URL(url);
+        const hostname = urlObj.hostname.replace(/^www\./, '');
+
+        if (hostname === 'play.gumlet.io') {
+            return url;
+        }
         let videoId = '';
         let startParam = '';
 
-        if (urlObj.hostname === 'youtu.be') {
+        if (hostname === 'youtu.be') {
             videoId = urlObj.pathname.slice(1);
             if (urlObj.searchParams.get('t')) {
                 startParam = urlObj.searchParams.get('t')!;
             }
-        } else if (urlObj.hostname.includes('youtube.com')) {
+        } else if (hostname.includes('youtube.com')) {
             videoId = urlObj.searchParams.get('v') || '';
             if (urlObj.searchParams.get('t')) {
                 startParam = urlObj.searchParams.get('t')!;
@@ -77,8 +90,7 @@ const ProjectDetail: React.FC = () => {
     }
   };
 
-  const isEphemeralHours = project.slug === 'ephemeral-hours';
-  const embedUrl = isEphemeralHours ? EPHEMERAL_HOURS_ODYSEE_EMBED : getEmbedUrl(project.videoUrl);
+  const embedUrl = getEmbedUrl(project.videoUrl);
 
   return (
     <article className="min-h-screen pt-32 pb-20 px-6 md:px-12 max-w-6xl mx-auto bg-[#050505]">
@@ -109,38 +121,38 @@ const ProjectDetail: React.FC = () => {
       </header>
 
       <div className="w-full aspect-video bg-[#0A0A0A] border border-[#262626] mb-16 relative overflow-hidden group">
-        {embedUrl && isPlaying ? (
-          isEphemeralHours ? (
+        {gumletEmbed ? (
+          <div style={{ position: 'relative', aspectRatio: '16/9' }}>
             <iframe
-              id="odysee-iframe"
-              style={{ width: '100%', aspectRatio: '16 / 9' }}
-              src={embedUrl}
+              loading="lazy"
+              title="Gumlet video player"
+              src={gumletEmbed}
+              style={{ border: 'none', position: 'absolute', top: 0, left: 0, height: '100%', width: '100%' }}
+              referrerPolicy="origin"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;"
+            ></iframe>
+          </div>
+        ) : embedUrl && isPlaying ? (
+          <div style={{ position: 'relative', aspectRatio: '16/9' }}>
+            <iframe
+              loading="lazy"
               title={project.title}
-              allowFullScreen
-              className="absolute inset-0 w-full h-full"
-            ></iframe>
-          ) : (
-            <iframe 
-              width="100%" 
-              height="100%" 
               src={embedUrl}
-              title={project.title} 
-              frameBorder="0" 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-              referrerPolicy="strict-origin-when-cross-origin"
+              style={{ border: 'none', position: 'absolute', top: 0, left: 0, height: '100%', width: '100%' }}
+              referrerPolicy="origin"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen;"
               allowFullScreen
-              className="absolute inset-0"
             ></iframe>
-          )
+          </div>
         ) : (
            <div className="absolute inset-0 cursor-pointer" onClick={() => embedUrl && setIsPlaying(true)}>
-             <img 
-               src={project.imageUrl} 
-               alt={project.title} 
+             <img
+               src={project.imageUrl}
+               alt={project.title}
                loading="lazy"
                width="1920"
                height="1080"
-               className="w-full h-full object-cover opacity-90 transition-opacity duration-500 group-hover:opacity-60" 
+               className="w-full h-full object-cover opacity-90 transition-opacity duration-500 group-hover:opacity-60"
              />
              {embedUrl && (
                <div className="absolute inset-0 flex items-center justify-center">
@@ -189,7 +201,7 @@ const ProjectDetail: React.FC = () => {
                   rel="noopener noreferrer"
                   className="text-white hover:text-[#2563EB] border-b border-white/20 hover:border-[#2563EB] pb-1 transition-all block w-max text-sm font-bold uppercase tracking-wider"
                 >
-                  Watch on YouTube ↗
+                  Watch video ↗
                 </a>
              </div>
           )}

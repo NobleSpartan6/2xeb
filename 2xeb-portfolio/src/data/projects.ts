@@ -1,4 +1,5 @@
 import { Discipline, Project } from '../lib/types';
+import { SITE_INDEX } from './siteIndex';
 
 export const PROJECTS: Project[] = [
   // --- KEY EXTERNAL PROJECT ---
@@ -11,7 +12,7 @@ export const PROJECTS: Project[] = [
     primaryDiscipline: Discipline.HYBRID,
     tags: ['AI', 'Audio', 'WebMIDI', 'ML'],
     createdAt: '2025-01-01',
-    imageUrl: 'https://picsum.photos/seed/midimix/800/600',
+    imageUrl: `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#06B6D4"/><stop offset="100%" stop-color="#7C3AED"/></linearGradient></defs><rect fill="url(#g)" width="800" height="600"/><text x="400" y="290" text-anchor="middle" fill="#fff" font-family="monospace" font-size="56" font-weight="bold" opacity="0.9">MIDIMIX</text><text x="400" y="340" text-anchor="middle" fill="#fff" font-family="monospace" font-size="16" opacity="0.5">AI-POWERED MIDI</text></svg>`)}`,
     status: 'wip',
     isExternal: true,
     externalUrl: 'https://midimix.app',
@@ -23,27 +24,14 @@ export const PROJECTS: Project[] = [
     id: 2,
     slug: 'portfolio-console',
     title: 'Portfolio Console',
-    shortDesc: 'The 3D system you are exploring.',
-    longDesc: 'A React Three Fiber application visualizing my professional graph as a 3D console. Features a Gemini-powered AI agent for natural language navigation.',
+    shortDesc: "A 3D 'console' portfolio that blends code, ML/AI, and video in one spatial view.",
+    longDesc: 'A single-screen 3D portfolio built with React Three Fiber that visualizes projects as nodes across software, ML/AI, and video lanes. An AI assistant (Groq/Gemini via Supabase Edge Functions) answers questions, highlights relevant work, and stays within a lean, client-side SPA. Includes minimal real-time touches (Spotify now playing, local clock) and no heavy CMS—content is static TypeScript.',
     primaryDiscipline: Discipline.SWE,
-    tags: ['React Three Fiber', 'Gemini API', 'TypeScript', 'WebGL'],
+    tags: ['React Three Fiber', 'Supabase', 'TypeScript', 'WebGL', 'AI'],
     createdAt: '2025-02-20',
-    imageUrl: 'https://picsum.photos/seed/console/800/600',
+    imageUrl: `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2563EB"/><stop offset="100%" stop-color="#0A0A0A"/></linearGradient></defs><rect fill="url(#g)" width="800" height="600"/><text x="400" y="290" text-anchor="middle" fill="#fff" font-family="monospace" font-size="48" font-weight="bold" opacity="0.9">CONSOLE</text><text x="400" y="340" text-anchor="middle" fill="#fff" font-family="monospace" font-size="16" opacity="0.5">REACT THREE FIBER</text></svg>`)}`,
     status: 'live',
     role: 'Solo Developer'
-  },
-  {
-    id: 3,
-    slug: 'midi-mapper',
-    title: 'MIDI Mapper',
-    shortDesc: 'Browser-based MIDI routing tool.',
-    longDesc: 'A comprehensive tool for musicians to route MIDI signals between devices directly in the browser using the Web MIDI API. It features a visual node-based editor and low-latency processing.',
-    primaryDiscipline: Discipline.SWE,
-    tags: ['Next.js', 'WebMIDI', 'React Flow', 'React'],
-    createdAt: '2024-01-15',
-    imageUrl: 'https://picsum.photos/seed/midi/800/600',
-    status: 'live',
-    role: 'Engineer'
   },
 
   // --- VIDEO / CREATIVE WORK ---
@@ -56,9 +44,9 @@ export const PROJECTS: Project[] = [
     primaryDiscipline: Discipline.VIDEO,
     tags: ['FX30', 'Cinematography', 'Edit', 'VFX'],
     createdAt: '2024-01-01',
-    imageUrl: 'https://img.youtube.com/vi/3R7lUPyvs5o/maxresdefault.jpg',
+    imageUrl: 'https://video.gumlet.io/693f470a7ada4a23333078f6/693f4b873cf0cd39b98f8ba6/thumbnail-1-0.png?v=1765781824234',
     status: 'live',
-    videoUrl: 'https://www.youtube.com/watch?v=3R7lUPyvs5o',
+    videoUrl: 'https://play.gumlet.io/embed/693f4b873cf0cd39b98f8ba6?autoplay=false&loop=false&disableControls=false',
     role: 'video / edit fx'
   },
   {
@@ -70,9 +58,9 @@ export const PROJECTS: Project[] = [
     primaryDiscipline: Discipline.VIDEO,
     tags: ['FX30', 'Cinematography', 'Color Grading', 'VFX'],
     createdAt: '2023-12-01',
-    imageUrl: 'https://img.youtube.com/vi/aVBqUZ_9oEU/maxresdefault.jpg',
+    imageUrl: 'https://video.gumlet.io/693f470a7ada4a23333078f6/693f47fe3cf0cd39b98f6061/thumbnail-1-0.png?v=1765781953458',
     status: 'live',
-    videoUrl: 'https://www.youtube.com/watch?v=aVBqUZ_9oEU',
+    videoUrl: 'https://play.gumlet.io/embed/693f47fe3cf0cd39b98f6061?autoplay=false&loop=false&disableControls=false',
     role: 'video / edit / vfx'
   },
   {
@@ -111,9 +99,9 @@ export const PROJECTS: Project[] = [
     primaryDiscipline: Discipline.VIDEO,
     tags: ['Event', 'Live', 'Edit'],
     createdAt: '2025-04-20',
-    imageUrl: 'https://img.youtube.com/vi/AtV5yvNgPJs/maxresdefault.jpg',
+    imageUrl: 'https://video.gumlet.io/693f470a7ada4a23333078f6/693fbebf7ada4a233337bca8/thumbnail-1-0.png',
     status: 'live',
-    videoUrl: 'https://www.youtube.com/watch?v=AtV5yvNgPJs',
+    videoUrl: 'https://play.gumlet.io/embed/693fbebf7ada4a233337bca8?autoplay=false&loop=false&disableControls=false',
     role: 'video / edit'
   },
   {
@@ -125,9 +113,9 @@ export const PROJECTS: Project[] = [
     primaryDiscipline: Discipline.VIDEO,
     tags: ['Event', 'Live', 'Edit'],
     createdAt: '2024-02-01',
-    imageUrl: 'https://img.youtube.com/vi/B25u850MDNA/maxresdefault.jpg',
+    imageUrl: 'https://video.gumlet.io/693f470a7ada4a23333078f6/693fb6e4b45f2098f40cad3d/thumbnail-1-0.png?v=1765784424424',
     status: 'live',
-    videoUrl: 'https://www.youtube.com/watch?v=B25u850MDNA',
+    videoUrl: 'https://play.gumlet.io/embed/693fb6e4b45f2098f40cad3d?autoplay=false&loop=false&disableControls=false',
     role: 'video / edit'
   },
   {
@@ -231,7 +219,13 @@ export const PROJECTS: Project[] = [
  * Used when calling the ask-portfolio Edge Function.
  */
 export function buildProjectContext(): string {
-  return PROJECTS.map(p =>
+  const projectsContext = PROJECTS.map(p =>
     `- ${p.title} (${p.slug}): ${p.primaryDiscipline} | ${p.shortDesc} | Tags: ${p.tags.join(', ')}`
   ).join('\n');
+
+  const navContext = SITE_INDEX.map(page =>
+    `- ${page.title} (${page.path}): ${page.description}`
+  ).join('\n');
+
+  return `PROJECTS:\n${projectsContext}\n\nSITE NAVIGATION:\n${navContext}`;
 }

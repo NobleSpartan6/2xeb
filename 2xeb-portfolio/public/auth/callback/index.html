@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authenticating... | 2xeb Admin</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background: #050505;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+    }
+    .container { text-align: center; max-width: 600px; padding: 20px; }
+    .logo {
+      width: 48px;
+      height: 48px;
+      background: #0A0A0A;
+      border: 1px solid #262626;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 16px;
+    }
+    .logo span { color: #2563EB; font-weight: bold; font-size: 18px; }
+    .status { color: #737373; font-family: monospace; font-size: 14px; }
+    .error {
+      color: #ef4444;
+      font-family: monospace;
+      font-size: 12px;
+      margin-top: 12px;
+      text-align: left;
+      background: #1a0a0a;
+      padding: 12px;
+      border: 1px solid #3d1515;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+    .debug {
+      color: #525252;
+      font-family: monospace;
+      font-size: 10px;
+      margin-top: 12px;
+      text-align: left;
+      max-height: 200px;
+      overflow-y: auto;
+      background: #0a0a0a;
+      padding: 8px;
+      border: 1px solid #262626;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .pulse { animation: pulse 2s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo pulse"><span>EB</span></div>
+    <p class="status" id="status">Authenticating...</p>
+    <p class="error" id="error" style="display:none;"></p>
+    <pre class="debug" id="debug"></pre>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://zrawfgpjfkohjaqcfgrd.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYXdmZ3BqZmtvaGphcWNmZ3JkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDE4ODYsImV4cCI6MjA4MDQxNzg4Nn0.D9PYBklsgjVjt7g7b7OfJuOGSOZu8tboXZRgBTMrj9g';
+    const STORAGE_KEY = 'sb-zrawfgpjfkohjaqcfgrd-auth-token';
+
+    const statusEl = document.getElementById('status');
+    const errorEl = document.getElementById('error');
+    const debugEl = document.getElementById('debug');
+
+    function log(msg) {
+      console.log('[Callback]', msg);
+      debugEl.textContent += msg + '\n';
+    }
+
+    function showError(message) {
+      errorEl.style.display = 'block';
+      errorEl.textContent = message;
+      statusEl.textContent = 'Redirecting to login...';
+    }
+
+    // Find code verifier from localStorage - check all possible key patterns
+    function findCodeVerifier() {
+      const possibleKeys = [
+        'sb-zrawfgpjfkohjaqcfgrd-auth-token-code-verifier',
+        'supabase.auth.token-code-verifier',
+        'supabase-auth-token-code-verifier',
+      ];
+
+      // First try known keys
+      for (const key of possibleKeys) {
+        let value = localStorage.getItem(key);
+        if (value) {
+          log(`Found code verifier at: ${key}`);
+          // Parse if it's JSON-stringified (starts with quote)
+          if (value.startsWith('"')) {
+            try {
+              value = JSON.parse(value);
+              log(`Parsed JSON-stringified verifier`);
+            } catch (e) {}
+          }
+          return value;
+        }
+      }
+
+      // Search all keys for anything that looks like a code verifier
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.includes('verifier') || key.includes('code')) {
+          const value = localStorage.getItem(key);
+          log(`Potential verifier key: ${key} = ${value?.substring(0, 20)}...`);
+          if (value && value.length > 40) {
+            return value;
+          }
+        }
+      }
+
+      // Check if it's embedded in the auth token storage
+      const authToken = localStorage.getItem(STORAGE_KEY);
+      if (authToken) {
+        try {
+          const parsed = JSON.parse(authToken);
+          if (parsed.code_verifier) {
+            log('Found code verifier in auth token storage');
+            return parsed.code_verifier;
+          }
+        } catch (e) {}
+      }
+
+      return null;
+    }
+
+    async function handleCallback() {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const errorParam = urlParams.get('error');
+
+        log('Starting auth callback...');
+        log(`Code: ${code?.substring(0, 8)}...`);
+
+        // Dump all localStorage keys
+        log('\nAll localStorage keys:');
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          const value = localStorage.getItem(key);
+          const preview = value?.length > 50 ? value.substring(0, 50) + '...' : value;
+          log(`  ${key}: ${preview}`);
+        }
+
+        if (errorParam) {
+          throw new Error(urlParams.get('error_description') || errorParam);
+        }
+
+        if (!code) {
+          throw new Error('No authentication code in URL');
+        }
+
+        statusEl.textContent = 'Finding code verifier...';
+        const codeVerifier = findCodeVerifier();
+
+        if (!codeVerifier) {
+          log('\nNo code verifier found!');
+          log('This means the magic link was clicked in a different browser/session.');
+          throw new Error('Code verifier not found. Please request a new magic link from this browser.');
+        }
+
+        log(`\nCode verifier found: ${codeVerifier.substring(0, 20)}...`);
+        statusEl.textContent = 'Exchanging code...';
+
+        // Direct REST API call for PKCE token exchange
+        const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=pkce`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_KEY,
+          },
+          body: JSON.stringify({
+            auth_code: code,
+            code_verifier: codeVerifier,
+          }),
+        });
+
+        log(`Token response: ${response.status}`);
+
+        const responseData = await response.json();
+
+        if (!response.ok) {
+          log(`Error response: ${JSON.stringify(responseData)}`);
+          throw new Error(responseData.error_description || responseData.msg || responseData.error || `HTTP ${response.status}`);
+        }
+
+        log(`Session obtained for: ${responseData.user?.email}`);
+
+        if (!responseData.access_token || !responseData.user) {
+          throw new Error('Invalid session data');
+        }
+
+        // Clear code verifier
+        localStorage.removeItem('sb-zrawfgpjfkohjaqcfgrd-auth-token-code-verifier');
+
+        statusEl.textContent = 'Verifying admin access...';
+
+        // Check admin status
+        const adminResponse = await fetch(
+          `${SUPABASE_URL}/rest/v1/admin_users?id=eq.${responseData.user.id}&select=id`,
+          {
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${responseData.access_token}`,
+            },
+          }
+        );
+
+        const adminData = await adminResponse.json();
+        log(`Admin check: ${JSON.stringify(adminData)}`);
+
+        if (!Array.isArray(adminData) || adminData.length === 0) {
+          throw new Error('Not authorized as admin');
+        }
+
+        // Store session
+        const sessionData = {
+          access_token: responseData.access_token,
+          refresh_token: responseData.refresh_token,
+          expires_at: Math.floor(Date.now() / 1000) + responseData.expires_in,
+          expires_in: responseData.expires_in,
+          token_type: responseData.token_type,
+          user: responseData.user,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+        log('Session stored!');
+
+        // Update last login (fire and forget)
+        fetch(`${SUPABASE_URL}/rest/v1/admin_users?id=eq.${responseData.user.id}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${responseData.access_token}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({ last_login: new Date().toISOString() }),
+        });
+
+        statusEl.textContent = 'Success! Redirecting...';
+        log('\nRedirecting to admin dashboard...');
+
+        setTimeout(() => {
+          window.location.href = '/#/admin';
+        }, 500);
+
+      } catch (err) {
+        console.error('[Callback] Error:', err);
+        showError(err.message);
+
+        setTimeout(() => {
+          window.location.href = '/#/admin/login?error=' + encodeURIComponent(err.message);
+        }, 5000);
+      }
+    }
+
+    handleCallback();
+  </script>
+</body>
+</html>

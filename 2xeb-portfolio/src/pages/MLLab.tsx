@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import AskPortfolioWidget from '../components/AskPortfolioWidget';
-import { PROJECTS } from '../data';
+import { useProjects } from '../hooks/useProjects';
 import ProjectCard from '../components/ProjectCard';
 import { Discipline } from '../lib/types';
 import { useConsole } from '../context/ConsoleContext';
@@ -11,17 +11,20 @@ const MLLab: React.FC = () => {
   const { selectedModelId } = useConsole();
   const currentModel = getModelByIdOrDefault(selectedModelId);
 
+  // SWR: static data immediately, DB fetch in background
+  const { projects } = useProjects();
+
   // Ensure we land at the top when navigating to this page
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  const mlProjects = PROJECTS.filter(p => 
-     p.primaryDiscipline === Discipline.ML || 
+  const mlProjects = useMemo(() => projects.filter(p =>
+     p.primaryDiscipline === Discipline.ML ||
      (p.primaryDiscipline === Discipline.HYBRID && p.tags.some(t => ['AI', 'ML'].includes(t))) ||
      // Include Midimix explicitly if needed by slug or logic
      p.slug === 'midimix'
-  );
+  ), [projects]);
 
   return (
     <div className="min-h-screen pt-28 md:pt-32 pb-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto bg-[#050505]">

@@ -85,6 +85,129 @@ export async function askPortfolio(
 }
 
 /**
+ * Stream callback type for receiving chunks
+ */
+export type StreamCallback = (chunk: string) => void;
+
+/**
+ * Ask the AI portfolio assistant with streaming response.
+ * Uses SSE to receive tokens as they're generated.
+ *
+ * @param question - The user's question
+ * @param context - Pre-built context string from static project data
+ * @param modelId - Model ID (must be Groq model for streaming)
+ * @param onChunk - Callback for each text chunk
+ * @returns Final AI response with answer and related project slugs
+ */
+export async function askPortfolioStreaming(
+  question: string,
+  context: string,
+  modelId: string = DEFAULT_MODEL_ID,
+  onChunk: StreamCallback
+): Promise<AskPortfolioResponse> {
+  // Client-side rate limiting
+  const rateLimitCheck = checkRateLimit(modelId);
+  if (!rateLimitCheck.allowed) {
+    throw new Error(rateLimitCheck.reason || 'Rate limit exceeded');
+  }
+
+  const model = getModelByIdOrDefault(modelId);
+  
+  // Streaming only works with Groq
+  if (model.provider !== 'groq') {
+    // Fall back to non-streaming
+    return askPortfolio(question, context, modelId);
+  }
+
+  // If no functions URL configured, return demo response
+  if (!FUNCTIONS_BASE_URL) {
+    console.warn('VITE_SUPABASE_FUNCTIONS_URL not configured, using demo mode');
+    const demoAnswer = "Demo mode: I would normally tell you about projects here!";
+    // Simulate streaming
+    for (const char of demoAnswer) {
+      onChunk(char);
+      await new Promise(r => setTimeout(r, 20));
+    }
+    return {
+      answer: demoAnswer,
+      projectSlugs: ['midimix', 'portfolio-console'],
+      model: modelId,
+      provider: model.provider,
+    };
+  }
+
+  const res = await fetch(`${FUNCTIONS_BASE_URL}/ask-portfolio`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({
+      question,
+      context,
+      model: modelId,
+      provider: model.provider,
+      stream: true,
+    }),
+  });
+
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(`Ask portfolio failed: ${error}`);
+  }
+
+  if (!res.body) {
+    throw new Error('No response body for streaming');
+  }
+
+  // Record successful request for rate limiting
+  recordRequest();
+
+  // Read SSE stream
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = '';
+  let finalProjectSlugs: string[] = [];
+  let finalModel = modelId;
+  let finalProvider = model.provider;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const text = decoder.decode(value);
+    const lines = text.split('\n').filter(line => line.startsWith('data:'));
+
+    for (const line of lines) {
+      const data = line.replace('data:', '').trim();
+      if (!data) continue;
+
+      try {
+        const parsed = JSON.parse(data);
+
+        if (parsed.done) {
+          finalProjectSlugs = parsed.projectSlugs || finalProjectSlugs;
+          finalModel = parsed.model || finalModel;
+          finalProvider = parsed.provider || finalProvider;
+        } else if (parsed.chunk) {
+          fullText += parsed.chunk;
+          onChunk(parsed.chunk);
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+  }
+
+  return {
+    answer: fullText,
+    projectSlugs: finalProjectSlugs,
+    model: finalModel,
+    provider: finalProvider,
+  };
+}
+
+/**
  * Submit a contact form message.
  *
  * @param payload - Contact form data

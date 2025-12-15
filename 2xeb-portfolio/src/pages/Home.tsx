@@ -205,10 +205,10 @@ const Home: React.FC = () => {
             <div className="flex gap-3 pointer-events-auto">
               <Link
                 to="/work"
-                className="group relative px-6 md:px-8 py-3.5 md:py-4 bg-[#2563EB] overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                className="group relative px-6 md:px-8 py-3.5 md:py-4 bg-[#2563EB] overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center"
               >
                 <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-                <span className="relative font-medium tracking-widest text-[10px] md:text-xs uppercase text-white group-hover:text-black transition-colors z-10">
+                <span className="relative font-medium tracking-widest text-[10px] md:text-xs uppercase text-white group-hover:text-black transition-colors z-10 whitespace-nowrap">
                   View Work
                 </span>
               </Link>

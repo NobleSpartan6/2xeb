@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PROJECTS } from '../data';
+import { useProjects } from '../hooks/useProjects';
 import { Discipline } from '../lib/types';
 import ProjectCard from '../components/ProjectCard';
 
@@ -9,10 +9,13 @@ const Work: React.FC = () => {
   const initialFilter = searchParams.get('discipline') as Discipline | 'ALL' || 'ALL';
   const [activeFilter, setActiveFilter] = useState<Discipline | 'ALL'>(initialFilter);
 
+  // SWR: static data immediately, DB fetch in background
+  const { projects } = useProjects();
+
   const filteredProjects = useMemo(() => {
-    if (activeFilter === 'ALL') return PROJECTS;
-    return PROJECTS.filter(p => p.primaryDiscipline === activeFilter || p.primaryDiscipline === Discipline.HYBRID);
-  }, [activeFilter]);
+    if (activeFilter === 'ALL') return projects;
+    return projects.filter(p => p.primaryDiscipline === activeFilter || p.primaryDiscipline === Discipline.HYBRID);
+  }, [activeFilter, projects]);
 
   const filters = [
     { label: 'All', value: 'ALL' },

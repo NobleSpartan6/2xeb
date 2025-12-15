@@ -16,6 +16,7 @@ interface ConsoleContextType {
   chatHistory: ChatMessage[];
   addChatMessage: (message: ChatMessage) => void;
   clearChatHistory: () => void;
+  editMessageAt: (idx: number, newText: string) => void;
   selectedModelId: string;
   setSelectedModelId: (id: string) => void;
 }
@@ -51,6 +52,16 @@ export const ConsoleProvider: React.FC<{ children: ReactNode }> = ({ children })
     setChatHistory([]);
   }, []);
 
+  // Edit a message and remove all subsequent messages
+  const editMessageAt = useCallback((idx: number, newText: string) => {
+    setChatHistory(prev => {
+      if (idx < 0 || idx >= prev.length) return prev;
+      const updated = prev.slice(0, idx);
+      updated.push({ ...prev[idx], text: newText });
+      return updated;
+    });
+  }, []);
+
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo(() => ({
     hoveredNodeId,
@@ -65,6 +76,7 @@ export const ConsoleProvider: React.FC<{ children: ReactNode }> = ({ children })
     chatHistory,
     addChatMessage,
     clearChatHistory,
+    editMessageAt,
     selectedModelId,
     setSelectedModelId,
   }), [
@@ -77,6 +89,7 @@ export const ConsoleProvider: React.FC<{ children: ReactNode }> = ({ children })
     chatHistory,
     addChatMessage,
     clearChatHistory,
+    editMessageAt,
     selectedModelId,
   ]);
 

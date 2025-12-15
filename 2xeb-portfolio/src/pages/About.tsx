@@ -1,7 +1,10 @@
 import React from 'react';
-import { EXPERIENCE } from '../data';
+import { useExperience } from '../hooks/useExperience';
 
 const About: React.FC = () => {
+  // SWR: static data immediately, DB fetch in background
+  const { experience } = useExperience();
+
   return (
     <div className="min-h-screen bg-[#050505] pt-28 md:pt-36 pb-20 px-4 sm:px-6 lg:px-12">
       {/* Header */}
@@ -85,8 +88,8 @@ const About: React.FC = () => {
 
           {/* List */}
           <div className="lg:col-span-9">
-            {EXPERIENCE.map((item, idx) => (
-              <div key={item.id} className={`group grid md:grid-cols-12 gap-6 md:gap-8 py-10 md:py-12 px-6 md:px-8 hover:bg-[#0A0A0A] transition-colors ${idx !== EXPERIENCE.length - 1 ? 'border-b border-[#262626]' : ''}`}>
+            {experience.map((item, idx) => (
+              <div key={item.id} className={`group grid md:grid-cols-12 gap-6 md:gap-8 py-10 md:py-12 px-6 md:px-8 hover:bg-[#0A0A0A] transition-colors ${idx !== experience.length - 1 ? 'border-b border-[#262626]' : ''}`}>
                 {/* Date */}
                 <div className="md:col-span-3">
                   <span className="font-mono text-xs text-[#A3A3A3] uppercase tracking-wider block mb-1 group-hover:text-white transition-colors">
