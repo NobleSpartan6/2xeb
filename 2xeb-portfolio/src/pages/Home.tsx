@@ -89,7 +89,7 @@ const Home: React.FC = () => {
   }, [setFocusedDiscipline]);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#050505]">
+    <div className="relative w-full h-[100dvh] overflow-hidden bg-[#050505]" style={{ minHeight: '-webkit-fill-available' }}>
 
       {/* 3D Background - Full Screen Immersive */}
       <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${sceneReady ? 'opacity-100' : 'opacity-0'}`}>
@@ -121,9 +121,9 @@ const Home: React.FC = () => {
         }`}
       >
         {/* Top Section - Live Status */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-20 md:pt-28 2xl:pt-32 3xl:pt-36">
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-24 md:pt-28 2xl:pt-32 3xl:pt-36">
           <div className="flex items-start gap-3 pointer-events-none">
-            <div className="w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[6px] md:block hidden" />
+            <div className="w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[6px]" />
             <div className="font-mono text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.3em]">
               {/* Desktop: single line */}
               <div className="hidden md:flex items-center gap-2">
@@ -137,17 +137,11 @@ const Home: React.FC = () => {
                   </>
                 )}
               </div>
-              {/* Mobile: compact single line with song on second line if playing */}
-              <div className="md:hidden">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-[1px] bg-[#2563EB] flex-shrink-0" />
-                  <span className="text-[#A3A3A3]">{clock || '...'}</span>
-                </div>
+              {/* Mobile: two lines */}
+              <div className="md:hidden flex flex-col gap-1 max-w-[280px]">
+                <span className="text-[#A3A3A3]">{clock || '...'}</span>
                 {nowPlaying && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="w-6 h-[1px] bg-transparent flex-shrink-0" />
-                    <span className="text-[#2563EB] truncate max-w-[260px]">♪ {nowPlaying}</span>
-                  </div>
+                  <span className="text-[#2563EB] truncate">♪ {nowPlaying}</span>
                 )}
               </div>
             </div>
@@ -163,7 +157,7 @@ const Home: React.FC = () => {
                   key={lane}
                   className="block transition-all duration-500 ease-out cursor-default pointer-events-auto"
                   style={{
-                    fontSize: 'clamp(2.75rem, 10vw, 14rem)',
+                    fontSize: 'clamp(3rem, 11vw, 14rem)',
                     color: focusedDiscipline === lane ? color : '#ffffff',
                     opacity: focusedDiscipline && focusedDiscipline !== lane ? 0.15 : 1,
                     transform: focusedDiscipline === lane ? 'translateX(12px)' : 'translateX(0)',
@@ -179,7 +173,7 @@ const Home: React.FC = () => {
 
             {/* Discipline description that appears on hover */}
             <div
-              className="h-6 sm:h-8 2xl:h-10 mt-4 sm:mt-6 2xl:mt-8 3xl:mt-10 overflow-hidden transition-all duration-300"
+              className="h-8 2xl:h-10 mt-6 2xl:mt-8 3xl:mt-10 overflow-hidden transition-all duration-300"
               style={{ opacity: focusedDiscipline ? 1 : 0 }}
             >
               {DISCIPLINES.map(({ lane, description, color }) => (
@@ -201,10 +195,10 @@ const Home: React.FC = () => {
         </div>
 
         {/* Bottom Section - CTA & Description */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-20 sm:pb-20 md:pb-16 2xl:pb-20 3xl:pb-24">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 sm:gap-6 md:gap-8 2xl:gap-12">
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-28 sm:pb-20 md:pb-16 2xl:pb-20 3xl:pb-24">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 2xl:gap-12">
             {/* Description */}
-            <p className="text-white/50 text-xs sm:text-sm md:text-base 2xl:text-lg 3xl:text-xl max-w-xs sm:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-relaxed pointer-events-none">
+            <p className="text-white/50 text-sm md:text-base 2xl:text-lg 3xl:text-xl max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-relaxed pointer-events-none">
               A multidisciplinary portfolio exploring the intersection of software engineering,
               machine learning, and visual storytelling.
             </p>
