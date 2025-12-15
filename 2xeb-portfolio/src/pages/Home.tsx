@@ -157,7 +157,7 @@ const Home: React.FC = () => {
                   key={lane}
                   className="block transition-all duration-500 ease-out cursor-default pointer-events-auto"
                   style={{
-                    fontSize: 'clamp(3rem, 11vw, 14rem)',
+                    fontSize: 'clamp(2.75rem, 10vw, 14rem)',
                     color: focusedDiscipline === lane ? color : '#ffffff',
                     opacity: focusedDiscipline && focusedDiscipline !== lane ? 0.15 : 1,
                     transform: focusedDiscipline === lane ? 'translateX(12px)' : 'translateX(0)',
