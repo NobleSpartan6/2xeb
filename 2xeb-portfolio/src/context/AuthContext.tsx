@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { debug } from '../lib/debug';
 
 interface AuthContextType {
   user: User | null;
@@ -24,7 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Using direct REST API to avoid Supabase client hanging issues
   const checkAdminStatus = useCallback(async (userId: string, accessToken?: string): Promise<boolean> => {
     try {
-      console.log('[Auth] Checking admin status for:', userId);
+      debug.log('[Auth] Checking admin status for:', userId);
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -49,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const data = await response.json();
       const isAdmin = Array.isArray(data) && data.length > 0;
-      console.log('[Auth] Admin status result:', isAdmin);
+      debug.log('[Auth] Admin status result:', isAdmin);
       return isAdmin;
     } catch (err) {
       console.error('[Auth] Error checking admin status:', err);
@@ -89,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const loadSession = async () => {
       const storedSession = localStorage.getItem(storageKey);
-      console.log('[Auth] Loading session from localStorage:', !!storedSession);
+      debug.log('[Auth] Loading session from localStorage:', !!storedSession);
 
       if (!storedSession) {
         if (isMounted) setIsLoading(false);
@@ -98,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       try {
         const parsed = JSON.parse(storedSession);
-        console.log('[Auth] Parsed session:', {
+        debug.log('[Auth] Parsed session:', {
           hasAccessToken: !!parsed?.access_token,
           hasUser: !!parsed?.user,
           expiresAt: parsed?.expires_at,
@@ -106,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Check if session is expired
         if (parsed?.expires_at && parsed.expires_at * 1000 < Date.now()) {
-          console.log('[Auth] Session expired, clearing');
+          debug.log('[Auth] Session expired, clearing');
           localStorage.removeItem(storageKey);
           if (isMounted) setIsLoading(false);
           return;
@@ -141,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen for auth state changes from Supabase client
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        console.log('[Auth] Auth state changed:', event, !!newSession);
+        debug.log('[Auth] Auth state changed:', event, !!newSession);
 
         if (!isMounted) return;
 
@@ -157,7 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAdmin(false);
           setIsLoading(false);
         } else if (event === 'TOKEN_REFRESHED' && newSession) {
-          console.log('[Auth] Token refreshed');
+          debug.log('[Auth] Token refreshed');
           setSession(newSession);
         }
       }
@@ -216,7 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Debug: Log session state changes
   useEffect(() => {
-    console.log('[AuthContext] State updated:', {
+    debug.log('[AuthContext] State updated:', {
       hasUser: !!user,
       hasSession: !!session,
       hasAccessToken: !!session?.access_token,

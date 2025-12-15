@@ -6,6 +6,7 @@
  */
 
 import { checkRateLimit, recordRequest, getModelByIdOrDefault, DEFAULT_MODEL_ID } from './models';
+import { debug } from './debug';
 
 const FUNCTIONS_BASE_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -50,7 +51,7 @@ export async function askPortfolio(
 
   // If no functions URL configured, return demo response
   if (!FUNCTIONS_BASE_URL) {
-    console.warn('VITE_SUPABASE_FUNCTIONS_URL not configured, using demo mode');
+    debug.warn('VITE_SUPABASE_FUNCTIONS_URL not configured, using demo mode');
     return {
       answer: "Demo mode: I would normally tell you about projects like 'Midimix' (AI-powered MIDI tool) or 'Portfolio Console' (this 3D experience) here!",
       projectSlugs: ['midimix', 'portfolio-console'],
@@ -121,7 +122,7 @@ export async function askPortfolioStreaming(
 
   // If no functions URL configured, return demo response
   if (!FUNCTIONS_BASE_URL) {
-    console.warn('VITE_SUPABASE_FUNCTIONS_URL not configured, using demo mode');
+    debug.warn('VITE_SUPABASE_FUNCTIONS_URL not configured, using demo mode');
     const demoAnswer = "Demo mode: I would normally tell you about projects here!";
     // Simulate streaming
     for (const char of demoAnswer) {
@@ -215,8 +216,8 @@ export async function askPortfolioStreaming(
 export async function submitContact(payload: ContactPayload): Promise<void> {
   // If no functions URL configured, log and return
   if (!FUNCTIONS_BASE_URL) {
-    console.warn('VITE_SUPABASE_FUNCTIONS_URL not configured, contact form disabled');
-    console.log('Would submit:', payload);
+    debug.warn('VITE_SUPABASE_FUNCTIONS_URL not configured, contact form disabled');
+    debug.log('Would submit:', payload);
     return;
   }
 
