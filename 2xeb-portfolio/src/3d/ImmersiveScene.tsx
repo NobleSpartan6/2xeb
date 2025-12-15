@@ -334,12 +334,29 @@ const CameraRig: React.FC = () => {
   return null;
 };
 
+// --- READY DETECTOR ---
+// Fires callback after first frame renders
+const ReadyDetector: React.FC<{ onReady: () => void }> = ({ onReady }) => {
+  const hasCalledRef = useRef(false);
+
+  useFrame(() => {
+    if (!hasCalledRef.current) {
+      hasCalledRef.current = true;
+      // Small delay to ensure GPU has finished initial render
+      setTimeout(onReady, 50);
+    }
+  });
+
+  return null;
+};
+
 // --- MAIN SCENE COMPONENT ---
 interface ImmersiveSceneProps {
   className?: string;
+  onReady?: () => void;
 }
 
-const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '' }) => {
+const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady }) => {
   const consoleCtx = useConsole();
   const [screenSize, setScreenSize] = useState<ScreenSize>('desktop');
 
@@ -416,6 +433,7 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '' }) => {
           />
           <PillarLights />
           <CameraRig />
+          {onReady && <ReadyDetector onReady={onReady} />}
         </ConsoleContext.Provider>
       </Canvas>
     </div>

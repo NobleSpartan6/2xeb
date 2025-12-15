@@ -72,14 +72,16 @@ const DISCIPLINES = [
 
 const Home: React.FC = () => {
   const { focusedDiscipline, setFocusedDiscipline, setIsAgentOpen } = useConsole();
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [sceneReady, setSceneReady] = useState(false);
+  const [contentVisible, setContentVisible] = useState(false);
   const clock = useLiveClock();
   const nowPlaying = useSpotifyNowPlaying();
 
-  // Fade in on mount
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoaded(true), 100);
-    return () => clearTimeout(timer);
+  // Coordinated reveal: wait for 3D scene, then fade in content
+  const handleSceneReady = useCallback(() => {
+    setSceneReady(true);
+    // Small delay after scene ready for smooth transition
+    setTimeout(() => setContentVisible(true), 150);
   }, []);
 
   const handleDisciplineHover = useCallback((lane: ConsoleLane | null) => {
@@ -90,8 +92,8 @@ const Home: React.FC = () => {
     <div className="relative w-full h-screen overflow-hidden bg-[#050505]">
 
       {/* 3D Background - Full Screen Immersive */}
-      <div className="absolute inset-0 z-0">
-        <ImmersiveScene />
+      <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${sceneReady ? 'opacity-100' : 'opacity-0'}`}>
+        <ImmersiveScene onReady={handleSceneReady} />
       </div>
 
       {/* Gradient overlays for depth */}
@@ -114,8 +116,8 @@ const Home: React.FC = () => {
 
       {/* Content Layer */}
       <div
-        className={`absolute inset-0 z-20 flex flex-col justify-between transition-opacity duration-1000 ${
-          isLoaded ? 'opacity-100' : 'opacity-0'
+        className={`absolute inset-0 z-20 flex flex-col justify-between transition-opacity duration-1000 ease-out ${
+          contentVisible ? 'opacity-100' : 'opacity-0'
         }`}
       >
         {/* Top Section - Live Status */}
