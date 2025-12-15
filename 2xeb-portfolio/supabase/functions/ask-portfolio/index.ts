@@ -14,7 +14,7 @@ const ALLOWED_GROQ_MODELS = [
   "llama-3.3-70b-versatile",
 ];
 
-const DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant";
+const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
 
 
 function extractSlugsFromContext(context: string): string[] {
