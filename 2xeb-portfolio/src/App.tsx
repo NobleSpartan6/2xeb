@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
+import { debug } from './lib/debug';
 import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import FooterHUD from './components/FooterHUD';
@@ -94,14 +95,14 @@ const App: React.FC = () => {
     const isRecoveryUrl = hash.includes('type=recovery') && hash.includes('access_token=');
 
     if (isRecoveryUrl) {
-      console.log('[App] Recovery tokens detected in URL hash');
+      debug.log('[App] Recovery tokens detected in URL hash');
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[App] Auth event:', event, 'hasSession:', !!session);
+      debug.log('[App] Auth event:', event, 'hasSession:', !!session);
 
       if (event === 'PASSWORD_RECOVERY') {
-        console.log('[App] Password recovery detected, showing reset form');
+        debug.log('[App] Password recovery detected, showing reset form');
         setShowPasswordReset(true);
       }
     });

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { debug } from '../../lib/debug';
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
@@ -9,13 +10,13 @@ const AuthCallback: React.FC = () => {
   const hasProcessed = useRef(false);
 
   useEffect(() => {
-    console.log('[AuthCallback] Setting up auth listener');
-    console.log('[AuthCallback] Full URL:', window.location.href);
+    debug.log('[AuthCallback] Setting up auth listener');
+    debug.log('[AuthCallback] Full URL:', window.location.href);
 
     // Listen for auth state changes - Supabase will handle the PKCE exchange
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('[AuthCallback] Auth event:', event, session ? 'has session' : 'no session');
+        debug.log('[AuthCallback] Auth event:', event, session ? 'has session' : 'no session');
 
         // Only process SIGNED_IN event once
         if (event === 'SIGNED_IN' && session?.user && !hasProcessed.current) {
@@ -23,7 +24,7 @@ const AuthCallback: React.FC = () => {
 
           try {
             setStatus('Verifying admin status...');
-            console.log('[AuthCallback] Session established for:', session.user.email);
+            debug.log('[AuthCallback] Session established for:', session.user.email);
 
             // Check admin_users table
             const { data: adminData, error: adminError } = await supabase
@@ -32,11 +33,11 @@ const AuthCallback: React.FC = () => {
               .eq('id', session.user.id)
               .single();
 
-            console.log('[AuthCallback] Admin check result:', { adminData, adminError });
+            debug.log('[AuthCallback] Admin check result:', { adminData, adminError });
 
             if (adminError || !adminData) {
               // Not an admin - sign out and redirect with error
-              console.warn('[AuthCallback] User is not an admin');
+              debug.warn('[AuthCallback] User is not an admin');
               await supabase.auth.signOut();
               navigate('/admin/login', {
                 state: { error: 'unauthorized' },

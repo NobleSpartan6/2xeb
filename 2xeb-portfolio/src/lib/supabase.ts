@@ -1,12 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
+import { debug } from './debug';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Log configuration status (masked for security)
-console.log('[Supabase] URL configured:', !!supabaseUrl, supabaseUrl ? `(${supabaseUrl.substring(0, 30)}...)` : '');
-console.log('[Supabase] Key configured:', !!supabaseAnonKey, supabaseAnonKey ? '(key present)' : '');
+debug.log('[Supabase] URL configured:', !!supabaseUrl, supabaseUrl ? `(${supabaseUrl.substring(0, 30)}...)` : '');
+debug.log('[Supabase] Key configured:', !!supabaseAnonKey, supabaseAnonKey ? '(key present)' : '');
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('[Supabase] Environment variables not set! Admin features will not work.');
@@ -43,7 +44,7 @@ export async function supabaseRest<T = unknown>(
 
   // Debug logging for mutations
   if (method !== 'GET') {
-    console.log(`[supabaseRest] ${method} ${table}`, {
+    debug.log(`[supabaseRest] ${method} ${table}`, {
       hasAccessToken: !!accessToken,
       tokenPrefix: accessToken ? accessToken.substring(0, 20) + '...' : 'none',
       filter,

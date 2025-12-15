@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { debug } from '../../lib/debug';
 
 const AdminLogin: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -56,7 +57,7 @@ const AdminLogin: React.FC = () => {
     try {
       // Use current origin for redirect (handles different dev ports)
       const redirectUrl = `${window.location.origin}${window.location.pathname}`;
-      console.log('[AdminLogin] Sending reset to:', email, 'redirect:', redirectUrl);
+      debug.log('[AdminLogin] Sending reset to:', email, 'redirect:', redirectUrl);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
