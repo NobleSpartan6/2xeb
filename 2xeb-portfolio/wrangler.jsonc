@@ -3,6 +3,7 @@
   "name": "2xeb",
   "compatibility_date": "2025-12-15",
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
   }
 }
