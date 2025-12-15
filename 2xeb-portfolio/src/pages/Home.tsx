@@ -127,12 +127,13 @@ const Home: React.FC = () => {
         className={`absolute inset-0 z-20 flex flex-col justify-between transition-opacity duration-1000 ease-out ${
           contentVisible ? 'opacity-100' : 'opacity-0'
         }`}
+        onClick={() => setFocusedDiscipline(null)}
       >
         {/* Top Section - Live Status */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-24 md:pt-32 2xl:pt-36 3xl:pt-40 flex-shrink-0">
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-[72px] sm:pt-24 md:pt-32 2xl:pt-36 3xl:pt-40 flex-shrink-0">
           <div className="flex items-start gap-2 sm:gap-3 pointer-events-none">
-            <div className="w-6 sm:w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[5px] sm:mt-[6px]" />
-            <div className="font-mono text-[8px] sm:text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.2em] sm:tracking-[0.3em]">
+            <div className="w-5 sm:w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[4px] sm:mt-[6px]" />
+            <div className="font-mono text-[7px] sm:text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.15em] sm:tracking-[0.3em]">
               {/* Desktop: single line */}
               <div className="hidden md:flex items-center gap-2">
                 <span className="text-[#A3A3A3]">NYC</span>
@@ -165,7 +166,7 @@ const Home: React.FC = () => {
                   key={lane}
                   className="block transition-all duration-500 ease-out cursor-pointer pointer-events-auto active:scale-[0.98]"
                   style={{
-                    fontSize: 'clamp(2.75rem, 10vw, 14rem)',
+                    fontSize: 'clamp(2.5rem, 9vw, 14rem)',
                     color: focusedDiscipline === lane ? color : '#ffffff',
                     opacity: focusedDiscipline && focusedDiscipline !== lane ? 0.15 : 1,
                     transform: focusedDiscipline === lane ? 'translateX(8px)' : 'translateX(0)',
@@ -173,7 +174,7 @@ const Home: React.FC = () => {
                   }}
                   onPointerEnter={(e) => handleDisciplineHover(lane, e)}
                   onPointerLeave={(e) => handleDisciplineHover(null, e)}
-                  onClick={() => handleDisciplineClick(lane)}
+                  onClick={(e) => { e.stopPropagation(); handleDisciplineClick(lane); }}
                 >
                   {label}
                 </span>
@@ -204,10 +205,10 @@ const Home: React.FC = () => {
         </div>
 
         {/* Bottom Section - CTA & Description */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-16 sm:pb-6 md:pb-16 2xl:pb-20 3xl:pb-24 flex-shrink-0">
-          <div className="flex flex-col-reverse md:flex-row md:items-end md:justify-between gap-3 sm:gap-4 md:gap-8 2xl:gap-12">
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-[72px] sm:pb-6 md:pb-16 2xl:pb-20 3xl:pb-24 flex-shrink-0">
+          <div className="flex flex-col-reverse md:flex-row md:items-end md:justify-between gap-1.5 sm:gap-4 md:gap-8 2xl:gap-12">
             {/* Description */}
-            <p className="text-white/50 text-[11px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[280px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-relaxed pointer-events-none">
+            <p className="text-white/40 text-[9px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[260px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-snug sm:leading-relaxed pointer-events-none">
               A multidisciplinary portfolio exploring the intersection of software engineering,
               machine learning, and visual storytelling.
             </p>
