@@ -65,11 +65,6 @@ const usePageTitle = () => {
   }, [pathname]);
 };
 
-const PageTitle = () => {
-  usePageTitle();
-  return null;
-};
-
 // Close chat drawer on route change to avoid misalignment when navigating
 const CloseAgentOnRouteChange = () => {
   const { pathname } = useLocation();
@@ -102,6 +97,7 @@ const useIsAdminRoute = () => {
 // Wrapper to conditionally render NavBar/FooterHUD
 const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAdmin = useIsAdminRoute();
+  usePageTitle();
 
   if (isAdmin) {
     return <>{children}</>;
@@ -156,7 +152,6 @@ const App: React.FC = () => {
       <ConsoleProvider>
         <Router>
           <ScrollToTop />
-          <PageTitle />
           <PublicLayout>
             <Routes>
               {/* Public routes */}
