@@ -71,7 +71,7 @@ export const MODELS: ModelConfig[] = [
   },
 ];
 
-export const DEFAULT_MODEL_ID = 'llama-3.1-8b-instant';
+export const DEFAULT_MODEL_ID = 'llama-3.3-70b-versatile';
 
 export function getModelById(id: string): ModelConfig | undefined {
   return MODELS.find(m => m.id === id);
