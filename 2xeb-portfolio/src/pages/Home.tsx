@@ -84,8 +84,11 @@ const Home: React.FC = () => {
     setTimeout(() => setContentVisible(true), 150);
   }, []);
 
-  const handleDisciplineHover = useCallback((lane: ConsoleLane | null) => {
-    setFocusedDiscipline(lane);
+  // Hover only for mouse (not touch)
+  const handleDisciplineHover = useCallback((lane: ConsoleLane | null, e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') {
+      setFocusedDiscipline(lane);
+    }
   }, [setFocusedDiscipline]);
 
   // Tap to toggle on mobile
@@ -168,8 +171,8 @@ const Home: React.FC = () => {
                     transform: focusedDiscipline === lane ? 'translateX(8px)' : 'translateX(0)',
                     textShadow: focusedDiscipline === lane ? `0 0 80px ${color}40` : 'none',
                   }}
-                  onMouseEnter={() => handleDisciplineHover(lane)}
-                  onMouseLeave={() => handleDisciplineHover(null)}
+                  onPointerEnter={(e) => handleDisciplineHover(lane, e)}
+                  onPointerLeave={(e) => handleDisciplineHover(null, e)}
                   onClick={() => handleDisciplineClick(lane)}
                 >
                   {label}
