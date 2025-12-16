@@ -1,12 +1,46 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useConsole } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
 import AskPortfolioWidget from './AskPortfolioWidget';
 
+const LONG_PRESS_DURATION = 2000; // 2 seconds for long press
+const DOUBLE_CLICK_THRESHOLD = 400; // ms between clicks
+
 const FooterHUD: React.FC = () => {
-  const { isAgentOpen, setIsAgentOpen, setFocusedDiscipline } = useConsole();
+  const { isAgentOpen, setIsAgentOpen, setFocusedDiscipline, setIsEasterEggActive } = useConsole();
   const location = useLocation();
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const lastClickTime = useRef<number>(0);
+
+  // Long press handler for mobile - triggers easter egg
+  const handleLogoTouchStart = useCallback(() => {
+    longPressTimer.current = setTimeout(() => {
+      setIsEasterEggActive(true);
+      // Haptic feedback if available
+      if (navigator.vibrate) {
+        navigator.vibrate([50, 30, 50]);
+      }
+    }, LONG_PRESS_DURATION);
+  }, [setIsEasterEggActive]);
+
+  const handleLogoTouchEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  // Double click handler for desktop - triggers easter egg
+  const handleLogoClick = useCallback(() => {
+    const now = Date.now();
+    if (now - lastClickTime.current < DOUBLE_CLICK_THRESHOLD) {
+      setIsEasterEggActive(true);
+      lastClickTime.current = 0;
+    } else {
+      lastClickTime.current = now;
+    }
+  }, [setIsEasterEggActive]);
 
   // Check if we're on ML Lab (has inline widget, so hide trigger there)
   const isMLLabPage = location.pathname === '/ml-lab';
@@ -103,9 +137,17 @@ const FooterHUD: React.FC = () => {
               <div className="hidden sm:grid sm:grid-cols-3 items-center gap-4">
                 {/* Left: Branding + Social */}
                 <div className="flex items-center gap-4 2xl:gap-5">
-                  <div className="flex items-center gap-1 text-white font-bold tracking-tight 2xl:text-base 3xl:text-lg">
+                  <div
+                    className="flex items-center gap-1.5 text-white font-bold tracking-tight 2xl:text-base 3xl:text-lg cursor-pointer select-none group"
+                    onClick={handleLogoClick}
+                    onTouchStart={handleLogoTouchStart}
+                    onTouchEnd={handleLogoTouchEnd}
+                    onTouchCancel={handleLogoTouchEnd}
+                    title="Hello, friend."
+                  >
                     <span>2XEB</span>
                     <span className="text-[#2563EB]">.</span>
+                    <span className="text-[#2563EB]/60 text-[10px] 2xl:text-xs font-mono animate-pulse group-hover:text-[#2563EB] transition-colors">&gt;_</span>
                   </div>
                   <div className="flex items-center gap-4 2xl:gap-5">
                     <a href="https://www.linkedin.com/in/ebenezer-eshetu/" target="_blank" rel="noreferrer" className="text-[#a3a3a3] hover:text-white transition-colors" aria-label="LinkedIn">
@@ -165,9 +207,16 @@ const FooterHUD: React.FC = () => {
                 {/* Row 1: Logo + Social on left, Ask EB on right */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 text-white font-bold tracking-tight">
+                    <div
+                      className="flex items-center gap-1 text-white font-bold tracking-tight cursor-pointer select-none"
+                      onClick={handleLogoClick}
+                      onTouchStart={handleLogoTouchStart}
+                      onTouchEnd={handleLogoTouchEnd}
+                      onTouchCancel={handleLogoTouchEnd}
+                    >
                       <span>2XEB</span>
                       <span className="text-[#2563EB]">.</span>
+                      <span className="text-[#2563EB]/60 text-[9px] font-mono animate-pulse">&gt;_</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <a href="https://www.linkedin.com/in/ebenezer-eshetu/" target="_blank" rel="noreferrer" className="text-[#a3a3a3] hover:text-white transition-colors" aria-label="LinkedIn">

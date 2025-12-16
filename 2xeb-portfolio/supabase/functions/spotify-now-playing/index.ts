@@ -24,6 +24,20 @@ interface SpotifyNowPlayingResponse {
   };
 }
 
+interface SpotifyRecentlyPlayedResponse {
+  items: Array<{
+    track: {
+      name: string;
+      artists: Array<{ name: string }>;
+      album?: {
+        name: string;
+        images?: Array<{ url: string }>;
+      };
+    };
+    played_at: string;
+  }>;
+}
+
 // Get a fresh access token using the refresh token
 async function getAccessToken(): Promise<string | null> {
   const clientId = Deno.env.get("SPOTIFY_CLIENT_ID");
@@ -77,6 +91,22 @@ async function getNowPlaying(accessToken: string): Promise<SpotifyNowPlayingResp
   return response.json();
 }
 
+// Fetch recently played tracks
+async function getRecentlyPlayed(accessToken: string): Promise<SpotifyRecentlyPlayedResponse | null> {
+  const response = await fetch("https://api.spotify.com/v1/me/player/recently-played?limit=1", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    console.error("Failed to fetch recently played:", await response.text());
+    return null;
+  }
+
+  return response.json();
+}
+
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -108,6 +138,30 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!nowPlaying.is_playing || !nowPlaying.item) {
+      // Nothing playing - try to get recently played
+      const recentlyPlayed = await getRecentlyPlayed(accessToken);
+      if (recentlyPlayed?.items?.[0]) {
+        const recent = recentlyPlayed.items[0];
+        const track = recent.track.name;
+        const artist = recent.track.artists.map((a) => a.name).join(", ");
+        const album = recent.track.album?.name;
+        const albumArt = recent.track.album?.images?.[0]?.url;
+        const playedAt = recent.played_at;
+
+        return new Response(
+          JSON.stringify({
+            isPlaying: false,
+            wasPlaying: true,
+            track,
+            artist,
+            album,
+            albumArt,
+            playedAt,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       return new Response(
         JSON.stringify({ isPlaying: false }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

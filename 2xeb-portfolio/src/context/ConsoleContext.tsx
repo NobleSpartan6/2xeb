@@ -2,6 +2,12 @@ import React, { createContext, useContext, useState, useCallback, useMemo, React
 import { ConsoleLane, ChatMessage } from '../lib/types';
 import { DEFAULT_MODEL_ID } from '../lib/models';
 
+// Terminal entry type for Mr. Robot terminal
+export interface TerminalEntry {
+  type: 'input' | 'output';
+  content: string;
+}
+
 interface ConsoleContextType {
   hoveredNodeId: string | null;
   setHoveredNodeId: (id: string | null) => void;
@@ -19,6 +25,20 @@ interface ConsoleContextType {
   editMessageAt: (idx: number, newText: string) => void;
   selectedModelId: string;
   setSelectedModelId: (id: string) => void;
+  // Easter egg state
+  isEasterEggActive: boolean;
+  setIsEasterEggActive: (active: boolean) => void;
+  // Terminal state (persists across open/close)
+  terminalHistory: TerminalEntry[];
+  addTerminalEntry: (entry: TerminalEntry) => void;
+  setTerminalHistory: (entries: TerminalEntry[] | ((prev: TerminalEntry[]) => TerminalEntry[])) => void;
+  clearTerminalHistory: () => void;
+  terminalCommandHistory: string[];
+  addTerminalCommand: (cmd: string) => void;
+  terminalCurrentDir: string;
+  setTerminalCurrentDir: (dir: string) => void;
+  terminalHasSeenIntro: boolean;
+  setTerminalHasSeenIntro: (seen: boolean) => void;
 }
 
 export const ConsoleContext = createContext<ConsoleContextType | undefined>(undefined);
@@ -28,10 +48,17 @@ export const ConsoleProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [focusedDiscipline, setFocusedDiscipline] = useState<ConsoleLane | null>(null);
   const [highlightedNodeIds, setHighlightedNodeIdsState] = useState<Set<string>>(new Set());
   const [isAgentOpen, setIsAgentOpen] = useState(false);
+  const [isEasterEggActive, setIsEasterEggActive] = useState(false);
 
   // Shared chat state - synced across all widget instances
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [selectedModelId, setSelectedModelId] = useState<string>(DEFAULT_MODEL_ID);
+
+  // Terminal state - persists across open/close
+  const [terminalHistory, setTerminalHistoryState] = useState<TerminalEntry[]>([]);
+  const [terminalCommandHistory, setTerminalCommandHistory] = useState<string[]>([]);
+  const [terminalCurrentDir, setTerminalCurrentDir] = useState<string>('/home/friend');
+  const [terminalHasSeenIntro, setTerminalHasSeenIntro] = useState<boolean>(false);
 
   // Memoized setter that converts array to Set
   const setHighlightedNodeIds = useCallback((ids: string[]) => {
@@ -62,6 +89,27 @@ export const ConsoleProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   }, []);
 
+  // Terminal state helpers
+  const addTerminalEntry = useCallback((entry: TerminalEntry) => {
+    setTerminalHistoryState(prev => [...prev, entry]);
+  }, []);
+
+  const setTerminalHistory = useCallback((entries: TerminalEntry[] | ((prev: TerminalEntry[]) => TerminalEntry[])) => {
+    if (typeof entries === 'function') {
+      setTerminalHistoryState(entries);
+    } else {
+      setTerminalHistoryState(entries);
+    }
+  }, []);
+
+  const clearTerminalHistory = useCallback(() => {
+    setTerminalHistoryState([]);
+  }, []);
+
+  const addTerminalCommand = useCallback((cmd: string) => {
+    setTerminalCommandHistory(prev => [...prev, cmd]);
+  }, []);
+
   // Memoize context value to prevent unnecessary re-renders
   const value = useMemo(() => ({
     hoveredNodeId,
@@ -79,6 +127,19 @@ export const ConsoleProvider: React.FC<{ children: ReactNode }> = ({ children })
     editMessageAt,
     selectedModelId,
     setSelectedModelId,
+    isEasterEggActive,
+    setIsEasterEggActive,
+    // Terminal state
+    terminalHistory,
+    addTerminalEntry,
+    setTerminalHistory,
+    clearTerminalHistory,
+    terminalCommandHistory,
+    addTerminalCommand,
+    terminalCurrentDir,
+    setTerminalCurrentDir,
+    terminalHasSeenIntro,
+    setTerminalHasSeenIntro,
   }), [
     hoveredNodeId,
     focusedDiscipline,
@@ -91,6 +152,16 @@ export const ConsoleProvider: React.FC<{ children: ReactNode }> = ({ children })
     clearChatHistory,
     editMessageAt,
     selectedModelId,
+    isEasterEggActive,
+    // Terminal state
+    terminalHistory,
+    addTerminalEntry,
+    setTerminalHistory,
+    clearTerminalHistory,
+    terminalCommandHistory,
+    addTerminalCommand,
+    terminalCurrentDir,
+    terminalHasSeenIntro,
   ]);
 
   return (

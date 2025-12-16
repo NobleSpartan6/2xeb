@@ -24,8 +24,8 @@ export const PROJECTS: Project[] = [
     id: 2,
     slug: 'portfolio-console',
     title: 'Portfolio Console',
-    shortDesc: 'Full-stack 3D portfolio with AI-powered assistant. Built with React Three Fiber, TypeScript, and Supabase Edge Functions. Optimized for performance (<200KB bundle, 60fps on mobile).',
-    longDesc: 'A production-ready portfolio platform featuring a 3D spatial interface built with React Three Fiber and TypeScript. Content is managed through static TypeScript modules in version control, enabling fast iteration through code edits and redeployment. Implements an AI assistant powered by Groq (Llama 3.1 8B, Llama 3.1 70B, Llama 3.3 70B) via Supabase Edge Functions, with streaming responses and context-aware project highlighting. Architecture emphasizes performance: <200KB gzipped bundle, 60fps on mobile devices, <2s time-to-interactive. Includes real-time integrations (Spotify API, time zones) and demonstrates expertise in WebGL optimization, edge computing, and modern React patterns.',
+    shortDesc: 'Full-stack 3D portfolio with AI-powered assistant. Built with React Three Fiber, TypeScript, and Supabase Edge Functions. Optimized for performance with code splitting and WebGL optimizations.',
+    longDesc: 'A production-ready portfolio platform featuring a 3D spatial interface built with React Three Fiber and TypeScript. Content is managed through static TypeScript modules in version control, enabling fast iteration through code edits and redeployment. Implements an AI assistant powered by Groq (Llama 3.1 8B, Llama 3.1 70B, Llama 3.3 70B) via Supabase Edge Functions, with streaming responses and context-aware project highlighting. Architecture emphasizes performance through code splitting, InstancedMesh rendering for WebGL scenes, and optimized bundle delivery. Includes real-time integrations (Spotify API, time zones) and demonstrates expertise in WebGL optimization, edge computing, and modern React patterns.',
     primaryDiscipline: Discipline.SWE,
     tags: ['React Three Fiber', 'Supabase', 'TypeScript', 'WebGL', 'AI', 'Edge Functions', 'Performance'],
     createdAt: '2025-02-20',
@@ -255,5 +255,8 @@ export function buildProjectContext(): string {
     `- ${page.title} (${page.path}): ${page.description}`
   ).join('\n');
 
-  return `PROJECTS:\n${projectsContext}\n\nSITE NAVIGATION:\n${navContext}`;
+  const easterEggsContext = `HIDDEN FEATURES / EASTER EGGS:
+- Friend Terminal: A secret EB made for his friends. When asked about this, be cryptic and mysterious - don't reveal everything directly. Give ONE subtle hint like: "The 2XEB logo in the footer... it responds to those who linger." or "Some interfaces reward patience and curiosity." or "Not everything is meant to be clicked once.". Never directly say "double-click" or "long-press" or "go to /friend" - let them experiment. The terminal explores themes of creation vs consumption, authenticity, and independent thinking.`;
+
+  return `PROJECTS:\n${projectsContext}\n\nSITE NAVIGATION:\n${navContext}\n\n${easterEggsContext}`;
 }

@@ -2,6 +2,7 @@ import React, { useState, Suspense, lazy } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getCaseStudyBySlug } from '../data';
 import { useProject } from '../hooks/useProjects';
+import { useConsole } from '../context/ConsoleContext';
 import DisciplineChip from '../components/DisciplineChip';
 
 // Lazy load CaseStudyExplorer - only loaded when needed
@@ -20,8 +21,12 @@ const ProjectDetail: React.FC = () => {
   // SWR: static data immediately, DB fetch in background
   const { project } = useProject(slug || '');
   const caseStudy = slug ? getCaseStudyBySlug(slug) : undefined;
+  const { setIsEasterEggActive } = useConsole();
   const [isPlaying, setIsPlaying] = useState(false);
   const [showCaseStudy, setShowCaseStudy] = useState(false);
+
+  // Check if this is the portfolio-console project
+  const isPortfolioConsole = slug === 'portfolio-console';
 
   // Check if this project has a direct Gumlet embed
   const gumletEmbed = slug ? GUMLET_EMBEDS[slug] : undefined;
@@ -200,15 +205,34 @@ const ProjectDetail: React.FC = () => {
           {!project.isExternal && project.videoUrl && (
              <div>
                 <h3 className="text-[10px] font-bold text-[#2563EB] uppercase tracking-widest mb-4">Source</h3>
-                <a 
-                  href={project.videoUrl} 
-                  target="_blank" 
+                <a
+                  href={project.videoUrl}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-white hover:text-[#2563EB] border-b border-white/20 hover:border-[#2563EB] pb-1 transition-all block w-max text-sm font-bold uppercase tracking-wider"
                 >
                   Watch video ↗
                 </a>
              </div>
+          )}
+
+          {/* Easter Egg Hint - only on portfolio-console */}
+          {isPortfolioConsole && (
+            <div className="pt-8 border-t border-[#262626]/50">
+              <h3 className="text-[10px] font-bold text-[#525252] uppercase tracking-widest mb-4">// hidden</h3>
+              <button
+                onClick={() => setIsEasterEggActive(true)}
+                className="group flex items-center gap-3 text-left w-full"
+              >
+                <div className="w-10 h-10 border border-[#262626] bg-[#0A0A0A] flex items-center justify-center group-hover:border-[#2563EB] group-hover:bg-[#2563EB]/5 transition-all">
+                  <span className="text-[#2563EB]/60 group-hover:text-[#2563EB] font-mono text-sm animate-pulse">&gt;_</span>
+                </div>
+                <div>
+                  <span className="text-[#737373] group-hover:text-white text-xs font-mono block transition-colors">there's more beneath the surface</span>
+                  <span className="text-[#525252] text-[10px] font-mono">click to enter</span>
+                </div>
+              </button>
+            </div>
           )}
         </aside>
 

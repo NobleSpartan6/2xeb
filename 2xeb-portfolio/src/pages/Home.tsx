@@ -205,7 +205,7 @@ const Home: React.FC = () => {
         </div>
 
         {/* Bottom Section - CTA & Description */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-24 sm:pb-16 md:pb-16 2xl:pb-20 3xl:pb-24 flex-shrink-0">
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-32 sm:pb-28 md:pb-24 lg:pb-24 2xl:pb-28 3xl:pb-32 flex-shrink-0">
           <div className="flex flex-col-reverse md:flex-row md:items-end md:justify-between gap-1.5 sm:gap-4 md:gap-8 2xl:gap-12">
             {/* Description */}
             <p className="text-white/40 text-[10px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[260px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-snug sm:leading-relaxed pointer-events-none">
@@ -243,9 +243,6 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* Corner accent lines - Swiss precision detail */}
-      <div className="absolute top-8 left-8 2xl:top-12 2xl:left-12 3xl:top-16 3xl:left-16 w-12 h-12 2xl:w-16 2xl:h-16 3xl:w-20 3xl:h-20 border-l border-t border-white/10 pointer-events-none z-20" />
-      <div className="absolute bottom-8 right-8 2xl:bottom-12 2xl:right-12 3xl:bottom-16 3xl:right-16 w-12 h-12 2xl:w-16 2xl:h-16 3xl:w-20 3xl:h-20 border-r border-b border-white/10 pointer-events-none z-20" />
     </div>
   );
 };

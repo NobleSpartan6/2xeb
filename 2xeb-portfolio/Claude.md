@@ -7,7 +7,7 @@ This is a full-stack portfolio platform built with React 19, TypeScript, React T
 - **AI Assistant**: Multi-model LLM integration (Groq, Gemini) with streaming responses
 - **Admin CMS**: Full CRUD interface with authentication, RLS, and audit logging
 - **Hybrid Content**: Static TypeScript modules + optional Supabase database backend
-- **Performance Optimized**: <200KB bundle, 60fps on mobile, code splitting
+- **Performance Optimized**: Code splitting, WebGL optimizations, responsive rendering
 - **Production Ready**: Deployed to Cloudflare Pages with security headers
 
 ## Architecture Highlights
@@ -37,9 +37,9 @@ This is a full-stack portfolio platform built with React 19, TypeScript, React T
 
 ### Performance
 - **Code Splitting**: React.lazy() for admin routes
-- **Bundle Size**: <200KB gzipped JavaScript
-- **Frame Rate**: 60fps on iPhone 12+ devices
-- **Time to Interactive**: <2s on throttled 3G
+- **Bundle Optimization**: Code splitting and tree shaking reduce initial load
+- **WebGL Performance**: InstancedMesh rendering for efficient 3D scene rendering
+- **Responsive Rendering**: Adaptive grid sizes and quality settings for mobile devices
 
 ## Debug Mode
 
@@ -100,3 +100,110 @@ See individual CLAUDE.md files in subdirectories for detailed documentation:
 - **Build**: Vite production build
 - **Edge Functions**: Supabase Edge Functions (deployed separately)
 - **Security**: Headers configured in Cloudflare Pages settings
+
+## Easter Egg: Mr. Robot Terminal
+
+A hidden terminal experience inspired by Mr. Robot, featuring philosophy on creation, authenticity, and breaking from the crowd.
+
+### Activation Methods
+
+| Method | Platform | Action |
+|--------|----------|--------|
+| Keyboard | Desktop | Type "friend" anywhere on site (outside input fields) |
+| Double-click | Desktop | Double-click the 2XEB. logo in footer |
+| Long-press | Mobile | Hold the 2XEB. logo for 2 seconds |
+| Direct URL | All | Navigate to `/friend` |
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         App.tsx                              │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐ │
+│  │EasterEggListener│  │EasterEggOverlay │  │FriendRoute   │ │
+│  │ (useEasterEgg)  │  │(MrRobotTerminal)│  │ Activator    │ │
+│  └────────┬────────┘  └────────┬────────┘  └──────┬───────┘ │
+└───────────┼────────────────────┼────────────────── ┼─────────┘
+            │                    │                   │
+            └──────────┬─────────┴───────────────────┘
+                       ▼
+              ┌────────────────────┐
+              │   ConsoleContext   │
+              │ isEasterEggActive  │
+              └────────┬───────────┘
+                       │
+            ┌──────────┴──────────┐
+            ▼                     ▼
+    ┌───────────────┐    ┌───────────────┐
+    │  FooterHUD    │    │MrRobotTerminal│
+    │ (logo events) │    │ (overlay UI)  │
+    └───────────────┘    └───────────────┘
+```
+
+### Key Files
+
+- `/src/components/MrRobotTerminal.tsx` - Full terminal UI with CRT effects
+- `/src/hooks/useEasterEgg.ts` - Detection hook (keyboard buffer, gestures)
+- `/src/context/ConsoleContext.tsx` - State management (`isEasterEggActive`)
+
+### Terminal Commands
+
+**Core Commands:**
+- `help` - Available commands (includes hint about hidden files)
+- `whoami` - Random identity/philosophy responses
+- `ls` - List visible files only (Unix-authentic)
+- `ls -a` - List all files including hidden (reveals `.fsociety/`, `.truth`)
+- `ls -la` - Detailed listing with hidden files
+- `cat <file>` - Read files
+- `fsociety` - ASCII art + creation manifesto
+- `clear` / `exit` - Terminal controls
+
+**File System (Unix-authentic hidden file behavior):**
+```
+/home/friend/
+├── projects/
+├── .fsociety/           <- hidden, use ls -a
+│   ├── control.txt      (control is an illusion)
+│   ├── freedom.txt      (three ways to live)
+│   ├── revolution.txt   (creation as revolution)
+│   ├── you.txt          (dynamic: timestamp, resolution, personal message)
+│   └── .leap            <- hidden, use ls -a .fsociety
+├── readme.txt           (welcome message)
+├── manifesto.txt        (creation philosophy)
+└── .truth               <- hidden, use ls -a
+```
+
+**Unix Navigation (fully functional):**
+- `cd .fsociety` → changes directory, updates prompt
+- `cd ..` → goes back to parent
+- `cd ~` / `cd` → returns to home
+- `pwd` → shows current directory
+- `ls` → context-aware (shows files in current directory)
+- `cat control.txt` → works when inside .fsociety directory
+
+**Discovery Flow:**
+1. `ls` → shows visible files only
+2. `ls -a` → reveals `.fsociety/` and `.truth`
+3. `cd .fsociety` → enter the hidden directory
+4. `ls -a` → reveals `.leap`
+5. Tab completion also respects hidden files (type `.` to see dotfiles)
+
+**Easter Egg Commands:** `hack`, `robot`, `leap`, `crowd`, `meaning`, `42`, `matrix`, `neo`, `morpheus`, `eb`, `mrrobot`, `2xeb`
+
+### CRT Visual Effects
+
+- Scanlines overlay
+- Screen vignette
+- Flicker animation
+- Noise texture
+- Glitch text effect
+- Turn-on animation
+- Cursor blink with glow
+
+### Philosophy Themes
+
+The terminal explores themes of:
+- **Creation over consumption** - "The world has enough consumers. Be a creator."
+- **Authenticity** - "The deepest emptiness comes from living as someone you're not."
+- **Action over planning** - "You can't think your way into becoming. You have to act."
+- **Independent thinking** - "Consensus is not truth. Step outside it."

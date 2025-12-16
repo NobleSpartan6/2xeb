@@ -30,167 +30,122 @@ export const CASE_STUDIES: CaseStudy[] = [
   {
     slug: 'portfolio-console',
     title: 'Portfolio Console',
-    subtitle: 'Full-stack 3D portfolio platform with AI integration and performance optimization',
+    subtitle: 'Full-stack portfolio with WebGL visuals and an AI assistant',
 
-    problem: `Traditional portfolio sites flatten complex work into linear lists, making it difficult to showcase interdisciplinary skills and technical depth.
-Most portfolios either rely on heavy CMS platforms (adding complexity and cost) or sacrifice interactivity for simplicity.
-I needed a solution that demonstrates full-stack capabilities, modern web technologies, and production-ready performance—while maintaining developer-friendly architecture and deployment simplicity.`,
+    problem: `Most portfolio sites are either overly simple or rely on heavy CMS platforms. I wanted something that felt more like a product than a template. Something interactive that could actually show what I build, not just list it.`,
 
-    solution: `Built a production-ready, full-stack portfolio platform featuring a 3D spatial interface using React Three Fiber and WebGL optimization techniques.
-Architected a developer-first content approach: static TypeScript data modules in src/data/ provide version-controlled, type-safe content that deploys with the codebase. This eliminates CMS overhead, keeps content changes in version control, and enables fast iteration through code edits and redeployment.
-Integrated AI capabilities via Supabase Edge Functions, supporting multiple Groq models (Llama 3.1 8B, Llama 3.1 70B, Llama 3.3 70B) with streaming responses, context-aware project highlighting, and client-side rate limiting to prevent API abuse.
-Built three distinct 3D scenes: immersive home scene with discipline-based agent movement, isometric project browser with graph-based connections, and animated background grid. Each optimized for performance with instanced meshing and responsive rendering.
-Implemented client-side rate limiting system with localStorage persistence, cooldown periods, and per-model request tracking to respect free-tier API limits while providing smooth UX.
-Deployed to Cloudflare Pages with BrowserRouter for SPA routing, security headers, and edge-optimized asset delivery. Code splitting via React.lazy() reduces initial bundle size.
-Added contact form with Supabase Edge Function integration, email notifications via Resend API, and database persistence with RLS policies ensuring data privacy.
-Created graph data structure for visualizing project relationships based on shared tags, enabling dynamic connection rendering in 3D space and demonstrating data modeling skills.
-Note: An optional admin CMS exists for database-backed content management, but the primary workflow uses static TypeScript modules for simplicity and version control.`,
+    solution: `A React + Three.js SPA with three WebGL scenes, an AI chat assistant powered by Groq, and content managed through TypeScript files (no CMS, everything in git).
+
+The 3D scenes use InstancedMesh for performance. Rendering 1600+ grid cells at 60fps on mobile required some tuning. The AI assistant streams responses via Supabase Edge Functions, with client-side rate limiting to stay within free-tier API limits.
+
+Deployed on Cloudflare Pages with code splitting to keep initial load fast. The architecture is intentionally simple: static content, serverless functions, no database for public content.`,
 
     techStack: [
       'React 19 + TypeScript',
-      'React Three Fiber + drei',
-      'WebGL Performance Optimization',
+      'React Three Fiber',
       'Supabase Edge Functions',
       'Groq API (Llama 3.1/3.3)',
-      'Llama 3.1 70B',
       'Cloudflare Pages',
-      'BrowserRouter (SPA Routing)',
       'Tailwind CSS',
       'Vite',
-      'Serverless Architecture',
-      'Code Splitting (React.lazy)',
     ],
 
     timeline: [
       {
-        title: 'Architecture: SPA with static data modules',
+        title: 'Skipped the CMS',
         description:
-          'Designed a client-side Vite/React application using static TypeScript modules for content management. This approach eliminates CMS dependencies, maintains type safety, enables version control for content, and simplifies deployment while keeping bundle size minimal.',
+          'Content lives in TypeScript modules. No database roundtrips, everything type-safe, and changes go through git like regular code. Simpler to maintain and deploy.',
         type: 'decision',
       },
       {
-        title: 'WebGL performance optimization',
+        title: 'Mobile performance issues',
         description:
-          'Identified performance bottleneck: initial 40×40 grid (1600 cells) caused frame drops on mobile devices. Implemented InstancedMesh rendering and responsive grid scaling (40×40 desktop, 24×24 mobile), maintaining visual consistency while achieving consistent 60fps across devices.',
+          'Initial 40×40 grid was dropping frames on phones. Switched to InstancedMesh rendering and scaled down to 24×24 on mobile. Now holds 60fps across devices.',
         type: 'challenge',
       },
       {
-        title: 'React context and R3F Canvas boundaries',
+        title: 'R3F context gotcha',
         description:
-          'Resolved architectural challenge where React context does not propagate across React Three Fiber Canvas boundaries. Solution: re-provide context within Canvas component and implement callback-based navigation pattern instead of router hooks, maintaining clean separation of concerns.',
+          'React context doesn\'t cross the R3F Canvas boundary. Had to re-provide context inside Canvas and use callbacks instead of router hooks for navigation.',
         type: 'learning',
       },
       {
-        title: 'Multi-provider AI integration',
+        title: 'AI assistant with streaming',
         description:
-          'Built ask-portfolio Edge Function supporting multiple Groq models (Llama 3.1 8B, Llama 3.1 70B, Llama 3.3 70B) with model selection and abstraction. Implemented context building from static data, model validation, streaming responses, and error handling. Demonstrates serverless architecture and API integration patterns.',
+          'Edge Function that hits Groq\'s API with project context. Streams tokens back via SSE so responses feel responsive. Added model selection (8B for speed, 70B for depth).',
         type: 'milestone',
       },
       {
-        title: 'Streaming UI and UX polish',
+        title: 'Rate limiting without a backend',
         description:
-          'Implemented streaming response UI with token-by-token rendering, copy/regenerate actions, custom markdown renderer (~50 lines), and typing indicators. Focused on keeping AI assistant present but non-intrusive, demonstrating attention to UX and performance.',
+          'Client-side rate limiting using localStorage. Tracks requests per model, enforces cooldowns, shows usage stats. Complements server-side validation.',
         type: 'milestone',
       },
       {
-        title: 'Real-time API integrations',
+        title: 'Spotify + live clock',
         description:
-          'Integrated Spotify API with OAuth refresh token flow and timezone-aware clock via Supabase Edge Functions. Demonstrates serverless API integration, token management, and real-time data handling while maintaining minimal UI footprint.',
-        type: 'milestone',
-      },
-      {
-        title: 'Client-side rate limiting',
-        description:
-          'Implemented sophisticated rate limiting system using localStorage to track requests per model, enforce cooldown periods, and respect free-tier API limits. Includes usage stats display and user-friendly error messages, preventing API abuse while maintaining smooth UX.',
-        type: 'milestone',
-      },
-      {
-        title: 'Graph data structure and 3D visualization',
-        description:
-          'Created graph data structure generating nodes and edges based on project tag relationships. Implemented three distinct 3D scenes (ImmersiveScene, SystemConsoleScene, OrbitScene) each optimized for different use cases, demonstrating WebGL expertise and performance optimization.',
-        type: 'milestone',
-      },
-      {
-        title: 'Production deployment',
-        description:
-          'Deployed to Cloudflare Pages with BrowserRouter for SPA routing, security headers, and edge-optimized delivery. Implemented code splitting via React.lazy() for admin routes, reducing initial bundle size. Configured environment variables and edge function integrations.',
+          'Edge Function handles Spotify OAuth refresh flow. Polls every 30s, shows what I\'m listening to. Small detail but adds some life to the page.',
         type: 'milestone',
       },
     ],
 
     results: [
       {
-        metric: 'Bundle size',
-        value: '< 200KB',
-        description: 'Gzipped JavaScript stays under 200KB by avoiding heavy UI and markdown dependencies.',
-      },
-      {
         metric: 'Frame rate',
-        value: '≈60fps',
-        description: 'The main scene holds 60fps on an iPhone 12+ under normal interaction.',
+        value: '60fps',
+        description: 'InstancedMesh + responsive grid sizing. Tested on iPhone SE and low-end Android.',
       },
       {
-        metric: 'Time to interactive',
-        value: '< 2s',
-        description: 'On a throttled 3G profile, the console becomes interactive in under two seconds.',
+        metric: 'First token',
+        value: '< 1s',
+        description: 'Streaming via Groq. Plain text output avoids JSON parsing delays.',
       },
       {
-        metric: 'AI response time',
-        value: '< 1.5s',
-        description: 'Plain-text streaming via Groq (Llama 3.1 8B) to avoid JSON flashing and keep first token fast.',
+        metric: 'Initial load',
+        value: '~200KB',
+        description: 'Code splitting keeps admin routes out of the main bundle.',
+      },
+      {
+        metric: 'Monthly cost',
+        value: '$0',
+        description: 'Cloudflare Pages free tier + Groq free tier + Supabase free tier.',
       },
     ],
 
     architecture: `
 ┌─────────────────────────────────────────────────────────────┐
-│                    Client (SPA - Cloudflare Pages)         │
+│                 Client (Cloudflare Pages)                   │
 ├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
-│  │   React     │  │   R3F       │  │  ConsoleContext     │ │
-│  │ BrowserRouter│  │   Canvas    │  │  (shared state)     │ │
-│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘ │
-│         │                │                     │            │
-│         └────────────────┼─────────────────────┘            │
-│                          │                                  │
-│  ┌───────────────────────┴───────────────────────────────┐ │
-│  │              Static Data (/src/data/)                 │ │
-│  │   projects.ts │ timeline.ts │ graph.ts │ caseStudies  │ │
-│  │   TypeScript modules - version controlled, type-safe  │ │
-│  └───────────────────────────────────────────────────────┘ │
 │                                                             │
-│  ┌───────────────────────────────────────────────────────┐ │
-│  │  Rate Limiting (Client-Side)                          │ │
-│  │  localStorage-based request tracking per model        │ │
-│  │  Cooldown periods, RPM limits, daily limits          │ │
-│  └───────────────────────────────────────────────────────┘ │
+│   React Router ─── R3F Canvas ─── ConsoleContext            │
+│                         │                                   │
+│                         ▼                                   │
+│              Static Data (TypeScript)                       │
+│         projects.ts / caseStudies.ts / etc                  │
+│                                                             │
+│              Rate Limiting (localStorage)                   │
+│                                                             │
 └─────────────────────────────────────────────────────────────┘
                               │
-                              │ fetch()
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                   Supabase Edge Functions                   │
+│                 Supabase Edge Functions                     │
 ├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐  ┌─────────────────┐  ┌────────────┐  │
-│  │  ask-portfolio  │  │ spotify-now-    │  │  submit-   │  │
-│  │  (Groq)         │  │ playing         │  │  contact   │  │
-│  │  Streaming SSE   │  │ OAuth Refresh  │  │  + Email   │  │
-│  └────────┬────────┘  └────────┬────────┘  └─────┬──────┘  │
-│           │                    │                  │         │
-│           ▼                    ▼                  ▼         │
-│      Groq                 Spotify API         Supabase DB   │
+│                                                             │
+│   ask-portfolio ──► Groq API (streaming)                    │
+│   spotify-now-playing ──► Spotify API                       │
+│   submit-contact ──► Resend + DB                            │
+│                                                             │
 └─────────────────────────────────────────────────────────────┘
 `,
 
     lessons: [
-      'Performance-first architecture: InstancedMesh rendering enables rendering thousands of objects at 60fps by batching GPU draw calls, essential for WebGL applications targeting mobile devices.',
-      'React patterns: Understanding React context boundaries and component lifecycle across different rendering contexts (DOM vs WebGL) is crucial for complex applications.',
-      'Developer-first content management: Static TypeScript modules provide version control, type safety, and zero runtime overhead. Content changes are code changes, enabling fast iteration and keeping everything in git history.',
-      'Client-side rate limiting: Implementing rate limiting in the client prevents API abuse and respects free-tier limits while maintaining smooth UX, complementing server-side validation.',
-      'Code splitting strategy: Lazy loading admin routes reduces initial bundle size for public users while keeping admin functionality available when needed, demonstrating performance-conscious architecture.',
-      'Serverless architecture: Edge Functions enable secure API integrations, secret management, and external service communication without maintaining dedicated infrastructure, reducing operational overhead.',
-      'Graph data modeling: Creating graph structures for relationships (project tags → connections) enables dynamic visualizations and demonstrates data modeling skills beyond simple CRUD.',
-      'Production metrics matter: Tracking bundle size, frame rate, and time-to-interactive provides concrete performance targets and demonstrates production-readiness to stakeholders.',
-      'Multi-scene optimization: Different 3D scenes optimized for different use cases (immersive home, isometric browser, background animation) demonstrate understanding of performance trade-offs and user experience design.',
+      'InstancedMesh is essential for WebGL on mobile. Batching draw calls made the difference between 20fps and 60fps.',
+      'React context doesn\'t propagate into R3F Canvas. Plan for that boundary early.',
+      'Static TypeScript > CMS for small sites. Faster, type-safe, version controlled, free.',
+      'Client-side rate limiting pairs well with server-side validation for defense in depth.',
+      'Streaming makes AI feel fast even when it\'s not. First token time > total time.',
+      'Free tiers are underrated. This whole stack costs nothing to run.',
     ],
   },
 ];
