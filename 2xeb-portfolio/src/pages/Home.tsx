@@ -207,8 +207,8 @@ const Home: React.FC = () => {
         {/* Bottom Section - CTA & Description */}
         <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-24 sm:pb-6 md:pb-16 2xl:pb-20 3xl:pb-24 flex-shrink-0">
           <div className="flex flex-col-reverse md:flex-row md:items-end md:justify-between gap-1.5 sm:gap-4 md:gap-8 2xl:gap-12">
-            {/* Description - hidden on mobile to save space */}
-            <p className="hidden sm:block text-white/40 text-[9px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[260px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-snug sm:leading-relaxed pointer-events-none">
+            {/* Description */}
+            <p className="text-white/40 text-[9px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[260px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-snug sm:leading-relaxed pointer-events-none">
               A multidisciplinary portfolio exploring the intersection of software engineering,
               machine learning, and visual storytelling.
             </p>
