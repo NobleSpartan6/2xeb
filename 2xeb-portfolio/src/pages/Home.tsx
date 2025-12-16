@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ImmersiveScene from '../3d/ImmersiveScene';
 import { useConsole } from '../context/ConsoleContext';
