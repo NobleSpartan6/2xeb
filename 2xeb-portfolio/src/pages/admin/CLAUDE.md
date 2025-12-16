@@ -68,6 +68,20 @@ Read-only log of all content changes.
 - Metadata (IP, user agent, timestamp)
 - Immutable (cannot be modified)
 
+### ResetPassword.tsx
+Password reset page for admin users.
+- Shown after PASSWORD_RECOVERY auth event
+- Password/confirm password fields with validation
+- Minimum 6 characters
+- Signs out and redirects to login after success
+
+### PublishContent.tsx
+Generates TypeScript files from database content.
+- Fetches projects and experience from database
+- Generates `projects.ts` and `timeline.ts` content
+- Copy-to-clipboard for easy export
+- Used for deploying static content
+
 ## Components
 
 Located in `/src/components/admin/`:
@@ -130,13 +144,15 @@ Matches portfolio design:
 /admin
 ├── /login          - AdminLogin (public)
 ├── /auth/callback  - AuthCallback (public)
+├── /reset-password - ResetPassword (protected)
 └── /* (protected)
     ├── /           - AdminDashboard
     ├── /projects   - ProjectsEditor
     ├── /experience - ExperienceEditor
     ├── /case-studies - CaseStudiesEditor
     ├── /pages      - PagesEditor
-    └── /audit      - AuditLogViewer
+    ├── /audit      - AuditLogViewer
+    └── /publish    - PublishContent
 ```
 
 ## Data Flow

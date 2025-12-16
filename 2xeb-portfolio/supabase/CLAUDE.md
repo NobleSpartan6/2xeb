@@ -19,24 +19,23 @@ Handles contact form submissions. Inserts into `contact_messages` table and send
 - **Email**: Sends notification to email (requires `RESEND_API_KEY`)
 
 ### ask-portfolio
-AI assistant for portfolio questions. Supports multiple models via Groq and Gemini with optional SSE streaming.
+AI assistant for portfolio questions. **Groq only** with optional SSE streaming.
 
 - **Endpoint**: `POST /functions/v1/ask-portfolio`
-- **Input**: `{ question, context, model?, provider?, stream? }`
+- **Input**: `{ question, context, model?, stream? }`
   - `model`: Specific model ID (e.g., `"llama-3.1-8b-instant"`)
-  - `provider`: `"groq"` (default) or `"gemini"`
-  - `stream`: `true` for SSE streaming (Groq only)
+  - `stream`: `true` for SSE streaming
 - **Output (non-streaming)**: `{ answer, projectSlugs, model, provider }`
 - **Prompting**: Streaming uses a plain-text prompt (no JSON) to avoid flashing; non-stream uses `response_format: json_object`
 - **Output (streaming)**: SSE with `data: { chunk }` tokens (plain text), final `data: { done: true, projectSlugs, model, provider }`
 - **Available Models**:
-  | Model ID | Provider | Daily Limit |
-  |----------|----------|-------------|
-  | `llama-3.1-8b-instant` | Groq | 14,400 |
-  | `llama-3.3-70b-versatile` | Groq | 1,000 |
-  | `gemini-2.0-flash` | Gemini | 1,500 |
-- **Security**: Server validates model ID against whitelist
-- **Requires**: `GROQ_API_KEY` and/or `GEMINI_API_KEY` secrets
+  | Model ID | Daily Limit | Default |
+  |----------|-------------|---------|
+  | `llama-3.1-8b-instant` | 14,400 | No |
+  | `llama-3.1-70b-versatile` | 1,000 | No |
+  | `llama-3.3-70b-versatile` | 1,000 | **Yes** |
+- **Security**: Server validates model ID against whitelist (ALLOWED_GROQ_MODELS)
+- **Requires**: `GROQ_API_KEY` secret
 
 ### spotify-now-playing
 Returns current Spotify playback status for display in portfolio header.
@@ -84,8 +83,7 @@ Edge Functions require these secrets (set in Supabase Dashboard > Project Settin
 
 | Secret | Description |
 |--------|-------------|
-| `GROQ_API_KEY` | Groq API key for ask-portfolio (default, recommended) |
-| `GEMINI_API_KEY` | Google Gemini API key for ask-portfolio (fallback) |
+| `GROQ_API_KEY` | Groq API key for ask-portfolio (required) |
 | `RESEND_API_KEY` | Resend API key for email notifications (submit-contact) |
 | `SPOTIFY_CLIENT_ID` | Spotify app client ID (spotify-now-playing) |
 | `SPOTIFY_CLIENT_SECRET` | Spotify app client secret (spotify-now-playing) |

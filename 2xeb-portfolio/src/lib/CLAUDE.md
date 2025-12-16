@@ -5,14 +5,16 @@ Utility functions, API helpers, and TypeScript types.
 ## Files
 
 ### models.ts
-Centralized LLM model configuration with rate limiting.
+Centralized LLM model configuration with rate limiting. **Groq only** (no Gemini).
 
 **Available Models:**
-| Model ID | Name | Provider | Daily Limit | Best For |
-|----------|------|----------|-------------|----------|
-| `llama-3.1-8b-instant` | Llama 3.1 8B | Groq | 14,400 | Fast Q&A |
-| `llama-3.1-70b-versatile` | Llama 3.1 70B | Groq | 1,000 | Balanced performance |
-| `llama-3.3-70b-versatile` | Llama 3.3 70B | Groq | 1,000 | Complex reasoning (default) |
+| Model ID | Name | Provider | Daily Limit | RPM | Category |
+|----------|------|----------|-------------|-----|----------|
+| `llama-3.1-8b-instant` | Llama 3.1 8B | Groq | 14,400 | 30 | fast |
+| `llama-3.1-70b-versatile` | Llama 3.1 70B | Groq | 1,000 | 30 | balanced |
+| `llama-3.3-70b-versatile` | Llama 3.3 70B | Groq | 1,000 | 30 | powerful (default) |
+
+**Default Model:** `llama-3.3-70b-versatile`
 
 **Rate Limiting (Client-Side):**
 - 2 second cooldown between requests
@@ -63,8 +65,11 @@ TypeScript interfaces used across the app.
 - `Discipline` - 'SWE' | 'ML' | 'VIDEO' | 'HYBRID'
 - `ConsoleLane` - 'DESIGN' | 'CODE' | 'VISION'
 
-### geminiService.ts (Deprecated)
+### geminiService.ts (DEPRECATED)
 Legacy Gemini client-side service. **Do not use** - AI calls should go through Edge Functions via `api.ts`.
+
+### debug.ts
+Debug utilities for development. Contains logging helpers and conditional debug output.
 
 ## Guardrails Against Abuse
 

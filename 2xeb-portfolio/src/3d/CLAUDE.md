@@ -4,7 +4,7 @@ This directory contains React Three Fiber (R3F) 3D scene components for the port
 
 ## Files
 
-### ImmersiveScene.tsx (Primary - Home Page)
+### ImmersiveScene.tsx (Home Page)
 Full-screen immersive 3D visualization with three discipline "pillars":
 
 **Visual Concept:**
@@ -50,8 +50,32 @@ Isometric 3D view for browsing projects organized by discipline lanes.
 - Pre-computed `connectionPoints` array
 - Memoized dummy/color objects
 
+### ContactScene.tsx (Contact Page)
+Interactive 3D grid for the Contact page that responds to form interactions.
+
+**Features:**
+- 44x44 grid (28x28 on mobile)
+- Responds to form field focus (creates ripple effect)
+- Shows success animation on form submission
+- Color scheme: Swiss Blue (#2563EB) primary, Cyan (#06B6D4) secondary
+
+**Performance Optimizations:**
+- `InstancedMesh` for all grid cells
+- Reusable THREE objects (`_dummy`, `_color`)
+- Custom `InteractionContext` for form state sync
+
+**Form Integration:**
+```typescript
+interface InteractionState {
+  focusedField: string | null;  // Currently focused form field
+  isSubmitting: boolean;         // Form is submitting
+  isSuccess: boolean;            // Submission successful
+  triggerPulse: number;          // Timestamp to trigger pulse animation
+}
+```
+
 ### OrbitScene.tsx (Background)
-Animated background grid used on secondary pages (Contact, etc.).
+Animated background grid used on secondary pages (About, Video, etc.).
 
 ## Performance Patterns
 

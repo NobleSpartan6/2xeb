@@ -16,11 +16,16 @@ Central state management for the portfolio application.
 | `isAgentOpen` | `boolean` | Whether chat panel is open |
 | `chatHistory` | `ChatMessage[]` | **Shared chat history** |
 | `selectedModelId` | `string` | **Selected LLM model ID** |
+| `isEasterEggActive` | `boolean` | **Easter egg terminal visible** |
+| `terminalHistory` | `TerminalEntry[]` | **Terminal output history** |
+| `terminalCommandHistory` | `string[]` | **Commands for arrow-key nav** |
+| `terminalCurrentDir` | `string` | **Terminal current directory** |
+| `terminalHasSeenIntro` | `boolean` | **Skip intro on reopening** |
 
 ### Usage
 
 ```typescript
-import { useConsole } from '../context/ConsoleContext';
+import { useConsole, TerminalEntry } from '../context/ConsoleContext';
 
 const {
   // 3D scene state
@@ -40,8 +45,25 @@ const {
   chatHistory,
   addChatMessage,
   clearChatHistory,
+  editMessageAt,          // Edit message and truncate subsequent
   selectedModelId,
   setSelectedModelId,
+
+  // Easter egg state
+  isEasterEggActive,
+  setIsEasterEggActive,
+
+  // Terminal state (persists across open/close)
+  terminalHistory,
+  addTerminalEntry,
+  setTerminalHistory,
+  clearTerminalHistory,
+  terminalCommandHistory,
+  addTerminalCommand,
+  terminalCurrentDir,
+  setTerminalCurrentDir,
+  terminalHasSeenIntro,
+  setTerminalHasSeenIntro,
 } = useConsole();
 ```
 

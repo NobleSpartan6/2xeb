@@ -8,11 +8,15 @@ Reusable UI components for the 2xeb portfolio.
 AI-powered chat widget for answering portfolio questions.
 
 **Features:**
-- Multi-model support via Groq (Llama 3.1 8B, Llama 3.1 70B, Llama 3.3 70B)
+- Multi-model support via Groq:
+  - `llama-3.1-8b-instant` (fast, high daily limit)
+  - `llama-3.1-70b-versatile` (balanced)
+  - `llama-3.3-70b-versatile` (powerful, default)
 - Model selector UI showing actual model names
 - **Shared chat state** via ConsoleContext (synced across all access points)
 - Client-side rate limiting with user-friendly error messages
 - Project reference links from AI responses
+- SSE streaming for real-time responses
 
 **Props:**
 ```typescript
@@ -49,6 +53,50 @@ Card component for displaying project previews in grids.
 
 ### DisciplineChip.tsx
 Small chip/tag for displaying discipline labels (SWE, ML, VIDEO).
+
+### MrRobotTerminal.tsx
+Easter egg terminal component inspired by Mr. Robot.
+
+**Features:**
+- Full Unix command emulation (ls, cat, cd, pwd, echo, grep, etc.)
+- Hidden file system with philosophy content
+- Tab completion for commands
+- Command history navigation (arrow keys)
+- Responsive (works on mobile)
+
+**Available Commands:**
+- **Navigation**: `ls`, `cd`, `pwd`, `cat`, `find`, `head`, `tail`
+- **Standard Unix**: `echo`, `date`, `id`, `uname`, `hostname`, `uptime`, `history`, `env`, `which`, `man`
+- **File Ops**: `touch`, `mkdir`, `rm`, `cp`, `mv`, `chmod`, `chown`
+- **Network**: `ping`, `curl`, `wget`, `ssh`, `netstat`, `ifconfig`
+- **Process**: `ps`, `top`, `htop`, `kill`
+- **Dev Tools**: `git`, `npm`, `node`, `python`, `vim`, `nano`, `code`, `make`
+- **Special**: `help`, `whoami`, `fsociety`, `clear`, `exit`
+
+**File System:**
+```
+/home/friend/
+├── projects/           # Links to portfolio projects
+├── readme.txt          # Welcome message
+├── manifesto.txt       # Creation philosophy
+├── .truth              # Hidden: authenticity quotes
+└── .fsociety/          # Hidden directory
+    ├── control.txt     # On control as illusion
+    ├── freedom.txt     # Philosophy of freedom
+    ├── revolution.txt  # Creation as revolution
+    ├── you.txt         # Dynamic: personal message
+    └── .leap           # Deepest hidden: on starting
+```
+
+**State Management:**
+Uses ConsoleContext for persisted state:
+- `terminalHistory` - Output entries
+- `terminalCommandHistory` - For arrow key navigation
+- `terminalCurrentDir` - Current directory
+- `terminalHasSeenIntro` - Skip intro on subsequent opens
+
+### SystemAgent.tsx
+Legacy component (minimal usage).
 
 ## Design Language
 

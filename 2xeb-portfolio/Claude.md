@@ -1,209 +1,317 @@
-# Claude Code Development Notes
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Subdirectory Documentation
+
+When creating new directories (e.g., `/supabase`, new feature folders), add a `CLAUDE.md` file in each subdirectory to document its specific purpose, patterns, and constraints.
 
 ## Project Overview
 
-This is a full-stack portfolio platform built with React 19, TypeScript, React Three Fiber, and Supabase. It features:
-- **3D Spatial Interface**: Three distinct WebGL scenes optimized for different use cases
-- **AI Assistant**: Multi-model LLM integration (Groq, Gemini) with streaming responses
-- **Admin CMS**: Full CRUD interface with authentication, RLS, and audit logging
-- **Hybrid Content**: Static TypeScript modules + optional Supabase database backend
-- **Performance Optimized**: Code splitting, WebGL optimizations, responsive rendering
-- **Production Ready**: Deployed to Cloudflare Pages with security headers
+A 3D, AI-assisted portfolio SPA for 2xeb (Ebenezer Eshetu) showcasing Software Engineering, ML/AI, and Video production work. Built with React + Vite, React Three Fiber for 3D visualization, and multi-model AI assistant with SSE streaming.
 
-## Architecture Highlights
+## Philosophy & Constraints
 
-### Content Management
-- **Static Data**: `/src/data/` contains TypeScript modules (projects.ts, timeline.ts, graph.ts, caseStudies.ts)
-- **Database Backend**: Optional Supabase tables for admin CMS (projects, experience, case_studies, pages)
-- **Hybrid Approach**: Public content uses static files; admin can manage via database
+**Non-negotiables:**
+- No Next.js, no SSR/RSC — pure client-side SPA
+- Reuse MVP styling (same colors, typography, layout, 3D vibe)
+- Production-ready: static content for portfolio, minimal Supabase backend (contact + AI function), LLM keys server-side only
 
-### 3D Scenes
-- **ImmersiveScene**: Full-screen home page with discipline-based agent movement (40×40 grid, 24×24 mobile)
-- **SystemConsoleScene**: Isometric project browser with graph-based connections
-- **OrbitScene**: Animated background grid for secondary pages
-- All use InstancedMesh for performance optimization
+**Architecture Decision: Static Content + Supabase Backend**
+- Portfolio content (projects, timeline, media metadata) lives as **static TypeScript files** in `/src/data/`
+- Supabase used for: contact form, AI Edge Functions, auth, optional admin CMS
+- Admin CMS available but optional — can deploy without database content
 
-### AI Integration
-- **Multi-Provider**: Supports Groq (Llama 3.1/3.3) and Gemini 2.0 Flash
-- **Streaming**: SSE streaming for real-time token rendering
-- **Rate Limiting**: Client-side rate limiting with localStorage persistence
-- **Context Building**: Dynamic context from static project data
+## Development Commands
 
-### Security
-- **Authentication**: Magic link authentication via Supabase Auth
-- **Authorization**: Row Level Security (RLS) policies at database level
-- **Audit Logging**: All content changes logged with metadata (IP, user agent, timestamp)
-- **Security Headers**: Configured in Cloudflare Pages
-
-### Performance
-- **Code Splitting**: React.lazy() for admin routes
-- **Bundle Optimization**: Code splitting and tree shaking reduce initial load
-- **WebGL Performance**: InstancedMesh rendering for efficient 3D scene rendering
-- **Responsive Rendering**: Adaptive grid sizes and quality settings for mobile devices
-
-## Debug Mode
-
-To enable verbose console logging during development, add the following to your `.env.local` file:
-
-```
-VITE_DEBUG=true
+```bash
+npm install     # Install dependencies
+npm run dev     # Start dev server on port 3000
+npm run build   # Build for production (outputs to dist/)
+npm run preview # Preview production build
 ```
 
-This enables debug output for:
-- Supabase configuration status
-- Authentication state changes
-- Admin status checks
-- REST API mutations
-- Demo mode warnings
-
-The debug logger is defined in `src/lib/debug.ts` and supports:
-- `debug.log()` - General debug messages
-- `debug.warn()` - Warning messages
-- `debug.info()` - Informational messages
-
-**Note:** `console.error()` calls are NOT behind the debug flag as they indicate actual errors that should always be visible.
-
-## Environment Variables
-
-Required for full functionality:
-- `VITE_SUPABASE_URL` - Supabase project URL
-- `VITE_SUPABASE_ANON_KEY` - Supabase anonymous key
-- `VITE_SUPABASE_FUNCTIONS_URL` - Edge Functions URL
-
-Optional:
-- `VITE_DEBUG=true` - Enable debug logging (recommended for development)
-
-## Key Directories
-
-- `/src/data/` - Static TypeScript content modules
-- `/src/3d/` - React Three Fiber 3D scenes
-- `/src/components/` - Reusable UI components
-- `/src/pages/admin/` - Admin CMS pages (protected routes)
-- `/src/context/` - React Context providers (ConsoleContext, AuthContext)
-- `/src/lib/` - Utilities, API helpers, types
-- `/supabase/functions/` - Edge Functions (ask-portfolio, submit-contact, spotify-now-playing)
-
-## Documentation
-
-See individual CLAUDE.md files in subdirectories for detailed documentation:
-- `/src/components/CLAUDE.md` - Component documentation
-- `/src/3d/CLAUDE.md` - 3D scene architecture
-- `/src/pages/admin/CLAUDE.md` - Admin CMS system
-- `/src/context/CLAUDE.md` - Context providers
-- `/src/lib/CLAUDE.md` - Library utilities
-- `/supabase/CLAUDE.md` - Edge Functions
-
-## Deployment
-
-- **Platform**: Cloudflare Pages
-- **Routing**: HashRouter for SPA routing
-- **Build**: Vite production build
-- **Edge Functions**: Supabase Edge Functions (deployed separately)
-- **Security**: Headers configured in Cloudflare Pages settings
-
-## Easter Egg: Mr. Robot Terminal
-
-A hidden terminal experience inspired by Mr. Robot, featuring philosophy on creation, authenticity, and breaking from the crowd.
-
-### Activation Methods
-
-| Method | Platform | Action |
-|--------|----------|--------|
-| Keyboard | Desktop | Type "friend" anywhere on site (outside input fields) |
-| Double-click | Desktop | Double-click the 2XEB. logo in footer |
-| Long-press | Mobile | Hold the 2XEB. logo for 2 seconds |
-| Direct URL | All | Navigate to `/friend` |
-
-### Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         App.tsx                              │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐ │
-│  │EasterEggListener│  │EasterEggOverlay │  │FriendRoute   │ │
-│  │ (useEasterEgg)  │  │(MrRobotTerminal)│  │ Activator    │ │
-│  └────────┬────────┘  └────────┬────────┘  └──────┬───────┘ │
-└───────────┼────────────────────┼────────────────── ┼─────────┘
-            │                    │                   │
-            └──────────┬─────────┴───────────────────┘
-                       ▼
-              ┌────────────────────┐
-              │   ConsoleContext   │
-              │ isEasterEggActive  │
-              └────────┬───────────┘
-                       │
-            ┌──────────┴──────────┐
-            ▼                     ▼
-    ┌───────────────┐    ┌───────────────┐
-    │  FooterHUD    │    │MrRobotTerminal│
-    │ (logo events) │    │ (overlay UI)  │
-    └───────────────┘    └───────────────┘
+### Supabase Functions (Future)
+```bash
+supabase functions serve ask-portfolio      # Run AI function locally
+supabase functions serve submit-contact     # Run contact function locally
+supabase functions deploy ask-portfolio     # Deploy AI function
+supabase functions deploy submit-contact    # Deploy contact function
 ```
 
-### Key Files
+## Environment Setup
 
-- `/src/components/MrRobotTerminal.tsx` - Full terminal UI with CRT effects
-- `/src/hooks/useEasterEgg.ts` - Detection hook (keyboard buffer, gestures)
-- `/src/context/ConsoleContext.tsx` - State management (`isEasterEggActive`)
-
-### Terminal Commands
-
-**Core Commands:**
-- `help` - Available commands (includes hint about hidden files)
-- `whoami` - Random identity/philosophy responses
-- `ls` - List visible files only (Unix-authentic)
-- `ls -a` - List all files including hidden (reveals `.fsociety/`, `.truth`)
-- `ls -la` - Detailed listing with hidden files
-- `cat <file>` - Read files
-- `fsociety` - ASCII art + creation manifesto
-- `clear` / `exit` - Terminal controls
-
-**File System (Unix-authentic hidden file behavior):**
+Create `.env.local` with:
 ```
-/home/friend/
-├── projects/
-├── .fsociety/           <- hidden, use ls -a
-│   ├── control.txt      (control is an illusion)
-│   ├── freedom.txt      (three ways to live)
-│   ├── revolution.txt   (creation as revolution)
-│   ├── you.txt          (dynamic: timestamp, resolution, personal message)
-│   └── .leap            <- hidden, use ls -a .fsociety
-├── readme.txt           (welcome message)
-├── manifesto.txt        (creation philosophy)
-└── .truth               <- hidden, use ls -a
+VITE_SUPABASE_URL=https://zrawfgpjfkohjaqcfgrd.supabase.co
+VITE_SUPABASE_FUNCTIONS_URL=https://zrawfgpjfkohjaqcfgrd.supabase.co/functions/v1
+VITE_SUPABASE_ANON_KEY=your_anon_key
+
+# For local development with Supabase CLI
+# VITE_SUPABASE_FUNCTIONS_URL=http://localhost:54321/functions/v1
 ```
 
-**Unix Navigation (fully functional):**
-- `cd .fsociety` → changes directory, updates prompt
-- `cd ..` → goes back to parent
-- `cd ~` / `cd` → returns to home
-- `pwd` → shows current directory
-- `ls` → context-aware (shows files in current directory)
-- `cat control.txt` → works when inside .fsociety directory
+## Project Structure
 
-**Discovery Flow:**
-1. `ls` → shows visible files only
-2. `ls -a` → reveals `.fsociety/` and `.truth`
-3. `cd .fsociety` → enter the hidden directory
-4. `ls -a` → reveals `.leap`
-5. Tab completion also respects hidden files (type `.` to see dotfiles)
+```
+/2xeb-portfolio
+├── index.html              # Entry HTML (Tailwind CDN, fonts)
+├── vite.config.ts          # Vite config (alias @/ -> src/)
+├── tsconfig.json           # TypeScript config
+├── package.json            # Dependencies
+│
+├── /public
+│   ├── _redirects          # Cloudflare SPA routing
+│   └── _headers            # Security headers
+│
+├── /src
+│   ├── main.tsx            # React entry point
+│   ├── App.tsx             # Router + ConsoleProvider + Easter egg
+│   │
+│   ├── /pages
+│   │   ├── Home.tsx            # 3D landing (live clock, Spotify)
+│   │   ├── Work.tsx            # Project grid
+│   │   ├── ProjectDetail.tsx
+│   │   ├── MLLab.tsx           # ML projects + AI chat
+│   │   ├── Video.tsx
+│   │   ├── About.tsx
+│   │   ├── Contact.tsx         # Contact form with 3D scene
+│   │   ├── NotFound.tsx        # 404 page with full-screen 3D
+│   │   └── /admin              # Protected CMS pages
+│   │       ├── AdminLogin.tsx
+│   │       ├── AdminDashboard.tsx
+│   │       ├── ProjectsEditor.tsx
+│   │       ├── ExperienceEditor.tsx
+│   │       ├── CaseStudiesEditor.tsx
+│   │       ├── PagesEditor.tsx
+│   │       ├── AuditLogViewer.tsx
+│   │       ├── AuthCallback.tsx
+│   │       ├── ResetPassword.tsx
+│   │       └── PublishContent.tsx
+│   │
+│   ├── /components
+│   │   ├── NavBar.tsx
+│   │   ├── FooterHUD.tsx
+│   │   ├── ProjectCard.tsx
+│   │   ├── DisciplineChip.tsx
+│   │   ├── AskPortfolioWidget.tsx  # Chat with streaming
+│   │   ├── CaseStudyExplorer.tsx
+│   │   ├── MrRobotTerminal.tsx     # Easter egg terminal (Mr. Robot)
+│   │   ├── SystemAgent.tsx
+│   │   └── /admin                   # Admin UI components
+│   │       ├── AdminLayout.tsx
+│   │       ├── ProtectedRoute.tsx
+│   │       └── DataTable.tsx
+│   │
+│   ├── /3d                 # React Three Fiber scenes
+│   │   ├── ImmersiveScene.tsx      # Full-screen 3D (3 pillars) - Home
+│   │   ├── SystemConsoleScene.tsx  # Interactive project nodes
+│   │   ├── ContactScene.tsx        # Contact page 3D grid
+│   │   └── OrbitScene.tsx          # Background grid
+│   │
+│   ├── /context
+│   │   ├── ConsoleContext.tsx      # 3D state + chat + terminal + easter egg
+│   │   └── AuthContext.tsx         # Supabase auth + admin check
+│   │
+│   ├── /data               # Static content
+│   │   ├── index.ts
+│   │   ├── projects.ts
+│   │   ├── timeline.ts
+│   │   ├── graph.ts
+│   │   ├── caseStudies.ts
+│   │   └── siteIndex.ts
+│   │
+│   ├── /lib
+│   │   ├── types.ts
+│   │   ├── api.ts              # Edge Function helpers
+│   │   ├── models.ts           # LLM model config + rate limiting
+│   │   ├── supabase.ts         # Supabase client
+│   │   ├── database.types.ts   # Generated types
+│   │   ├── debug.ts            # Debug utilities
+│   │   └── geminiService.ts    # DEPRECATED - do not use
+│   │
+│   └── /hooks
+│       ├── index.ts            # Barrel export
+│       ├── useProjects.ts
+│       ├── useExperience.ts
+│       └── useEasterEgg.ts     # Easter egg trigger hook
+│
+└── /supabase               # Edge Functions
+    ├── CLAUDE.md
+    └── /functions
+        ├── ask-portfolio/       # AI (Groq, SSE streaming)
+        ├── submit-contact/      # Contact form + email
+        └── spotify-now-playing/ # Real-time Spotify status
+```
 
-**Easter Egg Commands:** `hack`, `robot`, `leap`, `crowd`, `meaning`, `42`, `matrix`, `neo`, `morpheus`, `eb`, `mrrobot`, `2xeb`
+## Key Patterns
 
-### CRT Visual Effects
+### Static Data Imports
+```typescript
+// Always import from /src/data (barrel export)
+import { PROJECTS, EXPERIENCE, COLORS, GRAPH_DATA, SITE_INDEX } from '../data';
+import { Discipline, ConsoleLane, Project } from '../lib/types';
+```
 
-- Scanlines overlay
-- Screen vignette
-- Flicker animation
-- Noise texture
-- Glitch text effect
-- Turn-on animation
-- Cursor blink with glow
+### Site Navigation Index
+- `src/data/siteIndex.ts` lists all routes (path, title, description, keywords)
+- Included in `buildProjectContext()` so the assistant can surface navigation links (e.g., [Contact](/contact), [Case Study](/work/portfolio-console))
 
-### Philosophy Themes
+### 3D Scene Architecture
+- `ConsoleContext` manages: `hoveredNodeId`, `focusedDiscipline`, `highlightedNodeIds`, `isAgentOpen`
+- Navigation callbacks passed as props (never use router hooks inside Canvas)
+- Context re-provided inside Canvas: see `SystemConsoleScene.tsx:7`
 
-The terminal explores themes of:
-- **Creation over consumption** - "The world has enough consumers. Be a creator."
-- **Authenticity** - "The deepest emptiness comes from living as someone you're not."
-- **Action over planning** - "You can't think your way into becoming. You have to act."
-- **Independent thinking** - "Consensus is not truth. Step outside it."
+### AI Integration Flow
+1. SPA builds context from `buildProjectContext()` combining `PROJECTS` + `SITE_INDEX`
+2. Sends `{ question, context, model, stream }` to Supabase Edge Function (`/ask-portfolio`)
+3. Streaming (Groq): plain-text SSE chunks → final metadata event `{ done: true, projectSlugs, model, provider }`
+4. Non-stream (Groq): JSON response `{ answer, projectSlugs, model, provider }`
+5. `projectSlugs` update `ConsoleContext.highlightedNodeIds` so 3D nodes glow; navigation answers can include markdown links
+
+### Chat Widget Features
+- **Streaming**: Plain-text SSE tokens via Groq (no JSON flashing)
+- **Copy**: Clipboard copy for AI messages
+- **Regenerate**: Re-send last user message
+- **Clear**: Reset chat history
+- **Markdown**: Lightweight renderer (code, bold, lists) - no external deps
+- **Model Selector**: Switch between Llama 3.1 8B, Llama 3.1 70B, Llama 3.3 70B (all Groq)
+
+### Easter Egg: Mr. Robot Terminal
+Hidden terminal Easter egg inspired by Mr. Robot. A full Unix-like terminal with philosophy quotes.
+
+**Activation Methods:**
+- Type "friend" anywhere on the site (outside input fields)
+- Double-click the 2XEB. logo in footer (desktop)
+- Long-press 2XEB. logo for 2 seconds (mobile)
+- Navigate directly to `/friend` route
+
+**Features:**
+- Full Unix command emulation (ls, cat, cd, pwd, etc.)
+- Hidden file system with philosophy content
+- Tab completion for commands
+- Command history (arrow keys)
+- Persisted state across open/close
+
+**Implementation:**
+- `useEasterEgg` hook detects triggers
+- `MrRobotTerminal` component renders the terminal overlay
+- `ConsoleContext` stores terminal state (history, current dir, etc.)
+
+### Case Study Explorer
+- Lazy-loaded component (`React.lazy`) for Portfolio Console project
+- Accordion sections: Problem, Solution, Timeline, Code Snippets, Architecture, Results
+- Access via "Explore Case Study" button on `/work/portfolio-console`
+
+## Important Constraints
+
+### 3D / React Three Fiber
+- **Single Canvas**: One `<Canvas>` per scene component
+- **Three.js imports**: Always `import * as THREE from 'three'` (npm, not CDN)
+- **Router hooks**: Never inside R3F tree — pass callbacks via props
+- **Context bridging**: Re-provide ConsoleContext inside Canvas
+- **Instanced meshes**: Use for repeated geometry (single draw call)
+
+### Performance Patterns
+- **Set for lookups**: Use `highlightedNodeIds.has(id)` not `array.includes(id)`
+- **Reuse objects**: Pre-allocate `THREE.Object3D`, `THREE.Color` outside useFrame
+- **Pre-compute geometry**: Calculate static positions in `useMemo`
+- **Mobile optimization**: Reduce grid size, disable antialiasing, lower DPR
+
+### Styling
+- Currently using Tailwind CDN in index.html
+- Keep MVP styling as-is (do not redesign)
+
+### Discipline/Lane Mapping
+
+| Discipline | ConsoleLane | Color |
+|------------|-------------|-------|
+| VIDEO | DESIGN | #F59E0B |
+| SWE | CODE | #06B6D4 |
+| ML | VISION | #84CC16 |
+| HYBRID | VISION | varies |
+
+## Supabase Integration (Deployed)
+
+### Database Tables
+
+| Table | Purpose | RLS |
+|-------|---------|-----|
+| `contact_messages` | Contact form submissions | Insert only (anon) |
+| `projects` | Portfolio projects | Admin only |
+| `experience` | Work history/timeline | Admin only |
+| `case_studies` | Detailed project breakdowns | Admin only |
+| `case_study_timeline` | Case study timeline events | Admin only |
+| `case_study_results` | Case study metrics/results | Admin only |
+| `page_content` | JSONB content for static pages | Admin only |
+| `site_index` | Navigation/SEO metadata | Admin only |
+| `admin_users` | Authorized admin emails | Admin only |
+| `audit_log` | Change tracking | Insert only (admin) |
+
+### contact_messages Table
+```sql
+create table contact_messages (
+  id uuid primary key default gen_random_uuid(),
+  name text,
+  email text,
+  message text not null,
+  reason text,
+  source_page text,
+  created_at timestamptz default now()
+);
+```
+
+### RLS Policy
+```sql
+-- INSERT only, no SELECT for anon
+create policy "Allow anonymous insert"
+on contact_messages for insert to public with check (true);
+```
+
+### Edge Functions
+- `ask-portfolio`: AI assistant (Groq only), SSE streaming support
+  - Input: `{ question, context, model?, stream? }`
+  - Output: `{ answer, projectSlugs, model, provider }` or SSE stream
+  - Models: `llama-3.1-8b-instant`, `llama-3.1-70b-versatile`, `llama-3.3-70b-versatile`
+- `submit-contact`: Inserts into `contact_messages`, sends email via Resend
+- `spotify-now-playing`: Returns current Spotify track using OAuth refresh token
+  - Output: `{ isPlaying, track?, artist?, album?, albumArt? }`
+
+### SPA Integration
+```typescript
+// /src/lib/api.ts
+const FUNCTIONS_BASE_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL;
+
+export async function askPortfolio(question: string, context: string) {
+  const res = await fetch(`${FUNCTIONS_BASE_URL}/ask-portfolio`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question, context }),
+  });
+  return res.json();
+}
+```
+
+## Deployment (Cloudflare Pages)
+
+- **Build command**: `npm install && npm run build`
+- **Output directory**: `dist`
+- **Environment variables**: `VITE_SUPABASE_FUNCTIONS_URL`
+- **SPA routing**: Add `public/_redirects` with `/*   /index.html   200`
+
+## Development Checklist
+
+See `README.md` for the full checklist with phases:
+1. ✅ MVP Refactor (CDN removal, /src structure)
+2. ✅ Supabase Integration (Edge Functions, auth, admin CMS)
+3. ✅ Features (3D visualization, streaming AI, Spotify, rate limiting)
+4. ⬜ Deployment (Cloudflare Pages - see README for guide)
+
+## Admin CMS Security
+
+The admin dashboard at `/admin` is secure:
+- Requires Supabase Auth (magic link or password)
+- User ID must exist in `admin_users` table
+- `shouldCreateUser: false` prevents unauthorized signups
+- Non-admin users are signed out immediately
+- All changes logged in `audit_log` table (if configured)
