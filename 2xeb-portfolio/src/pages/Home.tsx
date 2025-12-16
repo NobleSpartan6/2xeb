@@ -4,6 +4,32 @@ import ImmersiveScene from '../3d/ImmersiveScene';
 import { useConsole } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
 
+// Hook for periodic terminal hint - shows a subtle cursor periodically
+const useTerminalHint = () => {
+  const [showHint, setShowHint] = useState(false);
+
+  useEffect(() => {
+    // Show hint after 8 seconds, then periodically every 30 seconds
+    const initialDelay = setTimeout(() => {
+      setShowHint(true);
+      // Hide after 4 seconds
+      setTimeout(() => setShowHint(false), 4000);
+    }, 8000);
+
+    const interval = setInterval(() => {
+      setShowHint(true);
+      setTimeout(() => setShowHint(false), 4000);
+    }, 30000);
+
+    return () => {
+      clearTimeout(initialDelay);
+      clearInterval(interval);
+    };
+  }, []);
+
+  return showHint;
+};
+
 // --- REALTIME HOOKS ---
 
 // Live clock in EST timezone
@@ -71,11 +97,12 @@ const DISCIPLINES = [
 ] as const;
 
 const Home: React.FC = () => {
-  const { focusedDiscipline, setFocusedDiscipline, setIsAgentOpen } = useConsole();
+  const { focusedDiscipline, setFocusedDiscipline, setIsAgentOpen, setIsEasterEggActive } = useConsole();
   const [sceneReady, setSceneReady] = useState(false);
   const [contentVisible, setContentVisible] = useState(false);
   const clock = useLiveClock();
   const nowPlaying = useSpotifyNowPlaying();
+  const showTerminalHint = useTerminalHint();
 
   // Coordinated reveal: wait for 3D scene, then fade in content
   const handleSceneReady = useCallback(() => {
@@ -129,6 +156,26 @@ const Home: React.FC = () => {
         }`}
         onClick={() => setFocusedDiscipline(null)}
       >
+        {/* Terminal Hint - Periodic subtle cursor */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsEasterEggActive(true);
+          }}
+          className={`
+            fixed top-[100px] sm:top-[110px] md:top-[136px] right-6 md:right-12 lg:right-16 z-30
+            font-mono text-[10px] sm:text-xs text-[#2563EB]/60 hover:text-[#2563EB]
+            transition-all duration-500 ease-out pointer-events-auto
+            ${showTerminalHint ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}
+          `}
+          title="Hello, friend."
+        >
+          <span className="flex items-center gap-1">
+            <span className="animate-pulse">&gt;_</span>
+            <span className="hidden sm:inline text-[#525252] text-[9px]">type friend</span>
+          </span>
+        </button>
+
         {/* Top Section - Live Status */}
         <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-[100px] sm:pt-[110px] md:pt-[136px] 2xl:pt-[148px] 3xl:pt-[160px] flex-shrink-0">
           <div className="flex items-start gap-2 sm:gap-3 pointer-events-none">

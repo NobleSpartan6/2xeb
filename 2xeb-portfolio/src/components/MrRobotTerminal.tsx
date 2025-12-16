@@ -556,6 +556,7 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   const [cursorPosition, setCursorPosition] = useState(0);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputContainerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const didAddWelcome = useRef(false);
 
@@ -644,6 +645,44 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
       document.body.style.overflow = 'unset';
     };
   }, []);
+
+  // Handle mobile keyboard visibility - scroll input into view
+  useEffect(() => {
+    const scrollInputIntoView = () => {
+      // Use the container ref for better positioning
+      const container = inputContainerRef.current;
+      if (container) {
+        container.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    };
+
+    const handleViewportResize = () => {
+      // When keyboard opens, scroll input into view
+      if (window.visualViewport) {
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+
+        // Keyboard is likely open if viewport is significantly smaller than window
+        if (windowHeight - viewportHeight > 100) {
+          setTimeout(scrollInputIntoView, 100);
+        }
+      }
+    };
+
+    // Also scroll on focus for reliability
+    const handleFocus = () => {
+      setTimeout(scrollInputIntoView, 300);
+    };
+
+    const input = inputRef.current;
+    input?.addEventListener('focus', handleFocus);
+    window.visualViewport?.addEventListener('resize', handleViewportResize);
+
+    return () => {
+      input?.removeEventListener('focus', handleFocus);
+      window.visualViewport?.removeEventListener('resize', handleViewportResize);
+    };
+  }, [phase]);
 
   const handleCommand = useCallback((cmd: string) => {
     const trimmedCmd = cmd.trim().toLowerCase();
@@ -1154,17 +1193,21 @@ drwxr-xr-x  ..
       <div className="relative w-full max-w-4xl h-[96vh] sm:h-[85vh] sm:max-h-[700px] overflow-hidden crt-screen rounded-lg sm:rounded-lg">
 
         {/* Window Title Bar */}
-        <div className="relative z-10 h-8 sm:h-10 bg-[#0c0c0c] border-b border-[#1a1a1a] flex items-center justify-between px-3 sm:px-4">
-          {/* Window controls */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <button
-              onClick={onClose}
-              className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors"
-              title="Close"
-            />
-            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#28c840] opacity-50" />
-            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ffbd2e] opacity-50" />
-          </div>
+        <div className="relative z-10 h-10 sm:h-10 bg-[#0c0c0c] border-b border-[#1a1a1a] flex items-center justify-between px-3 sm:px-4">
+          {/* Window controls - larger touch target on mobile */}
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1.5 sm:gap-2 p-1.5 -ml-1.5 active:opacity-70"
+            title="Close"
+          >
+            <div className="w-3 h-3 sm:w-3 sm:h-3 rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors" />
+            <div className="hidden sm:block w-3 h-3 rounded-full bg-[#28c840] opacity-50" />
+            <div className="hidden sm:block w-3 h-3 rounded-full bg-[#ffbd2e] opacity-50" />
+            {/* Mobile: show X label next to red dot */}
+            <span className="sm:hidden text-[11px] font-mono ml-1" style={{ color: TERM_COLOR }}>
+              EXIT
+            </span>
+          </button>
 
           {/* Title */}
           <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-mono" style={{ color: TERM_COLOR_DIM }}>
@@ -1176,14 +1219,8 @@ drwxr-xr-x  ..
           <div className="hidden sm:block text-[10px] font-mono opacity-40" style={{ color: TERM_COLOR }}>
             ESC to exit
           </div>
-          {/* Mobile close button */}
-          <button
-            onClick={onClose}
-            className="sm:hidden text-[10px] font-mono opacity-60 px-2 py-0.5 border border-current/30 rounded"
-            style={{ color: TERM_COLOR }}
-          >
-            close
-          </button>
+          {/* Mobile: empty spacer for alignment */}
+          <div className="sm:hidden w-16" />
         </div>
 
         {/* Scanlines */}
@@ -1222,7 +1259,7 @@ drwxr-xr-x  ..
 
           {/* Terminal Phase */}
           {phase === 'terminal' && (
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full overflow-hidden">
               {/* Terminal header with path - compact on mobile */}
               <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4 pb-2 sm:pb-3" style={{ borderBottom: `1px solid rgba(96, 165, 250, 0.2)` }}>
                 <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs" style={{ background: 'rgba(96, 165, 250, 0.1)' }}>
@@ -1254,13 +1291,45 @@ drwxr-xr-x  ..
                 ))}
               </div>
 
+              {/* Mobile Quick Commands */}
+              <div className="flex sm:hidden flex-wrap gap-1.5 mt-2 pt-2" style={{ borderTop: `1px solid rgba(96, 165, 250, 0.15)` }}>
+                {[
+                  { label: 'help', cmd: 'help' },
+                  { label: 'ls -a', cmd: 'ls -a' },
+                  { label: '.fsociety', cmd: 'cd .fsociety' },
+                  { label: 'cat .truth', cmd: 'cat .truth' },
+                  { label: 'clear', cmd: 'clear' },
+                ].map(({ label, cmd }) => (
+                  <button
+                    key={cmd}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCommand(cmd);
+                    }}
+                    className="px-2.5 py-1.5 text-[10px] font-mono rounded border transition-all active:scale-95"
+                    style={{
+                      color: TERM_COLOR,
+                      borderColor: 'rgba(96, 165, 250, 0.3)',
+                      background: 'rgba(96, 165, 250, 0.05)',
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
               {/* Input line */}
-              <div className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 pt-2 sm:pt-3 pb-8 sm:pb-6" style={{ borderTop: `1px solid rgba(96, 165, 250, 0.2)` }}>
+              <div
+                ref={inputContainerRef}
+                className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 pt-2 sm:pt-3 pb-8 sm:pb-6 cursor-text"
+                style={{ borderTop: `1px solid rgba(96, 165, 250, 0.2)` }}
+                onClick={() => inputRef.current?.focus()}
+              >
                 <span className="text-xs sm:text-sm" style={{ color: TERM_ACCENT }}>❯</span>
-                <div className="flex-1 relative font-mono">
+                <div className="flex-1 relative font-mono min-h-[44px] sm:min-h-0 flex items-center">
                   {/* Visual representation of input with cursor */}
                   <div
-                    className="relative text-xs sm:text-sm md:text-base pointer-events-none select-none whitespace-pre"
+                    className="relative text-xs sm:text-sm md:text-base pointer-events-none select-none whitespace-pre flex-1"
                     style={{ color: TERM_COLOR, minHeight: '1.5em' }}
                   >
                     {/* Text before cursor */}
@@ -1273,12 +1342,18 @@ drwxr-xr-x  ..
                     <span>{currentInput.slice(cursorPosition + 1)}</span>
                     {/* Placeholder when empty */}
                     {!currentInput && (
-                      <span className="absolute left-[0.8em] opacity-25 pointer-events-none">
-                        Type a command...
+                      <span className="absolute left-[0.8em] opacity-30 pointer-events-none flex items-center gap-2">
+                        <span className="hidden sm:inline">Type a command...</span>
+                        <span className="sm:hidden flex items-center gap-1.5">
+                          <span>Tap to type</span>
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                          </svg>
+                        </span>
                       </span>
                     )}
                   </div>
-                  {/* Hidden actual input */}
+                  {/* Hidden actual input - made taller for better mobile touch */}
                   <input
                     ref={inputRef}
                     type="text"
@@ -1291,15 +1366,22 @@ drwxr-xr-x  ..
                     onKeyUp={updateCursorPosition}
                     onClick={updateCursorPosition}
                     onSelect={updateCursorPosition}
-                    className="absolute inset-0 w-full bg-transparent outline-none opacity-0"
+                    className="absolute inset-0 w-full h-full bg-transparent outline-none opacity-0"
                     autoComplete="off"
                     autoCapitalize="off"
                     spellCheck={false}
+                    enterKeyHint="send"
                   />
                 </div>
                 <div className="hidden sm:flex items-center gap-1 text-[10px] opacity-40" style={{ color: TERM_COLOR }}>
                   <span className="px-1.5 py-0.5 rounded border border-current">TAB</span>
                   <span>complete</span>
+                </div>
+                {/* Mobile keyboard hint */}
+                <div className="flex sm:hidden items-center text-[9px] opacity-50" style={{ color: TERM_COLOR }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
                 </div>
               </div>
             </div>
