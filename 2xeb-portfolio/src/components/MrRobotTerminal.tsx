@@ -1254,13 +1254,44 @@ drwxr-xr-x  ..
                 ))}
               </div>
 
+              {/* Mobile Quick Commands */}
+              <div className="flex sm:hidden flex-wrap gap-1.5 mt-2 pt-2" style={{ borderTop: `1px solid rgba(96, 165, 250, 0.15)` }}>
+                {[
+                  { label: 'help', cmd: 'help' },
+                  { label: 'ls -a', cmd: 'ls -a' },
+                  { label: '.fsociety', cmd: 'cd .fsociety' },
+                  { label: 'cat .truth', cmd: 'cat .truth' },
+                  { label: 'clear', cmd: 'clear' },
+                ].map(({ label, cmd }) => (
+                  <button
+                    key={cmd}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCommand(cmd);
+                    }}
+                    className="px-2.5 py-1.5 text-[10px] font-mono rounded border transition-all active:scale-95"
+                    style={{
+                      color: TERM_COLOR,
+                      borderColor: 'rgba(96, 165, 250, 0.3)',
+                      background: 'rgba(96, 165, 250, 0.05)',
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
               {/* Input line */}
-              <div className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 pt-2 sm:pt-3 pb-8 sm:pb-6" style={{ borderTop: `1px solid rgba(96, 165, 250, 0.2)` }}>
+              <div
+                className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 pt-2 sm:pt-3 pb-8 sm:pb-6 cursor-text"
+                style={{ borderTop: `1px solid rgba(96, 165, 250, 0.2)` }}
+                onClick={() => inputRef.current?.focus()}
+              >
                 <span className="text-xs sm:text-sm" style={{ color: TERM_ACCENT }}>❯</span>
-                <div className="flex-1 relative font-mono">
+                <div className="flex-1 relative font-mono min-h-[44px] sm:min-h-0 flex items-center">
                   {/* Visual representation of input with cursor */}
                   <div
-                    className="relative text-xs sm:text-sm md:text-base pointer-events-none select-none whitespace-pre"
+                    className="relative text-xs sm:text-sm md:text-base pointer-events-none select-none whitespace-pre flex-1"
                     style={{ color: TERM_COLOR, minHeight: '1.5em' }}
                   >
                     {/* Text before cursor */}
@@ -1273,12 +1304,18 @@ drwxr-xr-x  ..
                     <span>{currentInput.slice(cursorPosition + 1)}</span>
                     {/* Placeholder when empty */}
                     {!currentInput && (
-                      <span className="absolute left-[0.8em] opacity-25 pointer-events-none">
-                        Type a command...
+                      <span className="absolute left-[0.8em] opacity-30 pointer-events-none flex items-center gap-2">
+                        <span className="hidden sm:inline">Type a command...</span>
+                        <span className="sm:hidden flex items-center gap-1.5">
+                          <span>Tap to type</span>
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                          </svg>
+                        </span>
                       </span>
                     )}
                   </div>
-                  {/* Hidden actual input */}
+                  {/* Hidden actual input - made taller for better mobile touch */}
                   <input
                     ref={inputRef}
                     type="text"
@@ -1291,15 +1328,22 @@ drwxr-xr-x  ..
                     onKeyUp={updateCursorPosition}
                     onClick={updateCursorPosition}
                     onSelect={updateCursorPosition}
-                    className="absolute inset-0 w-full bg-transparent outline-none opacity-0"
+                    className="absolute inset-0 w-full h-full bg-transparent outline-none opacity-0"
                     autoComplete="off"
                     autoCapitalize="off"
                     spellCheck={false}
+                    enterKeyHint="send"
                   />
                 </div>
                 <div className="hidden sm:flex items-center gap-1 text-[10px] opacity-40" style={{ color: TERM_COLOR }}>
                   <span className="px-1.5 py-0.5 rounded border border-current">TAB</span>
                   <span>complete</span>
+                </div>
+                {/* Mobile keyboard hint */}
+                <div className="flex sm:hidden items-center text-[9px] opacity-50" style={{ color: TERM_COLOR }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
                 </div>
               </div>
             </div>
