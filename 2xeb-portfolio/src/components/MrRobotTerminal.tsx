@@ -1193,17 +1193,21 @@ drwxr-xr-x  ..
       <div className="relative w-full max-w-4xl h-[96vh] sm:h-[85vh] sm:max-h-[700px] overflow-hidden crt-screen rounded-lg sm:rounded-lg">
 
         {/* Window Title Bar */}
-        <div className="relative z-10 h-8 sm:h-10 bg-[#0c0c0c] border-b border-[#1a1a1a] flex items-center justify-between px-3 sm:px-4">
-          {/* Window controls */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <button
-              onClick={onClose}
-              className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors"
-              title="Close"
-            />
-            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#28c840] opacity-50" />
-            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ffbd2e] opacity-50" />
-          </div>
+        <div className="relative z-10 h-10 sm:h-10 bg-[#0c0c0c] border-b border-[#1a1a1a] flex items-center justify-between px-3 sm:px-4">
+          {/* Window controls - larger touch target on mobile */}
+          <button
+            onClick={onClose}
+            className="flex items-center gap-1.5 sm:gap-2 p-1.5 -ml-1.5 active:opacity-70"
+            title="Close"
+          >
+            <div className="w-3 h-3 sm:w-3 sm:h-3 rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors" />
+            <div className="hidden sm:block w-3 h-3 rounded-full bg-[#28c840] opacity-50" />
+            <div className="hidden sm:block w-3 h-3 rounded-full bg-[#ffbd2e] opacity-50" />
+            {/* Mobile: show X label next to red dot */}
+            <span className="sm:hidden text-[11px] font-mono ml-1" style={{ color: TERM_COLOR }}>
+              EXIT
+            </span>
+          </button>
 
           {/* Title */}
           <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-mono" style={{ color: TERM_COLOR_DIM }}>
@@ -1215,14 +1219,8 @@ drwxr-xr-x  ..
           <div className="hidden sm:block text-[10px] font-mono opacity-40" style={{ color: TERM_COLOR }}>
             ESC to exit
           </div>
-          {/* Mobile close button */}
-          <button
-            onClick={onClose}
-            className="sm:hidden text-[10px] font-mono opacity-60 px-2 py-0.5 border border-current/30 rounded"
-            style={{ color: TERM_COLOR }}
-          >
-            close
-          </button>
+          {/* Mobile: empty spacer for alignment */}
+          <div className="sm:hidden w-16" />
         </div>
 
         {/* Scanlines */}
