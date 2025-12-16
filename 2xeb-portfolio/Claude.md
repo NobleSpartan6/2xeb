@@ -66,7 +66,7 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 │
 ├── /src
 │   ├── main.tsx            # React entry point
-│   ├── App.tsx             # Router + ConsoleProvider + Easter egg
+│   ├── App.tsx             # Router + AuthProvider + ConsoleProvider
 │   │
 │   ├── /pages
 │   │   ├── Home.tsx            # 3D landing (live clock, Spotify)
@@ -75,42 +75,32 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 │   │   ├── MLLab.tsx           # ML projects + AI chat
 │   │   ├── Video.tsx
 │   │   ├── About.tsx
-│   │   ├── Contact.tsx         # Contact form with 3D scene
-│   │   ├── NotFound.tsx        # 404 page with full-screen 3D
+│   │   ├── Contact.tsx
 │   │   └── /admin              # Protected CMS pages
 │   │       ├── AdminLogin.tsx
 │   │       ├── AdminDashboard.tsx
 │   │       ├── ProjectsEditor.tsx
 │   │       ├── ExperienceEditor.tsx
-│   │       ├── CaseStudiesEditor.tsx
-│   │       ├── PagesEditor.tsx
-│   │       ├── AuditLogViewer.tsx
-│   │       ├── AuthCallback.tsx
-│   │       ├── ResetPassword.tsx
-│   │       └── PublishContent.tsx
+│   │       └── ...
 │   │
 │   ├── /components
 │   │   ├── NavBar.tsx
 │   │   ├── FooterHUD.tsx
 │   │   ├── ProjectCard.tsx
-│   │   ├── DisciplineChip.tsx
 │   │   ├── AskPortfolioWidget.tsx  # Chat with streaming
 │   │   ├── CaseStudyExplorer.tsx
-│   │   ├── MrRobotTerminal.tsx     # Easter egg terminal (Mr. Robot)
-│   │   ├── SystemAgent.tsx
 │   │   └── /admin                   # Admin UI components
 │   │       ├── AdminLayout.tsx
 │   │       ├── ProtectedRoute.tsx
 │   │       └── DataTable.tsx
 │   │
 │   ├── /3d                 # React Three Fiber scenes
-│   │   ├── ImmersiveScene.tsx      # Full-screen 3D (3 pillars) - Home
+│   │   ├── ImmersiveScene.tsx      # Full-screen 3D (3 pillars)
 │   │   ├── SystemConsoleScene.tsx  # Interactive project nodes
-│   │   ├── ContactScene.tsx        # Contact page 3D grid
-│   │   └── OrbitScene.tsx          # Background grid
+│   │   └── OrbitScene.tsx
 │   │
 │   ├── /context
-│   │   ├── ConsoleContext.tsx      # 3D state + chat + terminal + easter egg
+│   │   ├── ConsoleContext.tsx      # 3D state + chat history
 │   │   └── AuthContext.tsx         # Supabase auth + admin check
 │   │
 │   ├── /data               # Static content
@@ -126,20 +116,16 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 │   │   ├── api.ts              # Edge Function helpers
 │   │   ├── models.ts           # LLM model config + rate limiting
 │   │   ├── supabase.ts         # Supabase client
-│   │   ├── database.types.ts   # Generated types
-│   │   ├── debug.ts            # Debug utilities
-│   │   └── geminiService.ts    # DEPRECATED - do not use
+│   │   └── database.types.ts   # Generated types
 │   │
 │   └── /hooks
-│       ├── index.ts            # Barrel export
 │       ├── useProjects.ts
-│       ├── useExperience.ts
-│       └── useEasterEgg.ts     # Easter egg trigger hook
+│       └── useExperience.ts
 │
 └── /supabase               # Edge Functions
     ├── CLAUDE.md
     └── /functions
-        ├── ask-portfolio/       # AI (Groq, SSE streaming)
+        ├── ask-portfolio/       # AI (Groq/Gemini, SSE streaming)
         ├── submit-contact/      # Contact form + email
         └── spotify-now-playing/ # Real-time Spotify status
 ```
@@ -166,7 +152,7 @@ import { Discipline, ConsoleLane, Project } from '../lib/types';
 1. SPA builds context from `buildProjectContext()` combining `PROJECTS` + `SITE_INDEX`
 2. Sends `{ question, context, model, stream }` to Supabase Edge Function (`/ask-portfolio`)
 3. Streaming (Groq): plain-text SSE chunks → final metadata event `{ done: true, projectSlugs, model, provider }`
-4. Non-stream (Groq): JSON response `{ answer, projectSlugs, model, provider }`
+4. Non-stream (Groq/Gemini): JSON response `{ answer, projectSlugs, model, provider }`
 5. `projectSlugs` update `ConsoleContext.highlightedNodeIds` so 3D nodes glow; navigation answers can include markdown links
 
 ### Chat Widget Features
@@ -175,28 +161,7 @@ import { Discipline, ConsoleLane, Project } from '../lib/types';
 - **Regenerate**: Re-send last user message
 - **Clear**: Reset chat history
 - **Markdown**: Lightweight renderer (code, bold, lists) - no external deps
-- **Model Selector**: Switch between Llama 3.1 8B, Llama 3.1 70B, Llama 3.3 70B (all Groq)
-
-### Easter Egg: Mr. Robot Terminal
-Hidden terminal Easter egg inspired by Mr. Robot. A full Unix-like terminal with philosophy quotes.
-
-**Activation Methods:**
-- Type "friend" anywhere on the site (outside input fields)
-- Double-click the 2XEB. logo in footer (desktop)
-- Long-press 2XEB. logo for 2 seconds (mobile)
-- Navigate directly to `/friend` route
-
-**Features:**
-- Full Unix command emulation (ls, cat, cd, pwd, etc.)
-- Hidden file system with philosophy content
-- Tab completion for commands
-- Command history (arrow keys)
-- Persisted state across open/close
-
-**Implementation:**
-- `useEasterEgg` hook detects triggers
-- `MrRobotTerminal` component renders the terminal overlay
-- `ConsoleContext` stores terminal state (history, current dir, etc.)
+- **Model Selector**: Switch between Llama 3.1 8B, Llama 3.3 70B, Gemini 2.0 Flash
 
 ### Case Study Explorer
 - Lazy-loaded component (`React.lazy`) for Portfolio Console project
@@ -233,21 +198,6 @@ Hidden terminal Easter egg inspired by Mr. Robot. A full Unix-like terminal with
 
 ## Supabase Integration (Deployed)
 
-### Database Tables
-
-| Table | Purpose | RLS |
-|-------|---------|-----|
-| `contact_messages` | Contact form submissions | Insert only (anon) |
-| `projects` | Portfolio projects | Admin only |
-| `experience` | Work history/timeline | Admin only |
-| `case_studies` | Detailed project breakdowns | Admin only |
-| `case_study_timeline` | Case study timeline events | Admin only |
-| `case_study_results` | Case study metrics/results | Admin only |
-| `page_content` | JSONB content for static pages | Admin only |
-| `site_index` | Navigation/SEO metadata | Admin only |
-| `admin_users` | Authorized admin emails | Admin only |
-| `audit_log` | Change tracking | Insert only (admin) |
-
 ### contact_messages Table
 ```sql
 create table contact_messages (
@@ -269,10 +219,9 @@ on contact_messages for insert to public with check (true);
 ```
 
 ### Edge Functions
-- `ask-portfolio`: AI assistant (Groq only), SSE streaming support
-  - Input: `{ question, context, model?, stream? }`
+- `ask-portfolio`: Multi-model AI (Groq/Gemini), SSE streaming support
+  - Input: `{ question, context, model?, provider?, stream? }`
   - Output: `{ answer, projectSlugs, model, provider }` or SSE stream
-  - Models: `llama-3.1-8b-instant`, `llama-3.1-70b-versatile`, `llama-3.3-70b-versatile`
 - `submit-contact`: Inserts into `contact_messages`, sends email via Resend
 - `spotify-now-playing`: Returns current Spotify track using OAuth refresh token
   - Output: `{ isPlaying, track?, artist?, album?, albumArt? }`
