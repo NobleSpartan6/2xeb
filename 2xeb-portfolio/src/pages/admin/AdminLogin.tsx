@@ -286,7 +286,7 @@ const AdminLogin: React.FC = () => {
         {/* Back to site link */}
         <div className="mt-6 text-center">
           <a
-            href="/#/"
+            href="/"
             className="text-xs text-[#525252] hover:text-[#737373] font-mono transition-colors"
           >
             &larr; Back to portfolio

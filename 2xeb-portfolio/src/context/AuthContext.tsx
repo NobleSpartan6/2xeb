@@ -172,8 +172,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Sign in with magic link - CRITICAL: shouldCreateUser: false prevents new signups
   const signInWithMagicLink = useCallback(async (email: string) => {
-    // Use non-hash URL for callback to avoid HashRouter conflicts
-    // The callback page will redirect to /#/admin after success
+    // Use non-hash URL for callback
+    // The callback page will redirect to /admin after success
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {

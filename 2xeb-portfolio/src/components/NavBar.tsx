@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useConsole } from '../context/ConsoleContext';
 
-const NavBar: React.FC = () => {
+const NavBar: React.FC = memo(() => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const { setIsAgentOpen } = useConsole();
@@ -52,7 +52,7 @@ const NavBar: React.FC = () => {
           className="max-w-[1800px] 3xl:max-w-[2200px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-20 3xl:px-24 pointer-events-auto"
           style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
         >
-          <div className="relative flex items-center justify-between h-[74px] sm:h-[82px] md:h-[100px] 2xl:h-[110px] 3xl:h-[120px] rounded-2xl px-4 md:px-6 lg:px-8 2xl:px-10 3xl:px-12 bg-gradient-to-b from-[#050505]/85 via-[#050505]/75 to-transparent backdrop-blur-xl border border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.25)]">
+          <div className="relative flex items-center justify-between h-[74px] sm:h-[82px] md:h-[100px] 2xl:h-[110px] 3xl:h-[120px] rounded-2xl px-4 md:px-6 lg:px-8 2xl:px-10 3xl:px-12 bg-[#050505]/95 backdrop-blur-sm border border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.25)]">
             <div className="flex-shrink-0 z-50">
               <Link to="/" className="text-white font-bold text-xl sm:text-2xl 2xl:text-3xl 3xl:text-4xl tracking-tighter font-space-grotesk hover:text-[#2563EB] transition-colors">
                 2XEB
@@ -66,7 +66,7 @@ const NavBar: React.FC = () => {
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`text-[11px] 2xl:text-xs 3xl:text-sm font-bold uppercase tracking-[0.15em] transition-all duration-200 font-mono ${
+                    className={`text-[11px] 2xl:text-xs 3xl:text-sm font-bold uppercase tracking-[0.15em] transition-colors duration-150 font-mono ${
                       isActive(link.path)
                         ? 'text-[#2563EB]'
                         : 'text-[#A3A3A3] hover:text-white'
@@ -103,16 +103,16 @@ const NavBar: React.FC = () => {
       >
         
         {/* Backdrop */}
-        <div 
-          className={`absolute inset-0 bg-black/70 backdrop-blur-lg transition-opacity duration-500 ${
+        <div
+          className={`absolute inset-0 bg-black/80 transition-opacity duration-300 ${
             isOpen ? 'opacity-100' : 'opacity-0'
           }`}
           onClick={() => setIsOpen(false)}
         />
 
         {/* Drawer Panel */}
-        <div 
-          className={`absolute right-0 top-0 bottom-0 w-[88vw] max-w-[360px] bg-[#060606] border-l border-[#262626] shadow-[0_0_60px_rgba(0,0,0,0.55)] transform transition-transform duration-500 cubic-bezier(0.22, 1, 0.36, 1) flex flex-col ${
+        <div
+          className={`absolute right-0 top-0 bottom-0 w-[88vw] max-w-[360px] bg-[#060606] border-l border-[#262626] shadow-[0_0_60px_rgba(0,0,0,0.55)] transform transition-transform duration-300 ease-out flex flex-col ${
             isOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
           role="dialog"
@@ -137,20 +137,15 @@ const NavBar: React.FC = () => {
 
           {/* Links */}
           <div className="flex-1 flex flex-col py-12 px-8 space-y-8 overflow-y-auto">
-            {navLinks.map((link, i) => (
+            {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`block text-4xl font-bold font-space-grotesk uppercase tracking-tighter transition-all duration-500 ${
+                className={`block text-4xl font-bold font-space-grotesk uppercase tracking-tighter transition-colors duration-150 ${
                   isActive(link.path)
-                    ? 'text-[#2563EB] translate-x-4'
-                    : 'text-[#333] hover:text-white hover:translate-x-2'
+                    ? 'text-[#2563EB]'
+                    : 'text-[#333] hover:text-white'
                 }`}
-                style={{ 
-                  transitionDelay: isOpen ? `${i * 50 + 100}ms` : '0ms',
-                  opacity: isOpen ? 1 : 0,
-                  transform: isOpen ? undefined : 'translateX(20px)' 
-                }}
               >
                 {link.label}
               </Link>
@@ -192,6 +187,8 @@ const NavBar: React.FC = () => {
       </div>
     </>
   );
-};
+});
+
+NavBar.displayName = 'NavBar';
 
 export default NavBar;

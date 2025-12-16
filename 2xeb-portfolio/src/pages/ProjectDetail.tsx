@@ -102,6 +102,11 @@ const ProjectDetail: React.FC = () => {
         <div className="flex items-center gap-4">
           <DisciplineChip discipline={project.primaryDiscipline} />
           <span className="text-[#A3A3A3] font-mono text-xs">{project.createdAt.split('-')[0]}</span>
+          {project.status === 'wip' && (
+            <span className="bg-yellow-500/20 text-yellow-500 border border-yellow-500/50 px-2 py-1 text-xs font-bold tracking-widest uppercase font-mono">
+              WIP
+            </span>
+          )}
           {project.isExternal && (
               <span className="text-[#2563EB] text-xs font-bold uppercase tracking-wider border border-[#2563EB] px-2 py-0.5">External</span>
           )}

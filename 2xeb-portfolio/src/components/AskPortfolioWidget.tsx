@@ -25,9 +25,8 @@ function renderMarkdown(text: string): string {
       if (!/^https?:\/\//i.test(safeHref) && !safeHref.startsWith('/')) {
         return label;
       }
-      // HashRouter: internal routes should be #/path
-      const normalized = safeHref.startsWith('/') ? `#${safeHref}` : safeHref;
-      const escapedHref = normalized.replace(/"/g, '&quot;');
+      // BrowserRouter: internal routes use regular paths
+      const escapedHref = safeHref.replace(/"/g, '&quot;');
       return `<a class="text-[#2563EB] hover:underline" href="${escapedHref}">${label}</a>`;
     })
     // Bold (**...**)

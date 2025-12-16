@@ -11,7 +11,7 @@ import { debug } from './debug';
 const FUNCTIONS_BASE_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-export type LLMProvider = 'groq' | 'gemini';
+export type LLMProvider = 'groq';
 
 export interface AskPortfolioResponse {
   answer: string;
@@ -53,7 +53,7 @@ export async function askPortfolio(
   if (!FUNCTIONS_BASE_URL) {
     debug.warn('VITE_SUPABASE_FUNCTIONS_URL not configured, using demo mode');
     return {
-      answer: "Demo mode: I would normally tell you about projects like 'Midimix' (AI-powered MIDI tool) or 'Portfolio Console' (this 3D experience) here!",
+      answer: "Demo mode: I would normally tell you about projects like experimental AI tools or 'Portfolio Console' (this 3D experience) here!",
       projectSlugs: ['midimix', 'portfolio-console'],
       model: modelId,
       provider: model.provider,

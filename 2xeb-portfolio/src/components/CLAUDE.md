@@ -8,7 +8,7 @@ Reusable UI components for the 2xeb portfolio.
 AI-powered chat widget for answering portfolio questions.
 
 **Features:**
-- Multi-model support via Groq (Llama 3.1 8B, Llama 3.3 70B) + Gemini
+- Multi-model support via Groq (Llama 3.1 8B, Llama 3.1 70B, Llama 3.3 70B)
 - Model selector UI showing actual model names
 - **Shared chat state** via ConsoleContext (synced across all access points)
 - Client-side rate limiting with user-friendly error messages

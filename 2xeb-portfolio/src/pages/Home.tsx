@@ -130,10 +130,10 @@ const Home: React.FC = () => {
         onClick={() => setFocusedDiscipline(null)}
       >
         {/* Top Section - Live Status */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-20 sm:pt-24 md:pt-32 2xl:pt-36 3xl:pt-40 flex-shrink-0">
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-[88px] sm:pt-[96px] md:pt-[120px] 2xl:pt-[132px] 3xl:pt-[144px] flex-shrink-0">
           <div className="flex items-start gap-2 sm:gap-3 pointer-events-none">
             <div className="w-5 sm:w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[4px] sm:mt-[6px]" />
-            <div className="font-mono text-[7px] sm:text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.15em] sm:tracking-[0.3em]">
+            <div className="font-mono text-[8px] sm:text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.15em] sm:tracking-[0.3em]">
               {/* Desktop: single line */}
               <div className="hidden md:flex items-center gap-2">
                 <span className="text-[#A3A3A3]">NYC</span>
@@ -205,10 +205,10 @@ const Home: React.FC = () => {
         </div>
 
         {/* Bottom Section - CTA & Description */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-24 sm:pb-6 md:pb-16 2xl:pb-20 3xl:pb-24 flex-shrink-0">
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-24 sm:pb-16 md:pb-16 2xl:pb-20 3xl:pb-24 flex-shrink-0">
           <div className="flex flex-col-reverse md:flex-row md:items-end md:justify-between gap-1.5 sm:gap-4 md:gap-8 2xl:gap-12">
             {/* Description */}
-            <p className="text-white/40 text-[9px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[260px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-snug sm:leading-relaxed pointer-events-none">
+            <p className="text-white/40 text-[10px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[260px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-snug sm:leading-relaxed pointer-events-none">
               A multidisciplinary portfolio exploring the intersection of software engineering,
               machine learning, and visual storytelling.
             </p>
@@ -220,7 +220,7 @@ const Home: React.FC = () => {
                 className="group relative px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 bg-[#2563EB] overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center"
               >
                 <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-                <span className="relative font-medium tracking-widest text-[10px] md:text-xs 2xl:text-sm uppercase text-white group-hover:text-black transition-colors z-10 whitespace-nowrap">
+                <span className="relative font-medium tracking-widest text-[11px] md:text-xs 2xl:text-sm uppercase text-white group-hover:text-black transition-colors z-10 whitespace-nowrap">
                   View Work
                 </span>
               </Link>
@@ -229,11 +229,11 @@ const Home: React.FC = () => {
                 onClick={() => setIsAgentOpen(true)}
                 className="group px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 border border-white/20 hover:border-[#2563EB] backdrop-blur-sm transition-all hover:scale-[1.02] active:scale-[0.98] bg-black/20 flex items-center gap-2 2xl:gap-3"
               >
-                <span className="font-medium tracking-widest text-[10px] md:text-xs 2xl:text-sm uppercase text-white">
+                <span className="font-medium tracking-widest text-[11px] md:text-xs 2xl:text-sm uppercase text-white">
                   ASK
                 </span>
                 <div className="w-5 h-5 md:w-6 md:h-6 2xl:w-7 2xl:h-7 bg-[#0A0A0A] border border-white/30 grid place-items-center">
-                  <span className="text-[#2563EB] font-bold text-[9px] md:text-[10px] 2xl:text-[11px] font-space-grotesk tracking-tight">
+                  <span className="text-[#2563EB] font-bold text-[10px] md:text-[10px] 2xl:text-[11px] font-space-grotesk tracking-tight">
                     EB
                   </span>
                 </div>

@@ -2,20 +2,20 @@ import { Discipline, Project } from '../lib/types';
 import { SITE_INDEX } from './siteIndex';
 
 export const PROJECTS: Project[] = [
-  // --- KEY EXTERNAL PROJECT ---
+  // --- KEY PROJECT (WIP - Internal Route Only) ---
   {
     id: 1,
     slug: 'midimix',
     title: 'Midimix',
-    shortDesc: 'AI-powered MIDI creative tool.',
-    longDesc: 'A standalone platform utilizing machine learning to assist in MIDI generation and routing. Currently in active development.',
+    shortDesc: 'An experimental AI tool for music production. Currently in development.',
+    longDesc: 'An experimental project exploring AI-assisted music creation. Currently in development.',
     primaryDiscipline: Discipline.HYBRID,
     tags: ['AI', 'Audio', 'WebMIDI', 'ML'],
     createdAt: '2025-01-01',
     imageUrl: `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#06B6D4"/><stop offset="100%" stop-color="#7C3AED"/></linearGradient></defs><rect fill="url(#g)" width="800" height="600"/><text x="400" y="290" text-anchor="middle" fill="#fff" font-family="monospace" font-size="56" font-weight="bold" opacity="0.9">MIDIMIX</text><text x="400" y="340" text-anchor="middle" fill="#fff" font-family="monospace" font-size="16" opacity="0.5">AI-POWERED MIDI</text></svg>`)}`,
     status: 'wip',
-    isExternal: true,
-    externalUrl: 'https://midimix.app',
+    isExternal: false,
+    // No externalUrl - routes to /work/midimix internally
     role: 'Founder / Lead Engineer'
   },
 
@@ -24,10 +24,10 @@ export const PROJECTS: Project[] = [
     id: 2,
     slug: 'portfolio-console',
     title: 'Portfolio Console',
-    shortDesc: "A 3D 'console' portfolio that blends code, ML/AI, and video in one spatial view.",
-    longDesc: 'A single-screen 3D portfolio built with React Three Fiber that visualizes projects as nodes across software, ML/AI, and video lanes. An AI assistant (Groq/Gemini via Supabase Edge Functions) answers questions, highlights relevant work, and stays within a lean, client-side SPA. Includes minimal real-time touches (Spotify now playing, local clock) and no heavy CMS—content is static TypeScript.',
+    shortDesc: 'Full-stack 3D portfolio with AI-powered assistant. Built with React Three Fiber, TypeScript, and Supabase Edge Functions. Optimized for performance (<200KB bundle, 60fps on mobile).',
+    longDesc: 'A production-ready portfolio platform featuring a 3D spatial interface built with React Three Fiber and TypeScript. Content is managed through static TypeScript modules in version control, enabling fast iteration through code edits and redeployment. Implements an AI assistant powered by Groq (Llama 3.1 8B, Llama 3.1 70B, Llama 3.3 70B) via Supabase Edge Functions, with streaming responses and context-aware project highlighting. Architecture emphasizes performance: <200KB gzipped bundle, 60fps on mobile devices, <2s time-to-interactive. Includes real-time integrations (Spotify API, time zones) and demonstrates expertise in WebGL optimization, edge computing, and modern React patterns.',
     primaryDiscipline: Discipline.SWE,
-    tags: ['React Three Fiber', 'Supabase', 'TypeScript', 'WebGL', 'AI'],
+    tags: ['React Three Fiber', 'Supabase', 'TypeScript', 'WebGL', 'AI', 'Edge Functions', 'Performance'],
     createdAt: '2025-02-20',
     imageUrl: `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2563EB"/><stop offset="100%" stop-color="#0A0A0A"/></linearGradient></defs><rect fill="url(#g)" width="800" height="600"/><text x="400" y="290" text-anchor="middle" fill="#fff" font-family="monospace" font-size="48" font-weight="bold" opacity="0.9">CONSOLE</text><text x="400" y="340" text-anchor="middle" fill="#fff" font-family="monospace" font-size="16" opacity="0.5">REACT THREE FIBER</text></svg>`)}`,
     status: 'live',
@@ -39,8 +39,8 @@ export const PROJECTS: Project[] = [
     id: 10,
     slug: 'mirror-shrapnel',
     title: 'mirror shrapnel — fx30 cinematic edit (fakemink "blow me")',
-    shortDesc: 'Cinematic edit for fakemink "blow me". Shot on Sony FX30.',
-    longDesc: 'A cinematic edit created for fakemink "blow me".',
+    shortDesc: 'A cinematic edit to the song "blow me" by fakemink. Shot on Sony FX30.',
+    longDesc: 'A cinematic edit to the song "blow me" by fakemink. Shot on Sony FX30.',
     primaryDiscipline: Discipline.VIDEO,
     tags: ['FX30', 'Cinematography', 'Edit', 'VFX'],
     createdAt: '2024-01-01',
@@ -57,7 +57,7 @@ export const PROJECTS: Project[] = [
     longDesc: 'A visual journey through NYC shot on FX30.',
     primaryDiscipline: Discipline.VIDEO,
     tags: ['FX30', 'Cinematography', 'Color Grading', 'VFX'],
-    createdAt: '2023-12-01',
+    createdAt: '2025-12-01',
     imageUrl: 'https://video.gumlet.io/693f470a7ada4a23333078f6/693f47fe3cf0cd39b98f6061/thumbnail-1-0.png?v=1765781953458',
     status: 'live',
     videoUrl: 'https://play.gumlet.io/embed/693f47fe3cf0cd39b98f6061?autoplay=false&loop=false&disableControls=false',
@@ -219,9 +219,37 @@ export const PROJECTS: Project[] = [
  * Used when calling the ask-portfolio Edge Function.
  */
 export function buildProjectContext(): string {
-  const projectsContext = PROJECTS.map(p =>
-    `- ${p.title} (${p.slug}): ${p.primaryDiscipline} | ${p.shortDesc} | Tags: ${p.tags.join(', ')}`
-  ).join('\n');
+  const projectsContext = PROJECTS.map(p => {
+    const parts = [
+      `${p.title} (${p.slug})`,
+      `Discipline: ${p.primaryDiscipline}`,
+      `Description: ${p.shortDesc}`,
+    ];
+    
+    if (p.longDesc) {
+      parts.push(`Details: ${p.longDesc}`);
+    }
+    
+    if (p.role) {
+      parts.push(`Role: ${p.role}`);
+    }
+    
+    if (p.status) {
+      parts.push(`Status: ${p.status.toUpperCase()}`);
+    }
+    
+    if (p.isExternal && p.externalUrl) {
+      parts.push(`External: ${p.externalUrl}`);
+    } else {
+      parts.push(`Link: /work/${p.slug}`);
+    }
+    
+    if (p.tags.length > 0) {
+      parts.push(`Tags: ${p.tags.join(', ')}`);
+    }
+    
+    return `- ${parts.join(' | ')}`;
+  }).join('\n');
 
   const navContext = SITE_INDEX.map(page =>
     `- ${page.title} (${page.path}): ${page.description}`

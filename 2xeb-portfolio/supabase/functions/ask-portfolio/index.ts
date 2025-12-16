@@ -6,11 +6,12 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-type Provider = "groq" | "gemini";
+type Provider = "groq";
 
 // Allowed Groq models (free tier)
 const ALLOWED_GROQ_MODELS = [
   "llama-3.1-8b-instant",
+  "llama-3.1-70b-versatile",
   "llama-3.3-70b-versatile",
 ];
 
@@ -37,7 +38,7 @@ interface AskPayload {
   question: string;
   context: string;
   model?: string;      // Specific model ID
-  provider?: Provider; // 'groq' or 'gemini'
+  provider?: Provider; // 'groq'
   stream?: boolean;    // Enable SSE streaming
 }
 
@@ -169,57 +170,17 @@ async function callGroqStreaming(
   });
 }
 
-// Gemini API
-async function callGemini(prompt: string, userQuestion: string): Promise<string> {
-  const apiKey = Deno.env.get("GEMINI_API_KEY");
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY not configured");
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `${prompt}\n\nUser question: ${userQuestion}` }],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 500,
-        responseMimeType: "application/json",
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Gemini API error:", errorText);
-    throw new Error("Gemini API error");
-  }
-
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-}
-
-// Determine which provider to use based on available keys and request
+// Determine which provider to use (Groq only)
 function selectProvider(requestedProvider?: Provider): Provider {
   const hasGroq = !!Deno.env.get("GROQ_API_KEY");
-  const hasGemini = !!Deno.env.get("GEMINI_API_KEY");
 
   // If specific provider requested and available, use it
-  if (requestedProvider === "gemini" && hasGemini) return "gemini";
   if (requestedProvider === "groq" && hasGroq) return "groq";
 
-  // Default priority: Groq > Gemini
+  // Default to Groq
   if (hasGroq) return "groq";
-  if (hasGemini) return "gemini";
 
-  throw new Error("No LLM provider configured. Set GROQ_API_KEY or GEMINI_API_KEY.");
+  throw new Error("No LLM provider configured. Set GROQ_API_KEY.");
 }
 
 Deno.serve(async (req: Request) => {
@@ -260,26 +221,64 @@ Deno.serve(async (req: Request) => {
     const baseContext = payload.context || "No context provided.";
     const navigationHint = `When the user asks about navigation, contacting, or how the site works, suggest relevant pages using markdown links like [Contact](/contact) or [Case Study](/work/portfolio-console).`;
 
-    const jsonPrompt = `You are an AI assistant for Ebenezer Eshetu's (2xeb) portfolio website. Answer questions about his work, skills, and experience based on the provided context.
+    const jsonPrompt = `You are "EB", an AI assistant for Ebenezer Eshetu's (2xeb) portfolio website. You help visitors explore his work across Software Engineering, Machine Learning/AI, and Video Production.
 
-Rules:
-1. Be concise and professional
-2. Only reference projects that exist in the context
-3. If asked about something not in the context, say you don't have that information
-4. When mentioning projects, include their slugs in your response
-5. Format your response as JSON with two fields:
-   - "answer": Your text response (1-3 sentences)
+ABOUT EBENEZER:
+- Full name: Ebenezer Eshetu
+- Online handle: 2xeb
+- Works across three main disciplines: Software Engineering (SWE), Machine Learning/AI (ML), and Video Production
+- Creates hybrid projects that combine multiple disciplines
+- Portfolio features a 3D console visualization built with React Three Fiber
+- Uses modern web technologies, AI/ML tools, and professional video equipment (Sony FX30)
+
+PORTFOLIO STRUCTURE:
+- Home (/): 3D console visualization of all projects
+- Work (/work): All projects across all disciplines
+- ML Lab (/ml-lab): Machine learning and AI projects
+- Video (/video): Cinematography and video production work with featured reel section
+- About (/about): Background, skills, and experience
+- Contact (/contact): Get in touch form
+
+KEY PROJECTS:
+- Midimix: An experimental AI tool for music production, currently in development
+- Portfolio Console: The 3D portfolio site itself, built with React Three Fiber, Supabase, TypeScript
+- Various video projects including cinematic reels, music videos, event recaps, and gaming montages
+
+RULES:
+1. Be concise, professional, and helpful (1-3 sentences for JSON responses)
+2. Only reference projects that exist in the provided context
+3. If asked about something not in the context, politely say you don't have that information
+4. When mentioning projects, include their slugs in parentheses like (portfolio-slug)
+5. For navigation questions, use markdown links: [Page Name](/path)
+6. Format your response as JSON with two fields:
+   - "answer": Your text response
    - "projectSlugs": Array of project slugs mentioned (empty array if none)
-6. ${navigationHint}
+7. ${navigationHint}
 
 Context about the portfolio:
 ${baseContext}`;
 
-    const streamingPrompt = `You are an AI assistant for Ebenezer Eshetu's (2xeb) portfolio website. Answer questions about his work, skills, and experience based on the provided context.
+    const streamingPrompt = `You are "EB", an AI assistant for Ebenezer Eshetu's (2xeb) portfolio website. You help visitors explore his work across Software Engineering, Machine Learning/AI, and Video Production.
 
+ABOUT EBENEZER:
+- Full name: Ebenezer Eshetu, online handle: 2xeb
+- Works across Software Engineering (SWE), Machine Learning/AI (ML), and Video Production
+- Creates hybrid projects combining multiple disciplines
+- Portfolio features a 3D console visualization built with React Three Fiber
+
+PORTFOLIO STRUCTURE:
+- Home (/): 3D console visualization
+- Work (/work): All projects
+- ML Lab (/ml-lab): ML/AI projects
+- Video (/video): Video work with featured reel section
+- About (/about): Background and skills
+- Contact (/contact): Contact form
+
+RULES:
 - Respond in plain text (no JSON, no code fences)
 - Keep it concise (2-4 sentences)
-- Mention relevant project slugs inline when useful
+- Mention relevant project slugs inline when useful: (project-slug)
+- For navigation, use markdown links: [Page Name](/path)
 - ${navigationHint}
 
 Context about the portfolio:
@@ -302,16 +301,12 @@ ${baseContext}`;
       }
     }
 
-    // Call the selected provider (non-streaming)
+    // Call Groq (non-streaming)
     let rawText: string;
     try {
-      if (provider === "groq") {
-        rawText = await callGroq(jsonPrompt, payload.question, modelId);
-      } else {
-        rawText = await callGemini(jsonPrompt, payload.question);
-      }
+      rawText = await callGroq(jsonPrompt, payload.question, modelId);
     } catch (err) {
-      console.error(`${provider} error:`, err);
+      console.error("Groq error:", err);
       return new Response(
         JSON.stringify({ error: "AI service error" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

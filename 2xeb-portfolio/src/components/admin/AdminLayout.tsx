@@ -103,7 +103,7 @@ const AdminLayout: React.FC = () => {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b border-[#1f2937]">
-            <a href="/#/" className="flex items-center gap-3">
+            <a href="/" className="flex items-center gap-3">
               <div className="w-8 h-8 bg-[#0A0A0A] border border-[#262626] grid place-items-center">
                 <span className="text-[#2563EB] font-bold text-sm font-space-grotesk">EB</span>
               </div>
@@ -187,7 +187,7 @@ const AdminLayout: React.FC = () => {
             {/* Right side actions */}
             <div className="flex items-center gap-4">
               <a
-                href="/#/"
+                href="/"
                 className="text-xs font-mono text-[#525252] hover:text-[#2563EB] transition-colors"
               >
                 View Site &rarr;

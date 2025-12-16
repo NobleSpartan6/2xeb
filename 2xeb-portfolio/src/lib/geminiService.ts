@@ -38,7 +38,7 @@ export const askPortfolioAI = async (question: string): Promise<AIResponse> => {
     const apiKey = process.env.API_KEY;
     if (!apiKey) {
       return {
-        answer: "Demo mode: API Key not configured. I would normally tell you about my projects like 'Midimix' or 'Portfolio Console' here!",
+        answer: "Demo mode: API Key not configured. I would normally tell you about my projects like experimental AI tools or 'Portfolio Console' here!",
         projectSlugs: ['midimix', 'portfolio-console']
       };
     }

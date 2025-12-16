@@ -8,7 +8,7 @@
 export interface ModelConfig {
   id: string;
   name: string;
-  provider: 'groq' | 'gemini';
+  provider: 'groq';
   description: string;
   contextWindow: number;
   // Free tier limits
@@ -42,6 +42,20 @@ export const MODELS: ModelConfig[] = [
     category: 'fast',
   },
   {
+    id: 'llama-3.1-70b-versatile',
+    name: 'Llama 3.1 70B',
+    provider: 'groq',
+    description: 'Balanced performance, good for general use',
+    contextWindow: 131072,
+    limits: {
+      requestsPerMinute: 30,
+      requestsPerDay: 1000,
+      tokensPerMinute: 12000,
+      tokensPerDay: 100000,
+    },
+    category: 'balanced',
+  },
+  {
     id: 'llama-3.3-70b-versatile',
     name: 'Llama 3.3 70B',
     provider: 'groq',
@@ -54,20 +68,6 @@ export const MODELS: ModelConfig[] = [
       tokensPerDay: 100000,
     },
     category: 'powerful',
-  },
-  {
-    id: 'gemini-2.0-flash',
-    name: 'Gemini 2.0 Flash',
-    provider: 'gemini',
-    description: 'Google\'s fast multimodal model',
-    contextWindow: 1000000,
-    limits: {
-      requestsPerMinute: 15,
-      requestsPerDay: 1500,
-      tokensPerMinute: 32000,
-      tokensPerDay: 1000000,
-    },
-    category: 'balanced',
   },
 ];
 

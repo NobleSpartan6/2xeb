@@ -56,7 +56,7 @@ const AuthCallback: React.FC = () => {
             setStatus('Success! Redirecting...');
 
             // Clean up URL and redirect to admin dashboard
-            window.history.replaceState({}, '', '/#/admin');
+            window.history.replaceState({}, '', '/admin');
             navigate('/admin', { replace: true });
 
           } catch (err) {

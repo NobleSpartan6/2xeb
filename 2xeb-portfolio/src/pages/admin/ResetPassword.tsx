@@ -42,7 +42,7 @@ const ResetPassword: React.FC = () => {
           console.log('[ResetPassword] Signing out and redirecting...');
           await supabase.auth.signOut();
           // Force redirect to login - use replace to clear history
-          window.location.replace(window.location.origin + '/#/admin/login');
+          window.location.replace(window.location.origin + '/admin/login');
         }, 2000);
       }
     } catch {
