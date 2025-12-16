@@ -556,6 +556,7 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   const [cursorPosition, setCursorPosition] = useState(0);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputContainerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const didAddWelcome = useRef(false);
 
@@ -644,6 +645,44 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
       document.body.style.overflow = 'unset';
     };
   }, []);
+
+  // Handle mobile keyboard visibility - scroll input into view
+  useEffect(() => {
+    const scrollInputIntoView = () => {
+      // Use the container ref for better positioning
+      const container = inputContainerRef.current;
+      if (container) {
+        container.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    };
+
+    const handleViewportResize = () => {
+      // When keyboard opens, scroll input into view
+      if (window.visualViewport) {
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+
+        // Keyboard is likely open if viewport is significantly smaller than window
+        if (windowHeight - viewportHeight > 100) {
+          setTimeout(scrollInputIntoView, 100);
+        }
+      }
+    };
+
+    // Also scroll on focus for reliability
+    const handleFocus = () => {
+      setTimeout(scrollInputIntoView, 300);
+    };
+
+    const input = inputRef.current;
+    input?.addEventListener('focus', handleFocus);
+    window.visualViewport?.addEventListener('resize', handleViewportResize);
+
+    return () => {
+      input?.removeEventListener('focus', handleFocus);
+      window.visualViewport?.removeEventListener('resize', handleViewportResize);
+    };
+  }, [phase]);
 
   const handleCommand = useCallback((cmd: string) => {
     const trimmedCmd = cmd.trim().toLowerCase();
@@ -1222,7 +1261,7 @@ drwxr-xr-x  ..
 
           {/* Terminal Phase */}
           {phase === 'terminal' && (
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full overflow-hidden">
               {/* Terminal header with path - compact on mobile */}
               <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4 pb-2 sm:pb-3" style={{ borderBottom: `1px solid rgba(96, 165, 250, 0.2)` }}>
                 <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs" style={{ background: 'rgba(96, 165, 250, 0.1)' }}>
@@ -1283,6 +1322,7 @@ drwxr-xr-x  ..
 
               {/* Input line */}
               <div
+                ref={inputContainerRef}
                 className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 pt-2 sm:pt-3 pb-8 sm:pb-6 cursor-text"
                 style={{ borderTop: `1px solid rgba(96, 165, 250, 0.2)` }}
                 onClick={() => inputRef.current?.focus()}
