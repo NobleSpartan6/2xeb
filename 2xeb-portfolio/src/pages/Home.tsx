@@ -146,8 +146,8 @@ const Home: React.FC = () => {
                   </>
                 )}
               </div>
-              {/* Mobile/Tablet: compact - hidden on small mobile to save space */}
-              <div className="hidden sm:flex md:hidden flex-col gap-0.5 max-w-[260px]">
+              {/* Mobile/Tablet: compact */}
+              <div className="flex md:hidden flex-col gap-0.5 max-w-[260px]">
                 <span className="text-[#A3A3A3]">{clock || '...'}</span>
                 {nowPlaying && (
                   <span className="text-[#2563EB] truncate">♪ {nowPlaying}</span>
