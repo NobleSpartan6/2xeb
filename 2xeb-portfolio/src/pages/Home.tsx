@@ -130,7 +130,7 @@ const Home: React.FC = () => {
         onClick={() => setFocusedDiscipline(null)}
       >
         {/* Top Section - Live Status */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-[88px] sm:pt-[96px] md:pt-[120px] 2xl:pt-[132px] 3xl:pt-[144px] flex-shrink-0">
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-[100px] sm:pt-[110px] md:pt-[136px] 2xl:pt-[148px] 3xl:pt-[160px] flex-shrink-0">
           <div className="flex items-start gap-2 sm:gap-3 pointer-events-none">
             <div className="w-5 sm:w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[4px] sm:mt-[6px]" />
             <div className="font-mono text-[8px] sm:text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.15em] sm:tracking-[0.3em]">
