@@ -1372,7 +1372,7 @@ drwxr-xr-x  ..
                 style={{ borderTop: `1px solid rgba(96, 165, 250, 0.2)` }}
                 onClick={() => inputRef.current?.focus()}
               >
-                <span className="text-xs sm:text-sm" style={{ color: TERM_ACCENT }}>❯</span>
+                <span className="text-xs sm:text-sm md:text-base" style={{ color: TERM_ACCENT }}>❯</span>
                 <div className="flex-1 relative font-mono min-h-[44px] sm:min-h-0 flex items-center">
                   {/* Visual representation of input with cursor */}
                   <div
@@ -1389,7 +1389,7 @@ drwxr-xr-x  ..
                     <span>{currentInput.slice(cursorPosition + 1)}</span>
                     {/* Placeholder when empty */}
                     {!currentInput && (
-                      <span className="absolute left-[0.8em] opacity-30 pointer-events-none flex items-center gap-2">
+                      <span className="absolute inset-0 pl-[1ch] opacity-30 pointer-events-none flex items-center gap-2">
                         <span className="hidden sm:inline">Type a command...</span>
                         <span className="sm:hidden flex items-center gap-1.5">
                           <span>Tap to type</span>
