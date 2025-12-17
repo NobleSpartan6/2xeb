@@ -1344,9 +1344,6 @@ drwxr-xr-x  ..
                 <div className="flex sm:hidden flex-wrap gap-1.5 mt-2 pt-2" style={{ borderTop: `1px solid rgba(96, 165, 250, 0.15)` }}>
                   {[
                     { label: 'help', cmd: 'help' },
-                    { label: 'ls -a', cmd: 'ls -a' },
-                    { label: '.fsociety', cmd: 'cd .fsociety' },
-                    { label: 'cat .truth', cmd: 'cat .truth' },
                     { label: 'clear', cmd: 'clear' },
                   ].map(({ label, cmd }) => (
                     <button
