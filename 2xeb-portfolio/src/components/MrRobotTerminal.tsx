@@ -1227,7 +1227,7 @@ drwxr-xr-x  ..
 
   return (
     <div
-      className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-0 sm:p-8"
+      className={`fixed inset-0 z-[200] bg-black/95 flex justify-center p-0 sm:p-8 ${isKeyboardOpen ? 'items-start' : 'items-center'}`}
       style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
       onClick={() => inputRef.current?.focus()}
     >
