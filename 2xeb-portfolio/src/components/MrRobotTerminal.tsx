@@ -1284,11 +1284,11 @@ drwxr-xr-x  ..
         <div className="absolute inset-0 pointer-events-none noise-texture z-20" />
 
         {/* Main content */}
-        <div className="relative w-full h-[calc(100%-2rem)] sm:h-[calc(100%-2.5rem)] p-3 sm:p-5 md:p-6 font-mono text-xs sm:text-sm md:text-base overflow-hidden" style={{ color: TERM_COLOR }}>
+        <div className="relative w-full h-[calc(100%-2.5rem)] flex flex-col p-3 sm:p-5 md:p-6 font-mono text-xs sm:text-sm md:text-base overflow-hidden" style={{ color: TERM_COLOR }}>
 
           {/* Glitch Phase */}
           {phase === 'glitch' && (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center flex-1">
               <div className="glitch-text text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight" data-text="HELLO FRIEND">
                 HELLO FRIEND
               </div>
@@ -1297,7 +1297,7 @@ drwxr-xr-x  ..
 
           {/* Intro Phase */}
           {phase === 'intro' && (
-            <div className="flex flex-col justify-center h-full max-w-2xl mx-auto px-1">
+            <div className="flex flex-col justify-center flex-1 max-w-2xl mx-auto px-1">
               <pre className="whitespace-pre-wrap leading-relaxed sm:leading-loose text-sm sm:text-base md:text-lg" style={{ color: TERM_COLOR }}>
                 {intro}
                 {!introComplete && <span className="animate-pulse">█</span>}
@@ -1307,9 +1307,9 @@ drwxr-xr-x  ..
 
           {/* Terminal Phase */}
           {phase === 'terminal' && (
-            <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
               {/* Terminal header with path - compact on mobile */}
-              <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4 pb-2 sm:pb-3" style={{ borderBottom: `1px solid rgba(96, 165, 250, 0.2)` }}>
+              <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4 pb-2 sm:pb-3" style={{ borderBottom: `1px solid rgba(96, 165, 250, 0.2)` }}>
                 <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs" style={{ background: 'rgba(96, 165, 250, 0.1)' }}>
                   <span style={{ color: TERM_ACCENT }}>→</span>
                   <span style={{ color: TERM_COLOR }}>{terminalCurrentDir.replace('/home/friend', '~')}</span>
@@ -1323,7 +1323,7 @@ drwxr-xr-x  ..
               {/* Terminal output */}
               <div
                 ref={terminalRef}
-                className="flex-1 overflow-y-auto space-y-1.5 sm:space-y-2 terminal-scroll pr-1 sm:pr-2 text-[11px] sm:text-xs md:text-sm"
+                className="flex-1 min-h-0 overflow-y-auto space-y-1.5 sm:space-y-2 terminal-scroll pr-1 sm:pr-2 text-[11px] sm:text-xs md:text-sm"
               >
                 {terminalHistory.map((entry, i) => (
                   <pre
@@ -1341,7 +1341,7 @@ drwxr-xr-x  ..
 
               {/* Mobile Quick Commands - hide when keyboard is open to save space */}
               {!isKeyboardOpen && (
-                <div className="flex sm:hidden flex-wrap gap-1.5 mt-2 pt-2" style={{ borderTop: `1px solid rgba(96, 165, 250, 0.15)` }}>
+                <div className="flex-shrink-0 flex sm:hidden flex-wrap gap-1.5 mt-2 pt-2" style={{ borderTop: `1px solid rgba(96, 165, 250, 0.15)` }}>
                   {[
                     { label: 'help', cmd: 'help' },
                     { label: 'clear', cmd: 'clear' },
@@ -1368,7 +1368,7 @@ drwxr-xr-x  ..
               {/* Input line - reduced padding when keyboard is open */}
               <div
                 ref={inputContainerRef}
-                className={`flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 pt-2 sm:pt-3 cursor-text ${isKeyboardOpen ? 'pb-2' : 'pb-8 sm:pb-6'}`}
+                className={`flex-shrink-0 flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 pt-2 sm:pt-3 cursor-text ${isKeyboardOpen ? 'pb-2' : 'pb-8 sm:pb-6'}`}
                 style={{ borderTop: `1px solid rgba(96, 165, 250, 0.2)` }}
                 onClick={() => inputRef.current?.focus()}
               >
