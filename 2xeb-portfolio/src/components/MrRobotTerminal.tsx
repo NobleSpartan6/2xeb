@@ -557,6 +557,7 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   const [cursorPosition, setCursorPosition] = useState(0);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const keyboardWasOpenRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputContainerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -728,6 +729,21 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
       window.removeEventListener('resize', syncViewportVars);
     };
   }, [phase]);
+
+  // Close terminal when mobile keyboard is dismissed
+  useEffect(() => {
+    // Only on mobile (check if we're using visual viewport for keyboard detection)
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (!isMobile) return;
+
+    if (isKeyboardOpen) {
+      // Track that keyboard was opened
+      keyboardWasOpenRef.current = true;
+    } else if (keyboardWasOpenRef.current) {
+      // Keyboard was open and is now closed - close the terminal
+      onClose();
+    }
+  }, [isKeyboardOpen, onClose]);
 
   const handleCommand = useCallback((cmd: string) => {
     const trimmedCmd = cmd.trim().toLowerCase();
