@@ -557,7 +557,6 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   const [cursorPosition, setCursorPosition] = useState(0);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-  const keyboardWasOpenRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputContainerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -730,20 +729,6 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
     };
   }, [phase]);
 
-  // Close terminal when mobile keyboard is dismissed
-  useEffect(() => {
-    // Only on mobile (check if we're using visual viewport for keyboard detection)
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (!isMobile) return;
-
-    if (isKeyboardOpen) {
-      // Track that keyboard was opened
-      keyboardWasOpenRef.current = true;
-    } else if (keyboardWasOpenRef.current) {
-      // Keyboard was open and is now closed - close the terminal
-      onClose();
-    }
-  }, [isKeyboardOpen, onClose]);
 
   const handleCommand = useCallback((cmd: string) => {
     const trimmedCmd = cmd.trim().toLowerCase();
@@ -1492,18 +1477,20 @@ drwxr-xr-x  ..
 
       {/* Inline styles for CRT effects */}
       <style>{`
-        /* Mobile keyboard-aware terminal sizing - smooth CSS-driven transitions */
+        /* Mobile keyboard-aware terminal sizing - instant response to viewport changes */
         .terminal-keyboard-closed,
         .terminal-keyboard-open {
-          /* Use visual viewport height - CSS transitions handle smooth animation */
+          /* Use visual viewport height - updates in real-time as keyboard animates */
           height: var(--visual-viewport-height, 100dvh);
           max-height: var(--visual-viewport-height, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
-          /* Smooth height transition - fast enough to feel responsive, slow enough to be smooth */
-          transition: height 150ms ease-out, max-height 150ms ease-out;
+          /* No transition - instant resize to match viewport exactly */
+          transition: none;
           /* GPU acceleration for smooth rendering */
           transform: translateZ(0);
           backface-visibility: hidden;
           -webkit-backface-visibility: hidden;
+          /* Prevent any visual gaps */
+          will-change: height, max-height;
         }
 
         /* Desktop overrides - ignore keyboard state */
