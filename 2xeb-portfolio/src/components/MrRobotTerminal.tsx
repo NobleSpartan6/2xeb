@@ -1299,7 +1299,7 @@ drwxr-xr-x  ..
 
           {/* Intro Phase */}
           {phase === 'intro' && (
-            <div className="flex flex-col items-center justify-center flex-1 max-w-2xl mx-auto px-4 sm:px-6">
+            <div className="flex flex-col items-start sm:items-center justify-start sm:justify-center flex-1 sm:max-w-2xl sm:mx-auto px-4 sm:px-6">
               <pre className="whitespace-pre-wrap leading-relaxed sm:leading-loose text-sm sm:text-base md:text-lg" style={{ color: TERM_COLOR }}>
                 {intro}
                 {!introComplete && <span className="animate-pulse">█</span>}
