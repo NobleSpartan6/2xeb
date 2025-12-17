@@ -555,9 +555,11 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   const [currentInput, setCurrentInput] = useState('');
   const [cursorPosition, setCursorPosition] = useState(0);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputContainerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
+  const terminalContainerRef = useRef<HTMLDivElement>(null);
   const didAddWelcome = useRef(false);
 
   // Track cursor position changes
@@ -646,25 +648,45 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
     };
   }, []);
 
-  // Handle mobile keyboard visibility - scroll input into view
+  // Handle mobile keyboard visibility - scroll input into view and adjust layout
   useEffect(() => {
     const scrollInputIntoView = () => {
       // Use the container ref for better positioning
       const container = inputContainerRef.current;
       if (container) {
-        container.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        // Use requestAnimationFrame for smoother scrolling
+        requestAnimationFrame(() => {
+          container.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        });
       }
     };
 
     const handleViewportResize = () => {
-      // When keyboard opens, scroll input into view
+      // When keyboard opens, adjust layout and scroll input into view
       if (window.visualViewport) {
         const viewportHeight = window.visualViewport.height;
         const windowHeight = window.innerHeight;
+        const keyboardHeight = windowHeight - viewportHeight;
 
         // Keyboard is likely open if viewport is significantly smaller than window
-        if (windowHeight - viewportHeight > 100) {
-          setTimeout(scrollInputIntoView, 100);
+        const keyboardIsOpen = keyboardHeight > 100;
+        setIsKeyboardOpen(keyboardIsOpen);
+
+        if (keyboardIsOpen) {
+          // Adjust terminal container height when keyboard is open
+          const container = terminalContainerRef.current;
+          if (container) {
+            container.style.height = `${viewportHeight}px`;
+            container.style.maxHeight = `${viewportHeight}px`;
+          }
+          setTimeout(scrollInputIntoView, 50);
+        } else {
+          // Reset to default when keyboard closes
+          const container = terminalContainerRef.current;
+          if (container) {
+            container.style.height = '';
+            container.style.maxHeight = '';
+          }
         }
       }
     };
@@ -674,12 +696,33 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
       setTimeout(scrollInputIntoView, 300);
     };
 
+    // Handle blur to detect keyboard close
+    const handleBlur = () => {
+      // Small delay to allow viewport to update
+      setTimeout(() => {
+        if (window.visualViewport) {
+          const viewportHeight = window.visualViewport.height;
+          const windowHeight = window.innerHeight;
+          if (windowHeight - viewportHeight < 100) {
+            setIsKeyboardOpen(false);
+            const container = terminalContainerRef.current;
+            if (container) {
+              container.style.height = '';
+              container.style.maxHeight = '';
+            }
+          }
+        }
+      }, 100);
+    };
+
     const input = inputRef.current;
     input?.addEventListener('focus', handleFocus);
+    input?.addEventListener('blur', handleBlur);
     window.visualViewport?.addEventListener('resize', handleViewportResize);
 
     return () => {
       input?.removeEventListener('focus', handleFocus);
+      input?.removeEventListener('blur', handleBlur);
       window.visualViewport?.removeEventListener('resize', handleViewportResize);
     };
   }, [phase]);
@@ -1181,7 +1224,8 @@ drwxr-xr-x  ..
 
   return (
     <div
-      className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-2 sm:p-8"
+      className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-0 sm:p-8"
+      style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
       onClick={() => inputRef.current?.focus()}
     >
       {/* Ambient glow behind terminal */}
@@ -1189,8 +1233,12 @@ drwxr-xr-x  ..
         <div className="w-[800px] h-[600px] rounded-full opacity-20 blur-[120px]" style={{ background: `radial-gradient(circle, ${TERM_ACCENT} 0%, transparent 70%)` }} />
       </div>
 
-      {/* CRT Screen Effect Container */}
-      <div className="relative w-full max-w-4xl h-[96vh] sm:h-[85vh] sm:max-h-[700px] overflow-hidden crt-screen rounded-lg sm:rounded-lg">
+      {/* CRT Screen Effect Container - use dvh for mobile browser chrome handling */}
+      <div
+        ref={terminalContainerRef}
+        className="relative w-full max-w-4xl h-[100dvh] sm:h-[85vh] sm:max-h-[700px] overflow-hidden crt-screen rounded-none sm:rounded-lg"
+        style={{ maxHeight: 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))' }}
+      >
 
         {/* Window Title Bar */}
         <div className="relative z-10 h-10 sm:h-10 bg-[#0c0c0c] border-b border-[#1a1a1a] flex items-center justify-between px-3 sm:px-4">
@@ -1291,37 +1339,36 @@ drwxr-xr-x  ..
                 ))}
               </div>
 
-              {/* Mobile Quick Commands */}
-              <div className="flex sm:hidden flex-wrap gap-1.5 mt-2 pt-2" style={{ borderTop: `1px solid rgba(96, 165, 250, 0.15)` }}>
-                {[
-                  { label: 'help', cmd: 'help' },
-                  { label: 'ls -a', cmd: 'ls -a' },
-                  { label: '.fsociety', cmd: 'cd .fsociety' },
-                  { label: 'cat .truth', cmd: 'cat .truth' },
-                  { label: 'clear', cmd: 'clear' },
-                ].map(({ label, cmd }) => (
-                  <button
-                    key={cmd}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCommand(cmd);
-                    }}
-                    className="px-2.5 py-1.5 text-[10px] font-mono rounded border transition-all active:scale-95"
-                    style={{
-                      color: TERM_COLOR,
-                      borderColor: 'rgba(96, 165, 250, 0.3)',
-                      background: 'rgba(96, 165, 250, 0.05)',
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              {/* Mobile Quick Commands - hide when keyboard is open to save space */}
+              {!isKeyboardOpen && (
+                <div className="flex sm:hidden flex-wrap gap-1.5 mt-2 pt-2" style={{ borderTop: `1px solid rgba(96, 165, 250, 0.15)` }}>
+                  {[
+                    { label: 'help', cmd: 'help' },
+                    { label: 'clear', cmd: 'clear' },
+                  ].map(({ label, cmd }) => (
+                    <button
+                      key={cmd}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCommand(cmd);
+                      }}
+                      className="px-2.5 py-1.5 text-[10px] font-mono rounded border transition-all active:scale-95"
+                      style={{
+                        color: TERM_COLOR,
+                        borderColor: 'rgba(96, 165, 250, 0.3)',
+                        background: 'rgba(96, 165, 250, 0.05)',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-              {/* Input line */}
+              {/* Input line - reduced padding when keyboard is open */}
               <div
                 ref={inputContainerRef}
-                className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 pt-2 sm:pt-3 pb-8 sm:pb-6 cursor-text"
+                className={`flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 pt-2 sm:pt-3 cursor-text ${isKeyboardOpen ? 'pb-2' : 'pb-8 sm:pb-6'}`}
                 style={{ borderTop: `1px solid rgba(96, 165, 250, 0.2)` }}
                 onClick={() => inputRef.current?.focus()}
               >
@@ -1377,19 +1424,39 @@ drwxr-xr-x  ..
                   <span className="px-1.5 py-0.5 rounded border border-current">TAB</span>
                   <span>complete</span>
                 </div>
-                {/* Mobile keyboard hint */}
-                <div className="flex sm:hidden items-center text-[9px] opacity-50" style={{ color: TERM_COLOR }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
-                  </svg>
-                </div>
+                {/* Mobile keyboard dismiss button - shows when keyboard is open */}
+                {isKeyboardOpen ? (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      inputRef.current?.blur();
+                    }}
+                    className="flex sm:hidden items-center gap-1 px-2 py-1 rounded border transition-all active:scale-95"
+                    style={{
+                      color: TERM_COLOR,
+                      borderColor: 'rgba(96, 165, 250, 0.4)',
+                      background: 'rgba(96, 165, 250, 0.1)',
+                    }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    </svg>
+                    <span className="text-[9px] font-mono">Done</span>
+                  </button>
+                ) : (
+                  <div className="flex sm:hidden items-center text-[9px] opacity-50" style={{ color: TERM_COLOR }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+                    </svg>
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
 
-        {/* Bottom status bar */}
-        <div className="absolute bottom-0 left-0 right-0 h-5 sm:h-6 bg-[#0c0c0c]/80 border-t border-[#1a1a1a] flex items-center justify-between px-3 sm:px-4 text-[9px] sm:text-[10px] font-mono z-10" style={{ color: TERM_COLOR_DIM }}>
+        {/* Bottom status bar - hide on mobile when keyboard is open */}
+        <div className={`absolute bottom-0 left-0 right-0 h-5 sm:h-6 bg-[#0c0c0c]/80 border-t border-[#1a1a1a] flex items-center justify-between px-3 sm:px-4 text-[9px] sm:text-[10px] font-mono z-10 transition-opacity duration-200 ${isKeyboardOpen ? 'opacity-0 sm:opacity-100' : 'opacity-100'}`} style={{ color: TERM_COLOR_DIM, paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="flex items-center gap-2 sm:gap-3">
             <span className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#28c840] animate-pulse" />
