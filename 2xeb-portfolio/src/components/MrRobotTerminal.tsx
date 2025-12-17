@@ -649,36 +649,45 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   }, []);
 
   // Handle mobile keyboard visibility - use CSS custom properties for keyboard-aware layout
+  // Optimized for performance: uses refs during animation, debounced updates, GPU-accelerated transitions
   useEffect(() => {
-    // Sync viewport variables to CSS custom properties
+    let rafId: number | null = null;
+    let isAnimating = false;
+    let lastKeyboardState = false;
+
+    // Sync viewport variables to CSS custom properties - batched with RAF
     const syncViewportVars = () => {
-      const vv = window.visualViewport;
-      if (vv) {
-        const visibleHeight = vv.height;
-        // Calculate keyboard offset: difference between window and visual viewport, accounting for viewport offset
-        const keyboardOffset = Math.max(0, window.innerHeight - visibleHeight - vv.offsetTop);
+      if (rafId) return; // Already scheduled
 
-        // Set CSS custom properties on the terminal container for scoped usage
-        const container = terminalContainerRef.current;
-        if (container) {
-          container.style.setProperty('--visual-viewport-height', `${visibleHeight}px`);
-          container.style.setProperty('--keyboard-offset', `${keyboardOffset}px`);
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        const vv = window.visualViewport;
+        if (vv) {
+          const visibleHeight = vv.height;
+          const keyboardOffset = Math.max(0, window.innerHeight - visibleHeight - vv.offsetTop);
+
+          const container = terminalContainerRef.current;
+          if (container) {
+            // Use transform for GPU-accelerated animations instead of height
+            container.style.setProperty('--visual-viewport-height', `${visibleHeight}px`);
+            container.style.setProperty('--keyboard-offset', `${keyboardOffset}px`);
+          }
+
+          // Only update React state when keyboard state actually changes (not during animation)
+          const keyboardIsOpen = keyboardOffset > 100;
+          if (keyboardIsOpen !== lastKeyboardState && !isAnimating) {
+            lastKeyboardState = keyboardIsOpen;
+            setIsKeyboardOpen(keyboardIsOpen);
+          }
         }
-
-        // Keyboard is open if offset is significant
-        const keyboardIsOpen = keyboardOffset > 100;
-        setIsKeyboardOpen(keyboardIsOpen);
-      }
+      });
     };
 
     const scrollInputIntoView = () => {
-      // Use the container ref for better positioning
       const container = inputContainerRef.current;
       if (container) {
-        // Use requestAnimationFrame for smoother scrolling
-        requestAnimationFrame(() => {
-          container.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        });
+        // Use instant scroll during animation, then settle
+        container.scrollIntoView({ behavior: 'instant', block: 'end' });
       }
     };
 
@@ -689,39 +698,68 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
         const vv = window.visualViewport;
         const keyboardOffset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
         if (keyboardOffset > 100) {
-          setTimeout(scrollInputIntoView, 50);
+          scrollInputIntoView();
         }
       }
     };
 
-    // Also scroll on focus for reliability
+    // Handle focus - mark as animating to prevent state thrashing
     const handleFocus = () => {
-      // Delay to wait for keyboard animation
+      isAnimating = true;
+      syncViewportVars();
+
+      // After keyboard animation completes (~250ms on iOS), finalize state
       setTimeout(() => {
-        syncViewportVars();
+        isAnimating = false;
+        const vv = window.visualViewport;
+        if (vv) {
+          const keyboardOffset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+          const keyboardIsOpen = keyboardOffset > 100;
+          if (keyboardIsOpen !== lastKeyboardState) {
+            lastKeyboardState = keyboardIsOpen;
+            setIsKeyboardOpen(keyboardIsOpen);
+          }
+        }
         scrollInputIntoView();
-      }, 300);
+      }, 250);
     };
 
-    // Handle blur to detect keyboard close
+    // Handle blur - mark as animating during keyboard close
     const handleBlur = () => {
-      // Small delay to allow viewport to update
+      isAnimating = true;
+
       setTimeout(() => {
+        isAnimating = false;
         syncViewportVars();
-      }, 100);
+        const vv = window.visualViewport;
+        if (vv) {
+          const keyboardOffset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+          const keyboardIsOpen = keyboardOffset > 100;
+          if (keyboardIsOpen !== lastKeyboardState) {
+            lastKeyboardState = keyboardIsOpen;
+            setIsKeyboardOpen(keyboardIsOpen);
+          }
+        }
+      }, 250);
     };
 
-    // Initial sync
+    // Initial sync - set CSS variable immediately to prevent flash
+    const vv = window.visualViewport;
+    if (vv && terminalContainerRef.current) {
+      terminalContainerRef.current.style.setProperty('--visual-viewport-height', `${vv.height}px`);
+    }
     syncViewportVars();
 
     const input = inputRef.current;
     input?.addEventListener('focus', handleFocus);
     input?.addEventListener('blur', handleBlur);
-    window.visualViewport?.addEventListener('resize', handleViewportResize);
-    window.visualViewport?.addEventListener('scroll', handleViewportResize);
-    window.addEventListener('resize', syncViewportVars);
+    // Use passive listeners for better scroll performance
+    window.visualViewport?.addEventListener('resize', handleViewportResize, { passive: true });
+    window.visualViewport?.addEventListener('scroll', handleViewportResize, { passive: true });
+    window.addEventListener('resize', syncViewportVars, { passive: true });
 
     return () => {
+      if (rafId) cancelAnimationFrame(rafId);
       input?.removeEventListener('focus', handleFocus);
       input?.removeEventListener('blur', handleBlur);
       window.visualViewport?.removeEventListener('resize', handleViewportResize);
@@ -1227,7 +1265,7 @@ drwxr-xr-x  ..
 
   return (
     <div
-      className={`fixed inset-0 z-[200] bg-black/95 flex justify-center p-0 sm:p-8 ${isKeyboardOpen ? 'items-start' : 'items-center'}`}
+      className="fixed inset-0 z-[200] bg-black/95 flex justify-center p-0 sm:p-8 items-start sm:items-center"
       style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
       onClick={() => inputRef.current?.focus()}
     >
@@ -1476,18 +1514,18 @@ drwxr-xr-x  ..
 
       {/* Inline styles for CRT effects */}
       <style>{`
-        /* Mobile keyboard-aware terminal sizing */
-        .terminal-keyboard-closed {
-          height: 100dvh;
-          max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-        }
-
+        /* Mobile keyboard-aware terminal sizing - GPU-accelerated */
+        .terminal-keyboard-closed,
         .terminal-keyboard-open {
-          /* Use visual viewport height when keyboard is open */
+          /* Use visual viewport height directly - no transitions on height for performance */
           height: var(--visual-viewport-height, 100dvh);
-          max-height: var(--visual-viewport-height, 100dvh);
-          /* Smooth transition for keyboard animation */
-          transition: height 0.1s ease-out, max-height 0.1s ease-out;
+          max-height: var(--visual-viewport-height, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+          /* GPU acceleration hints */
+          will-change: height, max-height;
+          contain: layout style;
+          /* Hardware acceleration */
+          transform: translateZ(0);
+          backface-visibility: hidden;
         }
 
         /* Desktop overrides - ignore keyboard state */
@@ -1496,6 +1534,8 @@ drwxr-xr-x  ..
           .terminal-keyboard-open {
             height: 85vh;
             max-height: 700px;
+            will-change: auto;
+            contain: none;
           }
         }
 
