@@ -552,6 +552,7 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   const [phase, setPhase] = useState<'glitch' | 'intro' | 'terminal'>(
     terminalHasSeenIntro ? 'terminal' : 'glitch'
   );
+  const [isIntroFadingOut, setIsIntroFadingOut] = useState(false);
   const [currentInput, setCurrentInput] = useState('');
   const [cursorPosition, setCursorPosition] = useState(0);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -584,20 +585,34 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
     return () => clearTimeout(glitchTimer);
   }, [terminalHasSeenIntro]);
 
-  // Move to terminal after intro
+  // Move to terminal after intro with smooth fade transition
   useEffect(() => {
-    if (introComplete && phase === 'intro') {
-      const timer = setTimeout(() => {
+    if (introComplete && phase === 'intro' && !isIntroFadingOut) {
+      // Start fade-out after a brief pause to let user read the last line
+      const pauseTimer = setTimeout(() => {
+        setIsIntroFadingOut(true);
+      }, 800);
+
+      return () => clearTimeout(pauseTimer);
+    }
+  }, [introComplete, phase, isIntroFadingOut]);
+
+  // Transition to terminal after fade-out animation completes
+  useEffect(() => {
+    if (isIntroFadingOut && phase === 'intro') {
+      const fadeTimer = setTimeout(() => {
         setPhase('terminal');
         setTerminalHasSeenIntro(true);
+        setIsIntroFadingOut(false);
         // Only add welcome message if history is empty
         if (terminalHistory.length === 0) {
           addTerminalEntry({ type: 'output', content: 'Type "help" to see available commands.\n' });
         }
-      }, 1500);
-      return () => clearTimeout(timer);
+      }, 400); // Match the phase-fade-out animation duration
+
+      return () => clearTimeout(fadeTimer);
     }
-  }, [introComplete, phase, terminalHistory.length, addTerminalEntry, setTerminalHasSeenIntro]);
+  }, [isIntroFadingOut, phase, terminalHistory.length, addTerminalEntry, setTerminalHasSeenIntro]);
 
 
   // Auto-scroll terminal
@@ -648,122 +663,68 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
     };
   }, []);
 
-  // Handle mobile keyboard visibility - use CSS custom properties for keyboard-aware layout
-  // Optimized for performance: uses refs during animation, debounced updates, GPU-accelerated transitions
+  // Handle mobile keyboard visibility - pure CSS-driven for smoothest animations
+  // React state only used for conditional UI elements, not layout
   useEffect(() => {
     let rafId: number | null = null;
-    let isAnimating = false;
-    let lastKeyboardState = false;
+    let stateUpdateTimeout: NodeJS.Timeout | null = null;
 
-    // Sync viewport variables to CSS custom properties - batched with RAF
+    // Sync viewport to CSS custom properties immediately - no debouncing for real-time response
     const syncViewportVars = () => {
-      if (rafId) return; // Already scheduled
+      if (rafId) cancelAnimationFrame(rafId);
 
       rafId = requestAnimationFrame(() => {
         rafId = null;
         const vv = window.visualViewport;
-        if (vv) {
-          const visibleHeight = vv.height;
-          const keyboardOffset = Math.max(0, window.innerHeight - visibleHeight - vv.offsetTop);
-
-          const container = terminalContainerRef.current;
-          if (container) {
-            // Use transform for GPU-accelerated animations instead of height
-            container.style.setProperty('--visual-viewport-height', `${visibleHeight}px`);
-            container.style.setProperty('--keyboard-offset', `${keyboardOffset}px`);
-          }
-
-          // Only update React state when keyboard state actually changes (not during animation)
-          const keyboardIsOpen = keyboardOffset > 100;
-          if (keyboardIsOpen !== lastKeyboardState && !isAnimating) {
-            lastKeyboardState = keyboardIsOpen;
-            setIsKeyboardOpen(keyboardIsOpen);
-          }
+        const container = terminalContainerRef.current;
+        if (vv && container) {
+          // Set CSS variables immediately - CSS handles the smooth transition
+          container.style.setProperty('--visual-viewport-height', `${vv.height}px`);
+          container.style.setProperty('--keyboard-offset', `${Math.max(0, window.innerHeight - vv.height - vv.offsetTop)}px`);
         }
       });
     };
 
-    const scrollInputIntoView = () => {
-      const container = inputContainerRef.current;
-      if (container) {
-        // Use instant scroll during animation, then settle
-        container.scrollIntoView({ behavior: 'instant', block: 'end' });
-      }
+    // Debounced state update - only for UI element visibility, not layout
+    const updateKeyboardState = () => {
+      if (stateUpdateTimeout) clearTimeout(stateUpdateTimeout);
+      stateUpdateTimeout = setTimeout(() => {
+        const vv = window.visualViewport;
+        if (vv) {
+          const keyboardOffset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+          setIsKeyboardOpen(keyboardOffset > 100);
+        }
+      }, 100); // Short delay just to batch rapid updates
     };
 
-    const handleViewportResize = () => {
+    const handleViewportChange = () => {
       syncViewportVars();
-      // Scroll input into view when keyboard opens
-      if (window.visualViewport) {
-        const vv = window.visualViewport;
+      updateKeyboardState();
+
+      // Scroll input into view when keyboard appears
+      const vv = window.visualViewport;
+      if (vv) {
         const keyboardOffset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-        if (keyboardOffset > 100) {
-          scrollInputIntoView();
+        if (keyboardOffset > 100 && inputContainerRef.current) {
+          // Use instant scroll to keep input visible during keyboard animation
+          inputContainerRef.current.scrollIntoView({ behavior: 'instant', block: 'end' });
         }
       }
     };
 
-    // Handle focus - mark as animating to prevent state thrashing
-    const handleFocus = () => {
-      isAnimating = true;
-      syncViewportVars();
-
-      // After keyboard animation completes (~250ms on iOS), finalize state
-      setTimeout(() => {
-        isAnimating = false;
-        const vv = window.visualViewport;
-        if (vv) {
-          const keyboardOffset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-          const keyboardIsOpen = keyboardOffset > 100;
-          if (keyboardIsOpen !== lastKeyboardState) {
-            lastKeyboardState = keyboardIsOpen;
-            setIsKeyboardOpen(keyboardIsOpen);
-          }
-        }
-        scrollInputIntoView();
-      }, 250);
-    };
-
-    // Handle blur - mark as animating during keyboard close
-    const handleBlur = () => {
-      isAnimating = true;
-
-      setTimeout(() => {
-        isAnimating = false;
-        syncViewportVars();
-        const vv = window.visualViewport;
-        if (vv) {
-          const keyboardOffset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-          const keyboardIsOpen = keyboardOffset > 100;
-          if (keyboardIsOpen !== lastKeyboardState) {
-            lastKeyboardState = keyboardIsOpen;
-            setIsKeyboardOpen(keyboardIsOpen);
-          }
-        }
-      }, 250);
-    };
-
-    // Initial sync - set CSS variable immediately to prevent flash
-    const vv = window.visualViewport;
-    if (vv && terminalContainerRef.current) {
-      terminalContainerRef.current.style.setProperty('--visual-viewport-height', `${vv.height}px`);
-    }
+    // Initial sync
     syncViewportVars();
 
-    const input = inputRef.current;
-    input?.addEventListener('focus', handleFocus);
-    input?.addEventListener('blur', handleBlur);
-    // Use passive listeners for better scroll performance
-    window.visualViewport?.addEventListener('resize', handleViewportResize, { passive: true });
-    window.visualViewport?.addEventListener('scroll', handleViewportResize, { passive: true });
+    // Listen to viewport changes with passive listeners
+    window.visualViewport?.addEventListener('resize', handleViewportChange, { passive: true });
+    window.visualViewport?.addEventListener('scroll', handleViewportChange, { passive: true });
     window.addEventListener('resize', syncViewportVars, { passive: true });
 
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
-      input?.removeEventListener('focus', handleFocus);
-      input?.removeEventListener('blur', handleBlur);
-      window.visualViewport?.removeEventListener('resize', handleViewportResize);
-      window.visualViewport?.removeEventListener('scroll', handleViewportResize);
+      if (stateUpdateTimeout) clearTimeout(stateUpdateTimeout);
+      window.visualViewport?.removeEventListener('resize', handleViewportChange);
+      window.visualViewport?.removeEventListener('scroll', handleViewportChange);
       window.removeEventListener('resize', syncViewportVars);
     };
   }, [phase]);
@@ -1337,17 +1298,18 @@ drwxr-xr-x  ..
 
           {/* Intro Phase */}
           {phase === 'intro' && (
-            <div className="flex flex-col items-start sm:items-center justify-start sm:justify-center flex-1 sm:max-w-2xl sm:mx-auto px-4 sm:px-6">
+            <div className={`flex flex-col items-start sm:items-center justify-start sm:justify-center flex-1 sm:max-w-2xl sm:mx-auto px-4 sm:px-6 ${isIntroFadingOut ? 'phase-intro-complete' : 'phase-intro'}`}>
               <pre className="whitespace-pre-wrap leading-relaxed sm:leading-loose text-sm sm:text-base md:text-lg" style={{ color: TERM_COLOR }}>
                 {intro}
-                {!introComplete && <span className="animate-pulse">█</span>}
+                {/* Keep cursor visible until fade-out starts */}
+                {!isIntroFadingOut && <span className="animate-pulse">█</span>}
               </pre>
             </div>
           )}
 
           {/* Terminal Phase */}
           {phase === 'terminal' && (
-            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="flex flex-col flex-1 min-h-0 overflow-hidden phase-terminal">
               {/* Terminal header with path - compact on mobile */}
               <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4 pb-2 sm:pb-3" style={{ borderBottom: `1px solid rgba(96, 165, 250, 0.2)` }}>
                 <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs" style={{ background: 'rgba(96, 165, 250, 0.1)' }}>
@@ -1514,18 +1476,18 @@ drwxr-xr-x  ..
 
       {/* Inline styles for CRT effects */}
       <style>{`
-        /* Mobile keyboard-aware terminal sizing - GPU-accelerated */
+        /* Mobile keyboard-aware terminal sizing - smooth CSS-driven transitions */
         .terminal-keyboard-closed,
         .terminal-keyboard-open {
-          /* Use visual viewport height directly - no transitions on height for performance */
+          /* Use visual viewport height - CSS transitions handle smooth animation */
           height: var(--visual-viewport-height, 100dvh);
           max-height: var(--visual-viewport-height, calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
-          /* GPU acceleration hints */
-          will-change: height, max-height;
-          contain: layout style;
-          /* Hardware acceleration */
+          /* Smooth height transition - fast enough to feel responsive, slow enough to be smooth */
+          transition: height 150ms ease-out, max-height 150ms ease-out;
+          /* GPU acceleration for smooth rendering */
           transform: translateZ(0);
           backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
         }
 
         /* Desktop overrides - ignore keyboard state */
@@ -1534,8 +1496,42 @@ drwxr-xr-x  ..
           .terminal-keyboard-open {
             height: 85vh;
             max-height: 700px;
-            will-change: auto;
-            contain: none;
+            transition: none;
+          }
+        }
+
+        /* Phase transition animations */
+        .phase-intro {
+          animation: phase-fade-in 300ms ease-out forwards;
+        }
+
+        .phase-intro-complete {
+          animation: phase-fade-out 400ms ease-in forwards;
+        }
+
+        .phase-terminal {
+          animation: phase-fade-in 300ms ease-out forwards;
+        }
+
+        @keyframes phase-fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes phase-fade-out {
+          from {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          to {
+            opacity: 0;
+            transform: translateY(-8px);
           }
         }
 
