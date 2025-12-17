@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>eb - Home</title>
     <meta name="description" content="Ebenezer Eshetu (2xeb) - Software Engineer, ML/AI, and Video Production Portfolio" />
 
@@ -71,7 +71,23 @@
 
     <!-- Global Styles -->
     <style>
-      body { margin: 0; background-color: #050505; color: white; }
+      /* Ensure proper viewport handling on mobile */
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        /* Safe area padding for iOS notch/home indicator */
+        padding-top: env(safe-area-inset-top);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+      }
+      body {
+        background-color: #050505;
+        color: white;
+        /* Prevent iOS rubber-banding issues */
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+      }
       ::selection { background: #2563EB; color: #ffffff; }
 
       .glass-panel {
@@ -86,6 +102,14 @@
       ::-webkit-scrollbar-track { background: #0A0A0A; }
       ::-webkit-scrollbar-thumb { background: #333; }
       ::-webkit-scrollbar-thumb:hover { background: #2563EB; }
+
+      /* Fallback for browsers that don't support dvh */
+      @supports not (height: 100dvh) {
+        .h-\[100dvh\] {
+          height: 100vh;
+          height: -webkit-fill-available;
+        }
+      }
     </style>
   </head>
   <body>
