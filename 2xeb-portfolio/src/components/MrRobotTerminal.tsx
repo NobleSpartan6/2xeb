@@ -1227,7 +1227,7 @@ drwxr-xr-x  ..
 
   return (
     <div
-      className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-0 sm:p-8"
+      className={`fixed inset-0 z-[200] bg-black/95 flex justify-center p-0 sm:p-8 ${isKeyboardOpen ? 'items-start' : 'items-center'}`}
       style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
       onClick={() => inputRef.current?.focus()}
     >
@@ -1286,7 +1286,7 @@ drwxr-xr-x  ..
         <div className="absolute inset-0 pointer-events-none noise-texture z-20" />
 
         {/* Main content */}
-        <div className="relative w-full h-[calc(100%-2.5rem)] flex flex-col p-3 sm:p-5 md:p-6 font-mono text-xs sm:text-sm md:text-base overflow-hidden" style={{ color: TERM_COLOR }}>
+        <div className="relative w-full h-[calc(100%-2.5rem)] flex flex-col p-3 sm:p-5 md:p-6 pb-8 sm:pb-10 font-mono text-xs sm:text-sm md:text-base overflow-hidden" style={{ color: TERM_COLOR }}>
 
           {/* Glitch Phase */}
           {phase === 'glitch' && (
@@ -1299,7 +1299,7 @@ drwxr-xr-x  ..
 
           {/* Intro Phase */}
           {phase === 'intro' && (
-            <div className="flex flex-col justify-center flex-1 max-w-2xl mx-auto px-1">
+            <div className="flex flex-col items-center justify-center flex-1 max-w-2xl mx-auto px-4 sm:px-6">
               <pre className="whitespace-pre-wrap leading-relaxed sm:leading-loose text-sm sm:text-base md:text-lg" style={{ color: TERM_COLOR }}>
                 {intro}
                 {!introComplete && <span className="animate-pulse">█</span>}
