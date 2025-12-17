@@ -648,8 +648,29 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
     };
   }, []);
 
-  // Handle mobile keyboard visibility - scroll input into view and adjust layout
+  // Handle mobile keyboard visibility - use CSS custom properties for keyboard-aware layout
   useEffect(() => {
+    // Sync viewport variables to CSS custom properties
+    const syncViewportVars = () => {
+      const vv = window.visualViewport;
+      if (vv) {
+        const visibleHeight = vv.height;
+        // Calculate keyboard offset: difference between window and visual viewport, accounting for viewport offset
+        const keyboardOffset = Math.max(0, window.innerHeight - visibleHeight - vv.offsetTop);
+
+        // Set CSS custom properties on the terminal container for scoped usage
+        const container = terminalContainerRef.current;
+        if (container) {
+          container.style.setProperty('--visual-viewport-height', `${visibleHeight}px`);
+          container.style.setProperty('--keyboard-offset', `${keyboardOffset}px`);
+        }
+
+        // Keyboard is open if offset is significant
+        const keyboardIsOpen = keyboardOffset > 100;
+        setIsKeyboardOpen(keyboardIsOpen);
+      }
+    };
+
     const scrollInputIntoView = () => {
       // Use the container ref for better positioning
       const container = inputContainerRef.current;
@@ -662,68 +683,50 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
     };
 
     const handleViewportResize = () => {
-      // When keyboard opens, adjust layout and scroll input into view
+      syncViewportVars();
+      // Scroll input into view when keyboard opens
       if (window.visualViewport) {
-        const viewportHeight = window.visualViewport.height;
-        const windowHeight = window.innerHeight;
-        const keyboardHeight = windowHeight - viewportHeight;
-
-        // Keyboard is likely open if viewport is significantly smaller than window
-        const keyboardIsOpen = keyboardHeight > 100;
-        setIsKeyboardOpen(keyboardIsOpen);
-
-        if (keyboardIsOpen) {
-          // Adjust terminal container height when keyboard is open
-          const container = terminalContainerRef.current;
-          if (container) {
-            container.style.height = `${viewportHeight}px`;
-            container.style.maxHeight = `${viewportHeight}px`;
-          }
+        const vv = window.visualViewport;
+        const keyboardOffset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        if (keyboardOffset > 100) {
           setTimeout(scrollInputIntoView, 50);
-        } else {
-          // Reset to default when keyboard closes
-          const container = terminalContainerRef.current;
-          if (container) {
-            container.style.height = '';
-            container.style.maxHeight = '';
-          }
         }
       }
     };
 
     // Also scroll on focus for reliability
     const handleFocus = () => {
-      setTimeout(scrollInputIntoView, 300);
+      // Delay to wait for keyboard animation
+      setTimeout(() => {
+        syncViewportVars();
+        scrollInputIntoView();
+      }, 300);
     };
 
     // Handle blur to detect keyboard close
     const handleBlur = () => {
       // Small delay to allow viewport to update
       setTimeout(() => {
-        if (window.visualViewport) {
-          const viewportHeight = window.visualViewport.height;
-          const windowHeight = window.innerHeight;
-          if (windowHeight - viewportHeight < 100) {
-            setIsKeyboardOpen(false);
-            const container = terminalContainerRef.current;
-            if (container) {
-              container.style.height = '';
-              container.style.maxHeight = '';
-            }
-          }
-        }
+        syncViewportVars();
       }, 100);
     };
+
+    // Initial sync
+    syncViewportVars();
 
     const input = inputRef.current;
     input?.addEventListener('focus', handleFocus);
     input?.addEventListener('blur', handleBlur);
     window.visualViewport?.addEventListener('resize', handleViewportResize);
+    window.visualViewport?.addEventListener('scroll', handleViewportResize);
+    window.addEventListener('resize', syncViewportVars);
 
     return () => {
       input?.removeEventListener('focus', handleFocus);
       input?.removeEventListener('blur', handleBlur);
       window.visualViewport?.removeEventListener('resize', handleViewportResize);
+      window.visualViewport?.removeEventListener('scroll', handleViewportResize);
+      window.removeEventListener('resize', syncViewportVars);
     };
   }, [phase]);
 
@@ -1233,11 +1236,10 @@ drwxr-xr-x  ..
         <div className="w-[800px] h-[600px] rounded-full opacity-20 blur-[120px]" style={{ background: `radial-gradient(circle, ${TERM_ACCENT} 0%, transparent 70%)` }} />
       </div>
 
-      {/* CRT Screen Effect Container - use dvh for mobile browser chrome handling */}
+      {/* CRT Screen Effect Container - use visual viewport height on mobile for keyboard handling */}
       <div
         ref={terminalContainerRef}
-        className="relative w-full max-w-4xl h-[100dvh] sm:h-[85vh] sm:max-h-[700px] overflow-hidden crt-screen rounded-none sm:rounded-lg"
-        style={{ maxHeight: 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom))' }}
+        className={`relative w-full max-w-4xl overflow-hidden crt-screen rounded-none sm:rounded-lg sm:h-[85vh] sm:max-h-[700px] ${isKeyboardOpen ? 'terminal-keyboard-open' : 'terminal-keyboard-closed'}`}
       >
 
         {/* Window Title Bar */}
@@ -1474,6 +1476,29 @@ drwxr-xr-x  ..
 
       {/* Inline styles for CRT effects */}
       <style>{`
+        /* Mobile keyboard-aware terminal sizing */
+        .terminal-keyboard-closed {
+          height: 100dvh;
+          max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+        }
+
+        .terminal-keyboard-open {
+          /* Use visual viewport height when keyboard is open */
+          height: var(--visual-viewport-height, 100dvh);
+          max-height: var(--visual-viewport-height, 100dvh);
+          /* Smooth transition for keyboard animation */
+          transition: height 0.1s ease-out, max-height 0.1s ease-out;
+        }
+
+        /* Desktop overrides - ignore keyboard state */
+        @media (min-width: 640px) {
+          .terminal-keyboard-closed,
+          .terminal-keyboard-open {
+            height: 85vh;
+            max-height: 700px;
+          }
+        }
+
         .crt-screen {
           animation: turn-on 0.5s ease-out;
           background: linear-gradient(180deg, #0d0d0d 0%, #080808 100%);
