@@ -30,6 +30,32 @@ const useTerminalHint = () => {
   return showHint;
 };
 
+// Hook for timestamp terminal hint - appears periodically next to the clock
+const useTimestampHint = () => {
+  const [showHint, setShowHint] = useState(false);
+
+  useEffect(() => {
+    // First appearance after 15 seconds, then every 45 seconds
+    // Offset from main hint to avoid overlap
+    const initialDelay = setTimeout(() => {
+      setShowHint(true);
+      setTimeout(() => setShowHint(false), 3000);
+    }, 15000);
+
+    const interval = setInterval(() => {
+      setShowHint(true);
+      setTimeout(() => setShowHint(false), 3000);
+    }, 45000);
+
+    return () => {
+      clearTimeout(initialDelay);
+      clearInterval(interval);
+    };
+  }, []);
+
+  return showHint;
+};
+
 // --- REALTIME HOOKS ---
 
 // Live clock in EST timezone
@@ -103,6 +129,7 @@ const Home: React.FC = () => {
   const clock = useLiveClock();
   const nowPlaying = useSpotifyNowPlaying();
   const showTerminalHint = useTerminalHint();
+  const showTimestampHint = useTimestampHint();
 
   // Coordinated reveal: wait for 3D scene, then fade in content
   const handleSceneReady = useCallback(() => {
@@ -178,26 +205,58 @@ const Home: React.FC = () => {
 
         {/* Top Section - Live Status */}
         <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-[100px] sm:pt-[110px] md:pt-[136px] 2xl:pt-[148px] 3xl:pt-[160px] flex-shrink-0">
-          <div className="flex items-start gap-2 sm:gap-3 pointer-events-none">
-            <div className="w-5 sm:w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[4px] sm:mt-[6px]" />
+          <div className="flex items-start gap-2 sm:gap-3">
+            <div className="w-5 sm:w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[4px] sm:mt-[6px] pointer-events-none" />
             <div className="font-mono text-[8px] sm:text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.15em] sm:tracking-[0.3em]">
               {/* Desktop: single line */}
               <div className="hidden md:flex items-center gap-2">
-                <span className="text-[#A3A3A3]">NYC</span>
-                <span className="text-[#525252]">·</span>
-                <span className="text-[#A3A3A3]">{clock || '...'}</span>
+                <span className="text-[#A3A3A3] pointer-events-none">NYC</span>
+                <span className="text-[#525252] pointer-events-none">·</span>
+                <span className="text-[#A3A3A3] pointer-events-none">{clock || '...'}</span>
+                {/* Terminal cursor hint - appears periodically, clickable */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEasterEggActive(true);
+                  }}
+                  className={`
+                    text-[#2563EB]/60 hover:text-[#2563EB] transition-all duration-500 ease-out
+                    pointer-events-auto cursor-pointer
+                    ${showTimestampHint ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'}
+                  `}
+                  title="Hello, friend."
+                >
+                  <span className="animate-pulse">&gt;_</span>
+                </button>
                 {nowPlaying && (
                   <>
-                    <span className="text-[#525252]">·</span>
-                    <span className="text-[#2563EB]">♪ {nowPlaying}</span>
+                    <span className="text-[#525252] pointer-events-none">·</span>
+                    <span className="text-[#2563EB] pointer-events-none">♪ {nowPlaying}</span>
                   </>
                 )}
               </div>
               {/* Mobile/Tablet: compact */}
               <div className="flex md:hidden flex-col gap-0.5 max-w-[260px]">
-                <span className="text-[#A3A3A3]">{clock || '...'}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#A3A3A3] pointer-events-none">{clock || '...'}</span>
+                  {/* Terminal cursor hint - mobile */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsEasterEggActive(true);
+                    }}
+                    className={`
+                      text-[#2563EB]/60 hover:text-[#2563EB] transition-all duration-500 ease-out
+                      pointer-events-auto cursor-pointer
+                      ${showTimestampHint ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'}
+                    `}
+                    title="Hello, friend."
+                  >
+                    <span className="animate-pulse">&gt;_</span>
+                  </button>
+                </div>
                 {nowPlaying && (
-                  <span className="text-[#2563EB] truncate">♪ {nowPlaying}</span>
+                  <span className="text-[#2563EB] truncate pointer-events-none">♪ {nowPlaying}</span>
                 )}
               </div>
             </div>
