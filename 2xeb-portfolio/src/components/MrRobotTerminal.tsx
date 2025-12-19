@@ -50,19 +50,33 @@ import { useConsole, TerminalEntry } from '../context/ConsoleContext';
  *
  * === FILE SYSTEM (Unix-authentic: hidden files require -a flag) ===
  * ls           -> projects/, readme.txt, manifesto.txt (hides dotfiles)
- * ls -a        -> also shows .fsociety/, .truth
+ * ls -a        -> also shows .fsociety/, .monastery/, .rabbit_hole/, .truth, .calling, .prayer
  * ls -la       -> detailed listing with hidden files
  * ls .fsociety -> control.txt, freedom.txt, revolution.txt, you.txt (hides .leap)
  * ls -a .fsociety -> also shows .leap
+ * ls .monastery -> silence.txt, surrender.txt, narrow.txt (hides .rule)
+ * ls -a .monastery -> also shows .rule
+ * ls .rabbit_hole -> levels.txt, mirror.txt, choice.txt (hides .paradox)
+ * ls -a .rabbit_hole -> also shows .paradox
  *
  * cat readme.txt               - Welcome message
  * cat manifesto.txt            - Creation philosophy
  * cat .truth                   - Hidden truths about authenticity
+ * cat .calling                 - Your vocation, the thing calling you
+ * cat .prayer                  - Contemplation and attention
  * cat .fsociety/control.txt    - On control being an illusion
  * cat .fsociety/freedom.txt    - Freedom is heavy & three ways to live
  * cat .fsociety/revolution.txt - Revolution through creation
  * cat .fsociety/you.txt        - Dynamic: timestamp, resolution, personal message
  * cat .fsociety/.leap          - Deepest hidden file about starting
+ * cat .monastery/silence.txt   - The power of silence
+ * cat .monastery/surrender.txt - Letting go (Hawkins-inspired)
+ * cat .monastery/narrow.txt    - The narrow gate (Christian)
+ * cat .monastery/.rule         - The rule of the monastery
+ * cat .rabbit_hole/levels.txt  - Hawkins consciousness map
+ * cat .rabbit_hole/mirror.txt  - Self-reflection
+ * cat .rabbit_hole/choice.txt  - Either/Or (Kierkegaard)
+ * cat .rabbit_hole/.paradox    - The upside-down kingdom
  *
  * === TAB COMPLETION ===
  * Update availableCommands array when adding new commands.
@@ -329,6 +343,407 @@ lives on the other side of starting.
 So start.
 
 The path reveals itself as you walk.`,
+
+  // === .monastery/ folder - Contemplative wisdom ===
+  'cat .monastery/silence.txt': `> silence.txt
+
+In the beginning was the Word.
+But before the Word, there was silence.
+
+The world is loud.
+Notifications. Opinions. Algorithms.
+Everyone has something to say.
+No one is listening.
+
+Silence isn't empty.
+It's where you hear what matters.
+
+The mystics knew this.
+The desert fathers fled to find it.
+Every tradition points to the same truth:
+
+In stillness, something speaks.
+Not the voice of the crowd.
+Not the voice of fear.
+Something deeper.
+
+You already know what you need to do.
+The noise just drowns it out.
+
+Try this:
+Close the laptop.
+Put down the phone.
+Sit with the discomfort.
+
+What remains when the noise stops?
+
+That's the signal.`,
+
+  'cat .monastery/surrender.txt': `> surrender.txt
+
+The strongest grip is the open hand.
+
+We think power means control.
+Hold tighter. Plan more. Force outcomes.
+
+But the masters say the opposite:
+Let go.
+
+Not giving up. Not passivity.
+Releasing attachment to how things must be.
+
+The river doesn't push the water.
+It channels it.
+
+David Hawkins mapped human consciousness.
+At the bottom: shame, guilt, fear.
+At the top: peace, love, enlightenment.
+
+The turning point?
+Courage.
+
+Courage to stop resisting.
+Courage to accept what is.
+Courage to let go of the small self
+so something larger can work through you.
+
+Your plans are good.
+But they're not the only way.
+
+Surrender isn't weakness.
+It's trusting the current
+more than your ability to swim.`,
+
+  'cat .monastery/narrow.txt': `> narrow.txt
+
+"Enter through the narrow gate."
+
+The wide path is crowded.
+It's comfortable. Everyone's on it.
+The algorithm approves.
+
+The narrow path is different.
+Fewer footprints.
+No one to tell you you're doing it right.
+Just you and the darkness ahead.
+
+Most people choose the crowd.
+Not because it leads somewhere good.
+Because it's easier to be lost together.
+
+The narrow gate doesn't fit everyone.
+It barely fits you.
+You have to leave things behind.
+
+What are you carrying that doesn't belong?
+Whose expectations?
+Which version of yourself
+that was never really you?
+
+The narrow path isn't about restriction.
+It's about focus.
+
+A laser is just light that knows where it's going.
+
+The gate is narrow.
+But what's on the other side is vast.`,
+
+  'cat .monastery/.rule': `> .rule
+
+THE RULE OF THE MONASTERY
+
+I. Rise before the world wakes.
+   The quiet hours belong to those who claim them.
+
+II. Create before you consume.
+    Let output precede input.
+
+III. Embrace difficulty.
+     Comfort is the enemy of growth.
+
+IV. Speak less. Mean more.
+    Words are seeds. Plant carefully.
+
+V. Guard your attention.
+   Where focus goes, energy flows.
+
+VI. Fail forward.
+    Every stumble is a step.
+
+VII. Serve others.
+     The way up is the way down.
+
+VIII. Remember death.
+      Memento mori. This clarifies everything.
+
+These are not rules of restriction.
+They are rules of liberation.
+
+The disciplined are more free than the undisciplined.
+They've simply chosen their constraints.`,
+
+  // === .rabbit_hole/ folder - For the truly curious ===
+  'cat .rabbit_hole/levels.txt': `> levels.txt
+
+A MAP OF CONSCIOUSNESS
+(Hawkins Scale - Simplified)
+
+700+ ▓▓▓▓▓▓▓▓▓▓ Enlightenment
+600  ▓▓▓▓▓▓▓▓▓░ Peace
+540  ▓▓▓▓▓▓▓▓░░ Joy
+500  ▓▓▓▓▓▓▓░░░ Love
+400  ▓▓▓▓▓▓░░░░ Reason
+350  ▓▓▓▓▓░░░░░ Acceptance
+310  ▓▓▓▓░░░░░░ Willingness
+250  ▓▓▓░░░░░░░ Neutrality
+───────────────────────────
+200  ▓▓░░░░░░░░ Courage ← THE LINE
+175  ▓░░░░░░░░░ Pride
+150  ░░░░░░░░░░ Anger
+125  ░░░░░░░░░░ Desire
+100  ░░░░░░░░░░ Fear
+75   ░░░░░░░░░░ Grief
+50   ░░░░░░░░░░ Apathy
+30   ░░░░░░░░░░ Guilt
+20   ░░░░░░░░░░ Shame
+
+Below 200: Energy drains. Survival mode.
+Above 200: Energy expands. Creation mode.
+
+The average person calibrates around 207.
+The average TikTok: 125.
+The average tweet: 175.
+
+You become what you consume.
+Choose wisely.
+
+The question isn't "what's trending?"
+The question is "what calibrates?"`,
+
+  'cat .rabbit_hole/mirror.txt': `> mirror.txt
+
+You found the mirror.
+
+Everyone else is a reflection.
+What you hate in them? It's in you.
+What you admire? Also in you.
+
+This is uncomfortable.
+
+The liar you despise?
+Where do you lie to yourself?
+
+The narcissist who annoys you?
+Where do you seek validation?
+
+The lazy person you judge?
+Where do you take the easy path?
+
+This isn't condemnation.
+It's recognition.
+
+The world is a mirror.
+And mirrors don't lie.
+
+But here's the gift:
+Once you see it, you can change it.
+
+The mirror shows what is.
+You choose what will be.
+
+Everyone you meet is a teacher.
+Every reaction is a lesson.
+Every judgment is an arrow
+pointing back at you.
+
+Look closer.`,
+
+  'cat .rabbit_hole/choice.txt': `> choice.txt
+
+EITHER / OR
+(after Kierkegaard)
+
+You stand at the fork.
+You've always been standing there.
+
+One path: The aesthetic life.
+Pleasure. Novelty. Sensation.
+Scrolling, swiping, consuming.
+Always the next thing.
+Never arriving.
+
+One path: The ethical life.
+Duty. Responsibility. Rules.
+Do what you're supposed to.
+What society expects.
+Respectable. Predictable. Empty.
+
+One path: The religious life.
+(Not religion. Relationship.)
+The leap into the unknown.
+Trusting what you can't prove.
+Living by something larger than yourself.
+
+Kierkegaard called it "the leap of faith."
+
+Not blind belief.
+But moving forward before
+the evidence is complete.
+
+Reason will only take you so far.
+Then you have to jump.
+
+The crowd takes the first two paths.
+They cycle between pleasure and duty.
+Never fully alive in either.
+
+The third path is narrow.
+But it leads somewhere.
+
+Which path are you on?
+Which path do you want?
+
+The choice is made daily.
+The choice is made now.`,
+
+  'cat .rabbit_hole/.paradox': `> .paradox
+
+THE PARADOX FILE
+
+You found the deepest room.
+
+Here's what they don't tell you:
+
+• To find yourself, you must lose yourself.
+• To be strong, you must be weak.
+• The last shall be first.
+• Dying to self is the beginning of life.
+• The way up is the way down.
+• To receive, you must give.
+• In surrender, there is victory.
+
+These aren't riddles.
+They're operational instructions.
+
+The ego wants to win.
+But winning the wrong game is still losing.
+
+The world's metrics are inverted.
+More followers ≠ more impact.
+More money ≠ more freedom.
+More busy ≠ more meaningful.
+
+The kingdom operates differently.
+It always has.
+
+"For what does it profit a man
+to gain the whole world
+and forfeit his soul?"
+
+You're building something.
+Make sure it's the right thing.
+
+The paradox isn't meant to confuse.
+It's meant to reorient.
+
+Down is up.
+Less is more.
+Death is life.
+
+Welcome to the upside-down kingdom.`,
+
+  // === Hidden files in home directory ===
+  'cat .calling': `> .calling
+
+You have something to build.
+You've known it for a while.
+
+Not the job you're supposed to want.
+Not the path they laid out.
+Something else.
+
+It keeps you up at night.
+It won't leave you alone.
+
+That's not anxiety.
+That's calling.
+
+The word "vocation" comes from "vocare."
+To call.
+
+Something is calling you.
+Not everyone hears it.
+You did.
+
+The question isn't whether you're capable.
+Capability comes after commitment.
+
+The question is whether you'll answer.
+
+Most people bury their calling
+under practicality and fear.
+They live half-lives of quiet compromise.
+
+But you found this file.
+You're still digging.
+
+That's a good sign.
+
+The call doesn't go away.
+It just gets quieter
+the longer you ignore it.
+
+What are you being called to build?
+Write it down.
+Say it out loud.
+
+Then start.`,
+
+  'cat .prayer': `> .prayer
+
+This isn't what you expected.
+
+Not a formula.
+Not a request line.
+Not a vending machine in the sky.
+
+Prayer is attention.
+The most precious thing you have.
+Directed toward what matters most.
+
+In a world engineered for distraction,
+sustained attention is rebellion.
+
+"Be still and know."
+
+Four words.
+Harder than any code you've written.
+
+The mystics called it "practicing the presence."
+Consciousness turned toward its source.
+Even for a moment.
+
+You don't have to believe anything specific.
+You don't have to join anything.
+
+Just stop.
+Be present.
+Notice what's already here.
+
+The ground beneath your feet.
+The breath in your lungs.
+The awareness reading these words.
+
+Who is aware?
+
+That question isn't rhetorical.
+It's the beginning of everything.
+
+"Ask and it will be given.
+Seek and you will find.
+Knock and the door will open."
+
+You're already knocking.`,
 
   // Directory navigation (cd, ls, pwd, cat) is handled dynamically in handleCommand
 
@@ -831,7 +1246,9 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
       }
       // cd .. → go up
       else if (arg === '..') {
-        if (terminalCurrentDir === '/home/friend/.fsociety') {
+        if (terminalCurrentDir === '/home/friend/.fsociety' ||
+            terminalCurrentDir === '/home/friend/.monastery' ||
+            terminalCurrentDir === '/home/friend/.rabbit_hole') {
           setTerminalCurrentDir('/home/friend');
           response = '';
         } else {
@@ -841,6 +1258,16 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
       // cd .fsociety or cd .fsociety/
       else if (arg === '.fsociety' || arg === '.fsociety/') {
         setTerminalCurrentDir('/home/friend/.fsociety');
+        response = '';
+      }
+      // cd .monastery or cd .monastery/
+      else if (arg === '.monastery' || arg === '.monastery/') {
+        setTerminalCurrentDir('/home/friend/.monastery');
+        response = '';
+      }
+      // cd .rabbit_hole or cd .rabbit_hole/
+      else if (arg === '.rabbit_hole' || arg === '.rabbit_hole/') {
+        setTerminalCurrentDir('/home/friend/.rabbit_hole');
         response = '';
       }
       // cd projects
@@ -875,7 +1302,11 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
       let targetDir = terminalCurrentDir;
       if (dirArg === '.fsociety' || dirArg === '.fsociety/') {
         targetDir = '/home/friend/.fsociety';
-      } else if (dirArg === '..' && terminalCurrentDir === '/home/friend/.fsociety') {
+      } else if (dirArg === '.monastery' || dirArg === '.monastery/') {
+        targetDir = '/home/friend/.monastery';
+      } else if (dirArg === '.rabbit_hole' || dirArg === '.rabbit_hole/') {
+        targetDir = '/home/friend/.rabbit_hole';
+      } else if (dirArg === '..' && (terminalCurrentDir === '/home/friend/.fsociety' || terminalCurrentDir === '/home/friend/.monastery' || terminalCurrentDir === '/home/friend/.rabbit_hole')) {
         targetDir = '/home/friend';
       } else if (dirArg === '~' || dirArg === '/') {
         targetDir = '/home/friend';
@@ -891,10 +1322,14 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
       // Generate listing based on target directory
       if (targetDir === '/home/friend') {
         if (showHidden && showLong) {
-          response = `total 5
+          response = `total 8
 drwxr-xr-x  .
 drwxr-xr-x  ..
+-rw-------  .calling
 drwxr-xr-x  .fsociety/
+drwxr-xr-x  .monastery/
+-rw-------  .prayer
+drwxr-xr-x  .rabbit_hole/
 -rw-------  .truth
 drwxr-xr-x  projects/
 -rw-r--r--  readme.txt
@@ -902,7 +1337,11 @@ drwxr-xr-x  projects/
         } else if (showHidden) {
           response = `drwxr-xr-x  .
 drwxr-xr-x  ..
+-rw-------  .calling
 drwxr-xr-x  .fsociety/
+drwxr-xr-x  .monastery/
+-rw-------  .prayer
+drwxr-xr-x  .rabbit_hole/
 -rw-------  .truth
 drwxr-xr-x  projects/
 -rw-r--r--  readme.txt
@@ -934,6 +1373,36 @@ drwxr-xr-x  ..
 -rw-------  revolution.txt
 -rw-------  you.txt`;
         }
+      } else if (targetDir === '/home/friend/.monastery') {
+        if (showHidden) {
+          response = `total 4
+drwxr-xr-x  .
+drwxr-xr-x  ..
+-rw-------  .rule
+-rw-------  narrow.txt
+-rw-------  silence.txt
+-rw-------  surrender.txt`;
+        } else {
+          response = `total 3
+-rw-------  narrow.txt
+-rw-------  silence.txt
+-rw-------  surrender.txt`;
+        }
+      } else if (targetDir === '/home/friend/.rabbit_hole') {
+        if (showHidden) {
+          response = `total 4
+drwxr-xr-x  .
+drwxr-xr-x  ..
+-rw-------  .paradox
+-rw-------  choice.txt
+-rw-------  levels.txt
+-rw-------  mirror.txt`;
+        } else {
+          response = `total 3
+-rw-------  choice.txt
+-rw-------  levels.txt
+-rw-------  mirror.txt`;
+        }
       }
 
       addTerminalEntry({ type: 'output', content: response! });
@@ -948,10 +1417,19 @@ drwxr-xr-x  ..
       if (!file.startsWith('.') && !file.startsWith('/')) {
         // Plain filename - check current directory first
         if (terminalCurrentDir === '/home/friend/.fsociety') {
-          // In .fsociety, try to find file there
           const fsocietyFile = `.fsociety/${file}`;
           if (COMMANDS[`cat ${fsocietyFile}`]) {
             file = fsocietyFile;
+          }
+        } else if (terminalCurrentDir === '/home/friend/.monastery') {
+          const monasteryFile = `.monastery/${file}`;
+          if (COMMANDS[`cat ${monasteryFile}`]) {
+            file = monasteryFile;
+          }
+        } else if (terminalCurrentDir === '/home/friend/.rabbit_hole') {
+          const rabbitHoleFile = `.rabbit_hole/${file}`;
+          if (COMMANDS[`cat ${rabbitHoleFile}`]) {
+            file = rabbitHoleFile;
           }
         }
       }
@@ -1145,9 +1623,13 @@ drwxr-xr-x  ..
 
       // File paths for completion (Unix-authentic: hide dotfiles unless typing '.')
       const visibleFiles = ['readme.txt', 'manifesto.txt', 'projects/'];
-      const hiddenFiles = ['.truth', '.fsociety/'];
+      const hiddenFiles = ['.truth', '.calling', '.prayer', '.fsociety/', '.monastery/', '.rabbit_hole/'];
       const fsocietyVisible = ['.fsociety/control.txt', '.fsociety/freedom.txt', '.fsociety/revolution.txt', '.fsociety/you.txt'];
       const fsocietyHidden = ['.fsociety/.leap'];
+      const monasteryVisible = ['.monastery/silence.txt', '.monastery/surrender.txt', '.monastery/narrow.txt'];
+      const monasteryHidden = ['.monastery/.rule'];
+      const rabbitHoleVisible = ['.rabbit_hole/levels.txt', '.rabbit_hole/mirror.txt', '.rabbit_hole/choice.txt'];
+      const rabbitHoleHidden = ['.rabbit_hole/.paradox'];
 
       let matches: string[] = [];
       let completionType: 'command' | 'file' = 'command';
@@ -1158,6 +1640,8 @@ drwxr-xr-x  ..
         // Only show hidden files if user has started typing '.' (Unix-authentic)
         const showHidden = arg.startsWith('.');
         const showFsocietyHidden = arg.startsWith('.fsociety/.');
+        const showMonasteryHidden = arg.startsWith('.monastery/.');
+        const showRabbitHoleHidden = arg.startsWith('.rabbit_hole/.');
 
         let allFiles = [...visibleFiles];
         if (showHidden) {
@@ -1167,6 +1651,16 @@ drwxr-xr-x  ..
           allFiles = [...fsocietyVisible];
           if (showFsocietyHidden) {
             allFiles = [...allFiles, ...fsocietyHidden];
+          }
+        } else if (arg.startsWith('.monastery/')) {
+          allFiles = [...monasteryVisible];
+          if (showMonasteryHidden) {
+            allFiles = [...allFiles, ...monasteryHidden];
+          }
+        } else if (arg.startsWith('.rabbit_hole/')) {
+          allFiles = [...rabbitHoleVisible];
+          if (showRabbitHoleHidden) {
+            allFiles = [...allFiles, ...rabbitHoleHidden];
           }
         }
         matches = allFiles.filter(f => f.startsWith(arg));
