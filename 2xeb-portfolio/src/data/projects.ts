@@ -21,6 +21,21 @@ export const PROJECTS: Project[] = [
 
   // --- SWE PROJECTS ---
   {
+    id: 4,
+    slug: 'spt-touring',
+    title: 'SPT — Artist Booking & Touring',
+    shortDesc: 'A booking & touring agency site with an editorial public roster and a Cloudflare Access–protected admin CMS for managing artists and inquiries. Designed and built end-to-end for the client.',
+    longDesc: 'Designed and developed sptouring.com end-to-end for an artist booking & touring agency — a dark, editorial public site that showcases the roster and routes booking inquiries, paired with a private admin dashboard. The marketing front-end features a cinematic black-and-white hero ("Connecting artists to stages worldwide"), an artist roster, and a "Book an Artist" inquiry flow. The companion admin CMS (protected by Cloudflare Access) lets the agency manage their roster with drag-and-drop ordering, per-artist region tags, live/hidden publish toggles, and slug-based artist pages, plus an inbox for incoming booking inquiries. Handled the full scope: brand-aligned visual design, front-end build, content model, and authenticated admin tooling.',
+    primaryDiscipline: Discipline.SWE,
+    tags: ['Web Design', 'Full-Stack', 'TypeScript', 'CMS', 'Cloudflare Access', 'Client Work'],
+    createdAt: '2026-05-01',
+    imageUrl: `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#1C1714"/><stop offset="100%" stop-color="#050505"/></linearGradient></defs><rect fill="url(#g)" width="800" height="600"/><text x="400" y="300" text-anchor="middle" fill="#fff" font-family="Georgia, 'Times New Roman', serif" font-size="130" font-style="italic" opacity="0.95">spt</text><text x="400" y="360" text-anchor="middle" fill="#fff" font-family="monospace" font-size="15" letter-spacing="5" opacity="0.45">ARTIST BOOKING &amp; TOURING</text></svg>`)}`,
+    status: 'live',
+    isExternal: true,
+    externalUrl: 'https://sptouring.com',
+    role: 'Design & Development (Client)'
+  },
+  {
     id: 3,
     slug: 'fidel',
     title: 'Fidel',
