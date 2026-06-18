@@ -21,6 +21,21 @@ export const PROJECTS: Project[] = [
 
   // --- SWE PROJECTS ---
   {
+    id: 4,
+    slug: 'spt-touring',
+    title: 'SPT — Artist Booking & Touring',
+    shortDesc: 'A booking & touring agency site with an editorial public roster and a Cloudflare Access–protected admin CMS for managing artists and inquiries. Designed and built end-to-end for the client.',
+    longDesc: 'Designed and developed sptouring.com end-to-end for an artist booking & touring agency — a dark, editorial public site that showcases the roster and routes booking inquiries, paired with a private admin dashboard. The marketing front-end features a cinematic black-and-white hero ("Connecting artists to stages worldwide"), an artist roster, and a "Book an Artist" inquiry flow. The companion admin CMS (protected by Cloudflare Access) lets the agency manage their roster with drag-and-drop ordering, per-artist region tags, live/hidden publish toggles, and slug-based artist pages, plus an inbox for incoming booking inquiries. Handled the full scope: brand-aligned visual design, front-end build, content model, and authenticated admin tooling.',
+    primaryDiscipline: Discipline.SWE,
+    tags: ['Web Design', 'Full-Stack', 'TypeScript', 'CMS', 'Cloudflare Access', 'Client Work'],
+    createdAt: '2026-05-01',
+    imageUrl: `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#16100E"/><stop offset="55%" stop-color="#0A0807"/><stop offset="100%" stop-color="#040404"/></linearGradient><radialGradient id="gl" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#3A2520" stop-opacity="0.5"/><stop offset="100%" stop-color="#3A2520" stop-opacity="0"/></radialGradient></defs><rect width="800" height="450" fill="url(#g)"/><rect width="800" height="450" fill="url(#gl)"/><rect width="800" height="5" fill="#5A3A30"/><text x="400" y="205" text-anchor="middle" fill="#FFFFFF" font-family="Georgia, 'Times New Roman', serif" font-size="128" font-style="italic" letter-spacing="-3">spt</text><line x1="312" y1="248" x2="488" y2="248" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="1"/><text x="400" y="282" text-anchor="middle" fill="#FFFFFF" fill-opacity="0.55" font-family="monospace" font-size="14" letter-spacing="6">ARTIST BOOKING &amp; TOURING</text><text x="400" y="308" text-anchor="middle" fill="#FFFFFF" fill-opacity="0.3" font-family="monospace" font-size="11" letter-spacing="7">WORLDWIDE</text></svg>`)}`,
+    status: 'live',
+    isExternal: true,
+    externalUrl: 'https://sptouring.com',
+    role: 'Design & Development (Client)'
+  },
+  {
     id: 3,
     slug: 'fidel',
     title: 'Fidel',
