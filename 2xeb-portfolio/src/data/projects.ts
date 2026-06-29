@@ -66,6 +66,20 @@ export const PROJECTS: Project[] = [
 
   // --- VIDEO / CREATIVE WORK ---
   {
+    id: 24,
+    slug: 'to-water-love',
+    title: 'To Water Love - Yuzeren',
+    shortDesc: 'Music video for the track "To Water Love" by Yuzeren. Directed, shot, and edited.',
+    longDesc: 'Music video for "To Water Love" by Yuzeren — directed, shot, and edited by EB.',
+    primaryDiscipline: Discipline.VIDEO,
+    tags: ['Direction', 'Cinematography', 'Edit', 'Music Video'],
+    createdAt: '2026-01-01',
+    imageUrl: 'https://img.youtube.com/vi/eZw5sW_qINQ/maxresdefault.jpg',
+    status: 'live',
+    videoUrl: 'https://youtu.be/eZw5sW_qINQ',
+    role: 'dir / shot / edit'
+  },
+  {
     id: 10,
     slug: 'mirror-shrapnel',
     title: 'mirror shrapnel — fx30 cinematic edit (fakemink "blow me")',
