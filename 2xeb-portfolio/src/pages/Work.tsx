@@ -67,15 +67,15 @@ const Work: React.FC = () => {
     setShowScrollHint(false);
   }, [activeFilter]);
 
-  const filters = [
+  const filters: { label: string; value: Discipline | 'ALL' }[] = [
     { label: 'All', value: 'ALL' },
     { label: 'Software', value: Discipline.SWE },
     { label: 'ML / AI', value: Discipline.ML },
     { label: 'Video', value: Discipline.VIDEO },
   ];
 
-  const handleFilterChange = (val: string) => {
-    setActiveFilter(val as any);
+  const handleFilterChange = (val: Discipline | 'ALL') => {
+    setActiveFilter(val);
     if (val === 'ALL') {
       searchParams.delete('discipline');
     } else {

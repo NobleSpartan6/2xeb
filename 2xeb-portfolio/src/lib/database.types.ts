@@ -1,7 +1,20 @@
-// Database types for Supabase - auto-generated structure
-// Run `npx supabase gen types typescript` to regenerate after schema changes
+// Database types for Supabase
+// Run `npx supabase gen types typescript --project-id <ref> > src/lib/database.types.ts`
+// to regenerate after schema changes. Structure mirrors the Supabase CLI output so the
+// typed client (`createClient<Database>`) resolves Insert/Update payloads correctly.
 
-export interface Database {
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
+export type Database = {
+  __InternalSupabase: {
+    PostgrestVersion: '12';
+  };
   public: {
     Tables: {
       projects: {
@@ -59,6 +72,7 @@ export interface Database {
           sort_order?: number;
           updated_at?: string;
         };
+        Relationships: [];
       };
       experience: {
         Row: {
@@ -97,6 +111,7 @@ export interface Database {
           sort_order?: number;
           updated_at?: string;
         };
+        Relationships: [];
       };
       case_studies: {
         Row: {
@@ -135,6 +150,7 @@ export interface Database {
           lessons?: string[];
           updated_at?: string;
         };
+        Relationships: [];
       };
       case_study_timeline: {
         Row: {
@@ -161,6 +177,15 @@ export interface Database {
           event_type?: 'decision' | 'milestone' | 'challenge' | 'learning';
           sort_order?: number;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'case_study_timeline_case_study_id_fkey';
+            columns: ['case_study_id'];
+            isOneToOne: false;
+            referencedRelation: 'case_studies';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       case_study_results: {
         Row: {
@@ -187,6 +212,15 @@ export interface Database {
           description?: string;
           sort_order?: number;
         };
+        Relationships: [
+          {
+            foreignKeyName: 'case_study_results_case_study_id_fkey';
+            columns: ['case_study_id'];
+            isOneToOne: false;
+            referencedRelation: 'case_studies';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       page_content: {
         Row: {
@@ -207,6 +241,7 @@ export interface Database {
           content?: Record<string, unknown>;
           updated_at?: string;
         };
+        Relationships: [];
       };
       site_index: {
         Row: {
@@ -233,6 +268,7 @@ export interface Database {
           keywords?: string[];
           sort_order?: number;
         };
+        Relationships: [];
       };
       admin_users: {
         Row: {
@@ -253,6 +289,7 @@ export interface Database {
           created_at?: string;
           last_login?: string | null;
         };
+        Relationships: [];
       };
       audit_log: {
         Row: {
@@ -291,6 +328,7 @@ export interface Database {
           user_agent?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       contact_messages: {
         Row: {
@@ -320,7 +358,11 @@ export interface Database {
           source_page?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
+    };
+    Views: {
+      [_ in never]: never;
     };
     Functions: {
       is_admin: {
@@ -328,5 +370,11 @@ export interface Database {
         Returns: boolean;
       };
     };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
   };
-}
+};

@@ -20,23 +20,31 @@ npm run build
 
 # Preview production build
 npm run preview
+
+# Type-check (no emit) — also run in CI
+npm run typecheck
+
+# Lint
+npm run lint
+
+# Format with Prettier
+npm run format
 ```
 
 ## Environment Setup
 
-Create `.env.local` in the project root:
+Copy the example env file and fill in the values:
 
 ```bash
-# Supabase
-VITE_SUPABASE_URL=https://zrawfgpjfkohjaqcfgrd.supabase.co
-VITE_SUPABASE_FUNCTIONS_URL=https://zrawfgpjfkohjaqcfgrd.supabase.co/functions/v1
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpyYXdmZ3BqZmtvaGphcWNmZ3JkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NDE4ODYsImV4cCI6MjA4MDQxNzg4Nn0.D9PYBklsgjVjt7g7b7OfJuOGSOZu8tboXZRgBTMrj9g
-
-# For local development with Supabase CLI (optional)
-# VITE_SUPABASE_FUNCTIONS_URL=http://localhost:54321/functions/v1
+cp .env.example .env.local
 ```
 
-> **Note**: The anon key is safe to expose in client-side code. LLM API keys (GROQ_API_KEY, GEMINI_API_KEY) are stored securely in Supabase Edge Functions.
+`.env.example` documents every `VITE_*` variable (Supabase URL, functions URL, anon
+key, and the optional `VITE_DEBUG` flag).
+
+> **Note**: The anon key is safe to expose in client-side code. Server-side secrets
+> (GROQ_API_KEY, RESEND_API_KEY, SPOTIFY_*) are stored only in Supabase Edge Function
+> secrets, never in the client bundle.
 
 ---
 
@@ -74,8 +82,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 ├── .env.local          # Environment variables (gitignored)
 │
 ├── /public
-│   ├── _redirects      # Cloudflare SPA routing
-│   └── _headers        # Security headers
+│   └── _headers        # Security headers (SPA routing handled by wrangler.jsonc)
 │
 ├── /src
 │   ├── main.tsx        # React entry point
@@ -112,9 +119,8 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 │   │       └── DataTable.tsx
 │   │
 │   ├── /3d                 # React Three Fiber scenes
-│   │   ├── ImmersiveScene.tsx       # Full-screen 3D (3 pillars)
-│   │   ├── SystemConsoleScene.tsx   # Project browser
-│   │   ├── OrbitScene.tsx           # Background animation
+│   │   ├── ImmersiveScene.tsx       # Full-screen 3D (3 pillars, Home)
+│   │   ├── ContactScene.tsx         # Interactive grid (Contact)
 │   │   └── CLAUDE.md
 │   │
 │   ├── /context
@@ -182,7 +188,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 - [x] Magic link + password authentication
 
 ### Phase 4: Deployment ⬜
-- [x] Add `_redirects` file for SPA routing
+- [x] SPA routing via `wrangler.jsonc` (`not_found_handling: single-page-application`)
 - [x] Add `_headers` file for security headers
 - [x] Deploy Supabase Edge Functions
 - [ ] Configure Cloudflare Pages (see Deployment Guide below)
@@ -453,9 +459,13 @@ After deployment:
 
 ### SPA Routing
 
-The `public/_redirects` file handles client-side routing:
-```
-/*    /index.html   200
+Client-side routing is handled by `wrangler.jsonc`, which serves `index.html` for
+unmatched paths:
+```jsonc
+"assets": {
+  "directory": "./dist",
+  "not_found_handling": "single-page-application"
+}
 ```
 
 ### Security Headers

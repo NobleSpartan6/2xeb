@@ -95,9 +95,6 @@ Uses ConsoleContext for persisted state:
 - `terminalCurrentDir` - Current directory
 - `terminalHasSeenIntro` - Skip intro on subsequent opens
 
-### SystemAgent.tsx
-Legacy component (minimal usage).
-
 ## Design Language
 
 **Branding:**

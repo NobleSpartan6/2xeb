@@ -117,7 +117,7 @@ const ContactGrid: React.FC<ContactGridProps> = ({ isMobile }) => {
                         COLORS.primary;
 
     for (let i = 0; i < totalCells; i++) {
-      const { x, z, idx, distFromCenter } = gridData[i];
+      const { x, z, distFromCenter } = gridData[i];
       let targetY = 0;
       let r = 0.02, g = 0.02, b = 0.02; // Base dark
 

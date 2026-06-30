@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { defineConfig, loadEnv, Plugin } from 'vite';
+import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // Plugin to serve static HTML files for specific paths
@@ -25,7 +25,6 @@ function serveStaticHtml(): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', '');
   return {
     // Root is project root, source files are in /src
     root: '.',
@@ -37,12 +36,6 @@ export default defineConfig(({ mode }) => {
 
     plugins: [serveStaticHtml(), react()],
 
-    // Environment variables exposed to client
-    define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-    },
-
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
@@ -51,7 +44,8 @@ export default defineConfig(({ mode }) => {
 
     build: {
       outDir: 'dist',
-      sourcemap: true,
+      // Avoid publishing full source maps to production; keep them for other modes.
+      sourcemap: mode !== 'production',
     }
   };
 });

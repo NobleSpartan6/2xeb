@@ -43,8 +43,10 @@ interface UseExperienceResult {
  * - Updates if database has content
  */
 export function useExperience(): UseExperienceResult {
-  // Start with static data immediately
-  const [experience, setExperience] = useState<Experience[]>(STATIC_EXPERIENCE);
+  // Start with static data immediately (normalize optional skills to an array)
+  const [experience, setExperience] = useState<Experience[]>(() =>
+    STATIC_EXPERIENCE.map((exp) => ({ ...exp, skills: exp.skills ?? [] }))
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [isUsingFallback, setIsUsingFallback] = useState(true);

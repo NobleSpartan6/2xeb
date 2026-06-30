@@ -28,7 +28,6 @@ class CanvasErrorBoundary extends React.Component<
 
 // Reusable objects to avoid GC
 const _dummy = new THREE.Object3D();
-const _color = new THREE.Color();
 
 // Floating debris using InstancedMesh for performance
 const DebrisField: React.FC<{ matrixMode: boolean }> = ({ matrixMode }) => {

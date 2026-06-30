@@ -65,9 +65,6 @@ TypeScript interfaces used across the app.
 - `Discipline` - 'SWE' | 'ML' | 'VIDEO' | 'HYBRID'
 - `ConsoleLane` - 'DESIGN' | 'CODE' | 'VISION'
 
-### geminiService.ts (DEPRECATED)
-Legacy Gemini client-side service. **Do not use** - AI calls should go through Edge Functions via `api.ts`.
-
 ### debug.ts
 Debug utilities for development. Contains logging helpers and conditional debug output.
 

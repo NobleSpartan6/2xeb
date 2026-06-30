@@ -46,12 +46,12 @@ const AuthCallback: React.FC = () => {
               return;
             }
 
-            // Update last login (non-blocking)
-            supabase
+            // Update last login (non-blocking; ignore failures)
+            void supabase
               .from('admin_users')
               .update({ last_login: new Date().toISOString() })
               .eq('id', session.user.id)
-              .catch(() => {});
+              .then(undefined, () => {});
 
             setStatus('Success! Redirecting...');
 
