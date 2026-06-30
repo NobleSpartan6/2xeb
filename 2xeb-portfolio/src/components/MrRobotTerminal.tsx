@@ -77,6 +77,17 @@ const TERM_COLOR = '#60a5fa'; // Lighter blue for readability
 const TERM_COLOR_DIM = 'rgba(96, 165, 250, 0.7)';
 const TERM_ACCENT = '#2563EB'; // Brand blue
 
+// Shell prompt colors (classic Linux look: green user@host, blue path)
+const PROMPT_USER = '#5af78e';
+const PROMPT_PATH = '#60a5fa';
+const PROMPT_HOST = 'friend@2xeb';
+
+// Collapse $HOME to ~ like a real shell
+const shortenDir = (dir: string): string => dir.replace('/home/friend', '~');
+
+// Plain-text prompt used when echoing a command into the scrollback
+const promptString = (dir: string): string => `${PROMPT_HOST}:${shortenDir(dir)}$`;
+
 // Helper to format time ago
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -557,17 +568,43 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   const [cursorPosition, setCursorPosition] = useState(0);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [cursorSteady, setCursorSteady] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputContainerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminalContainerRef = useRef<HTMLDivElement>(null);
   const didAddWelcome = useRef(false);
+  const steadyTimerRef = useRef<number | null>(null);
 
   // Track cursor position changes
   const updateCursorPosition = useCallback(() => {
     if (inputRef.current) {
       setCursorPosition(inputRef.current.selectionStart || 0);
     }
+  }, []);
+
+  // Keep the block cursor solid while typing/moving, then resume blinking when idle
+  // (matches how a real terminal cursor behaves).
+  const bumpCursorSteady = useCallback(() => {
+    setCursorSteady(true);
+    if (steadyTimerRef.current) clearTimeout(steadyTimerRef.current);
+    steadyTimerRef.current = window.setTimeout(() => setCursorSteady(false), 650);
+  }, []);
+
+  // Set both the React caret position and the underlying input selection.
+  const setCaret = useCallback((value: string, pos: number) => {
+    setCurrentInput(value);
+    setCursorPosition(pos);
+    requestAnimationFrame(() => {
+      if (inputRef.current) {
+        inputRef.current.selectionStart = inputRef.current.selectionEnd = pos;
+      }
+    });
+  }, []);
+
+  // Clean up the cursor-steady timer on unmount
+  useEffect(() => () => {
+    if (steadyTimerRef.current) clearTimeout(steadyTimerRef.current);
   }, []);
 
   // Intro typewriter
@@ -739,8 +776,8 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
     addTerminalCommand(cmd);
     setHistoryIndex(terminalCommandHistory.length + 1);
 
-    // Add input to display
-    addTerminalEntry({ type: 'input', content: `> ${cmd}` });
+    // Add input to display (echo the real shell prompt + command)
+    addTerminalEntry({ type: 'input', content: `${promptString(terminalCurrentDir)} ${cmd}` });
 
     // Process command
     let response: string;
@@ -764,7 +801,7 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
       if (!functionsUrl) {
         setTerminalHistory([
           ...terminalHistory,
-          { type: 'input', content: `> ${cmd}` },
+          { type: 'input', content: `${promptString(terminalCurrentDir)} ${cmd}` },
           { type: 'output', content: 'Spotify not configured.' }
         ]);
         return;
@@ -1088,6 +1125,54 @@ drwxr-xr-x  ..
   ];
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Any key interaction keeps the cursor solid for a beat, like a real terminal.
+    bumpCursorSteady();
+
+    // Readline-style control shortcuts. Gated on Ctrl only (never Cmd/Alt) so that
+    // Cmd+C / Cmd+V keep working for copy-paste on macOS.
+    if (e.ctrlKey && !e.metaKey && !e.altKey) {
+      const k = e.key.toLowerCase();
+      if (k === 'l') { // clear the screen
+        e.preventDefault();
+        clearTerminalHistory();
+        return;
+      }
+      if (k === 'c') { // cancel the current line
+        e.preventDefault();
+        addTerminalEntry({ type: 'input', content: `${promptString(terminalCurrentDir)} ${currentInput}^C` });
+        setCaret('', 0);
+        setHistoryIndex(terminalCommandHistory.length);
+        return;
+      }
+      if (k === 'u') { // kill to start of line
+        e.preventDefault();
+        setCaret(currentInput.slice(cursorPosition), 0);
+        return;
+      }
+      if (k === 'k') { // kill to end of line
+        e.preventDefault();
+        setCaret(currentInput.slice(0, cursorPosition), cursorPosition);
+        return;
+      }
+      if (k === 'a') { // move to start of line
+        e.preventDefault();
+        setCaret(currentInput, 0);
+        return;
+      }
+      if (k === 'e') { // move to end of line
+        e.preventDefault();
+        setCaret(currentInput, currentInput.length);
+        return;
+      }
+      if (k === 'w') { // delete the previous word
+        e.preventDefault();
+        const before = currentInput.slice(0, cursorPosition).replace(/\s*\S+\s*$/, '');
+        const after = currentInput.slice(cursorPosition);
+        setCaret(before + after, before.length);
+        return;
+      }
+    }
+
     if (e.key === 'Enter') {
       handleCommand(currentInput);
       setCurrentInput('');
@@ -1205,7 +1290,7 @@ drwxr-xr-x  ..
         }
 
         // Show available completions
-        addTerminalEntry({ type: 'input', content: `> ${currentInput}` });
+        addTerminalEntry({ type: 'input', content: `${promptString(terminalCurrentDir)} ${currentInput}` });
         addTerminalEntry({ type: 'output', content: matches.join('  ') });
       }
     } else if (e.key === 'Home') {
@@ -1225,6 +1310,23 @@ drwxr-xr-x  ..
     }
   };
 
+  // Render a scrollback "input" line with a colored shell prompt when it matches the
+  // prompt format; otherwise render the raw text (e.g. legacy entries).
+  const renderInputContent = (content: string): React.ReactNode => {
+    const m = content.match(/^(friend@2xeb):(\S*)\$ ([\s\S]*)$/);
+    if (!m) return content;
+    const [, host, path, rest] = m;
+    return (
+      <>
+        <span style={{ color: PROMPT_USER }}>{host}</span>
+        <span style={{ color: TERM_COLOR_DIM }}>:</span>
+        <span style={{ color: PROMPT_PATH }}>{path}</span>
+        <span style={{ color: TERM_COLOR_DIM }}>$ </span>
+        <span style={{ color: TERM_COLOR }}>{rest}</span>
+      </>
+    );
+  };
+
   return (
     <div
       className="fixed inset-0 z-[200] bg-black/95 flex justify-center p-0 sm:p-8 items-start sm:items-center"
@@ -1239,7 +1341,7 @@ drwxr-xr-x  ..
       {/* CRT Screen Effect Container - use visual viewport height on mobile for keyboard handling */}
       <div
         ref={terminalContainerRef}
-        className={`relative w-full max-w-4xl overflow-hidden crt-screen rounded-none sm:rounded-lg sm:h-[85vh] sm:max-h-[700px] ${isKeyboardOpen ? 'terminal-keyboard-open' : 'terminal-keyboard-closed'}`}
+        className={`relative w-full max-w-4xl lg:max-w-5xl overflow-hidden crt-screen rounded-none sm:rounded-xl ${isKeyboardOpen ? 'terminal-keyboard-open' : 'terminal-keyboard-closed'}`}
       >
 
         {/* Window Title Bar */}
@@ -1278,6 +1380,9 @@ drwxr-xr-x  ..
 
         {/* Screen curve/vignette */}
         <div className="absolute inset-0 pointer-events-none crt-vignette z-20" />
+
+        {/* Soft screen glare for depth */}
+        <div className="absolute inset-0 pointer-events-none crt-glare z-20" />
 
         {/* Flicker effect */}
         <div className="absolute inset-0 pointer-events-none crt-flicker z-20" />
@@ -1337,7 +1442,7 @@ drwxr-xr-x  ..
                       borderColor: entry.type === 'input' ? 'transparent' : 'rgba(96, 165, 250, 0.2)'
                     }}
                   >
-                    {entry.content}
+                    {entry.type === 'input' ? renderInputContent(entry.content) : entry.content}
                   </pre>
                 ))}
               </div>
@@ -1375,7 +1480,12 @@ drwxr-xr-x  ..
                 style={{ borderTop: `1px solid rgba(96, 165, 250, 0.2)` }}
                 onClick={() => inputRef.current?.focus()}
               >
-                <span className="text-xs sm:text-sm md:text-base" style={{ color: TERM_ACCENT }}>❯</span>
+                <span className="text-xs sm:text-sm md:text-base whitespace-pre flex-shrink-0 select-none">
+                  <span className="hidden sm:inline" style={{ color: PROMPT_USER }}>{PROMPT_HOST}</span>
+                  <span className="hidden sm:inline" style={{ color: TERM_COLOR_DIM }}>:</span>
+                  <span style={{ color: PROMPT_PATH }}>{shortenDir(terminalCurrentDir)}</span>
+                  <span style={{ color: TERM_COLOR_DIM }}>$ </span>
+                </span>
                 <div className="flex-1 relative font-mono min-h-[44px] sm:min-h-0 flex items-center">
                   {/* Visual representation of input with cursor */}
                   <div
@@ -1384,8 +1494,8 @@ drwxr-xr-x  ..
                   >
                     {/* Text before cursor */}
                     <span>{currentInput.slice(0, cursorPosition)}</span>
-                    {/* Block cursor - CSS handles the blink animation */}
-                    <span className="terminal-cursor">
+                    {/* Block cursor - solid while typing, blinks when idle */}
+                    <span className={`terminal-cursor${cursorSteady ? ' cursor-steady' : ''}`}>
                       {currentInput[cursorPosition] || '\u00A0'}
                     </span>
                     {/* Text after cursor */}
@@ -1410,6 +1520,7 @@ drwxr-xr-x  ..
                     value={currentInput}
                     onChange={(e) => {
                       setCurrentInput(e.target.value);
+                      bumpCursorSteady();
                       setTimeout(updateCursorPosition, 0);
                     }}
                     onKeyDown={handleKeyDown}
@@ -1470,6 +1581,10 @@ drwxr-xr-x  ..
             <span className="hidden sm:inline">↑↓ history</span>
             <span className="hidden sm:inline">•</span>
             <span className="hidden sm:inline">tab complete</span>
+            <span className="hidden lg:inline">•</span>
+            <span className="hidden lg:inline">^C cancel</span>
+            <span className="hidden lg:inline">•</span>
+            <span className="hidden lg:inline">^L clear</span>
             <span className="sm:hidden">type help</span>
           </div>
         </div>
@@ -1497,8 +1612,8 @@ drwxr-xr-x  ..
         @media (min-width: 640px) {
           .terminal-keyboard-closed,
           .terminal-keyboard-open {
-            height: 85vh;
-            max-height: 700px;
+            height: min(90vh, 880px);
+            max-height: 880px;
             transition: none;
           }
         }
@@ -1588,13 +1703,27 @@ drwxr-xr-x  ..
         }
 
         .crt-flicker {
-          animation: flicker 0.1s infinite;
-          background: transparent;
+          animation: flicker 4s infinite steps(1, end);
+          background: rgba(96, 165, 250, 0.012);
         }
 
+        /* Subtle, slow CRT instability rather than a fast strobe */
         @keyframes flicker {
-          0%, 100% { opacity: 0.98; }
-          50% { opacity: 1; }
+          0%, 100% { opacity: 0.985; }
+          7% { opacity: 1; }
+          12% { opacity: 0.97; }
+          19% { opacity: 1; }
+          47% { opacity: 0.99; }
+          53% { opacity: 0.965; }
+          61% { opacity: 1; }
+          85% { opacity: 0.985; }
+        }
+
+        .crt-glare {
+          background:
+            radial-gradient(120% 55% at 50% -12%, rgba(255, 255, 255, 0.05) 0%, transparent 60%),
+            radial-gradient(100% 75% at 50% 115%, rgba(37, 99, 235, 0.07) 0%, transparent 60%);
+          mix-blend-mode: screen;
         }
 
         .noise-texture {
@@ -1683,6 +1812,14 @@ drwxr-xr-x  ..
           margin: 0 -1px;
         }
 
+        /* Solid cursor while actively typing (no blink) */
+        .terminal-cursor.cursor-steady {
+          animation: none;
+          background-color: ${TERM_COLOR};
+          color: #0a0a0a;
+          box-shadow: 0 0 8px rgba(96, 165, 250, 0.6);
+        }
+
         @keyframes cursor-blink {
           0%, 50% {
             background-color: ${TERM_COLOR};
@@ -1694,6 +1831,19 @@ drwxr-xr-x  ..
             color: ${TERM_COLOR};
             box-shadow: none;
           }
+        }
+
+        /* Respect users who prefer reduced motion: drop the heavy CRT/glitch
+           animations but keep the cursor blink (it carries meaning). */
+        @media (prefers-reduced-motion: reduce) {
+          .crt-screen { animation: none; }
+          .crt-flicker { animation: none; opacity: 0.99; }
+          .glitch-text,
+          .glitch-text::before,
+          .glitch-text::after { animation: none; }
+          .phase-intro,
+          .phase-intro-complete,
+          .phase-terminal { animation: none; }
         }
       `}</style>
     </div>
