@@ -88,6 +88,73 @@ const shortenDir = (dir: string): string => dir.replace('/home/friend', '~');
 // Plain-text prompt used when echoing a command into the scrollback
 const promptString = (dir: string): string => `${PROMPT_HOST}:${shortenDir(dir)}$`;
 
+// --- Floating-window (desktop OS-panel) geometry --------------------------
+export interface WindowRect { x: number; y: number; width: number; height: number; }
+type ResizeDir = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+
+const WIN_MIN_W = 420;
+const WIN_MIN_H = 320;
+const WIN_MARGIN = 8;
+
+// A comfortable centered default size for the panel.
+const centeredRect = (): WindowRect => {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const width = Math.min(980, vw - 2 * WIN_MARGIN);
+  const height = Math.min(680, vh - 2 * WIN_MARGIN);
+  return {
+    x: Math.round((vw - width) / 2),
+    y: Math.round((vh - height) / 2),
+    width,
+    height,
+  };
+};
+
+const maximizedRect = (): WindowRect => ({
+  x: WIN_MARGIN,
+  y: WIN_MARGIN,
+  width: window.innerWidth - 2 * WIN_MARGIN,
+  height: window.innerHeight - 2 * WIN_MARGIN,
+});
+
+// Keep a rect fully on-screen, shrinking if the viewport got smaller.
+const clampIntoViewport = (r: WindowRect): WindowRect => {
+  const width = Math.min(r.width, window.innerWidth - 2 * WIN_MARGIN);
+  const height = Math.min(r.height, window.innerHeight - 2 * WIN_MARGIN);
+  const x = Math.max(WIN_MARGIN, Math.min(r.x, window.innerWidth - width - WIN_MARGIN));
+  const y = Math.max(WIN_MARGIN, Math.min(r.y, window.innerHeight - height - WIN_MARGIN));
+  return { x, y, width, height };
+};
+
+// Apply a move delta, clamped so the window stays on-screen.
+const moveRect = (r: WindowRect, dx: number, dy: number): WindowRect => ({
+  ...r,
+  x: Math.max(0, Math.min(window.innerWidth - r.width, r.x + dx)),
+  y: Math.max(0, Math.min(window.innerHeight - r.height, r.y + dy)),
+});
+
+// Apply a resize delta for the given handle direction, honouring min size + viewport.
+const resizeRect = (r: WindowRect, dir: ResizeDir, dx: number, dy: number): WindowRect => {
+  let { x, y, width, height } = r;
+  const right = r.x + r.width;
+  const bottom = r.y + r.height;
+
+  if (dir.includes('e')) width = r.width + dx;
+  if (dir.includes('s')) height = r.height + dy;
+  if (dir.includes('w')) { width = r.width - dx; x = r.x + dx; }
+  if (dir.includes('n')) { height = r.height - dy; y = r.y + dy; }
+
+  if (width < WIN_MIN_W) { width = WIN_MIN_W; if (dir.includes('w')) x = right - WIN_MIN_W; }
+  if (height < WIN_MIN_H) { height = WIN_MIN_H; if (dir.includes('n')) y = bottom - WIN_MIN_H; }
+
+  if (x < 0) { width += x; x = 0; }
+  if (y < 0) { height += y; y = 0; }
+  if (x + width > window.innerWidth) width = window.innerWidth - x;
+  if (y + height > window.innerHeight) height = window.innerHeight - y;
+
+  return { x, y, width: Math.max(WIN_MIN_W, width), height: Math.max(WIN_MIN_H, height) };
+};
+
 // Helper to format time ago
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -569,12 +636,24 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [cursorSteady, setCursorSteady] = useState(false);
+  // Desktop floating-window state (the panel is fullscreen on mobile)
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches
+  );
+  const [windowRect, setWindowRect] = useState<WindowRect>(() =>
+    typeof window !== 'undefined' ? centeredRect() : { x: 0, y: 0, width: 980, height: 680 }
+  );
+  const [isMaximized, setIsMaximized] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputContainerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminalContainerRef = useRef<HTMLDivElement>(null);
   const didAddWelcome = useRef(false);
   const steadyTimerRef = useRef<number | null>(null);
+  const preMaxRectRef = useRef<WindowRect>(windowRect);
+  const dragRef = useRef<
+    { type: 'move' | 'resize'; dir?: ResizeDir; startX: number; startY: number; rect: WindowRect; latest: WindowRect } | null
+  >(null);
 
   // Track cursor position changes
   const updateCursorPosition = useCallback(() => {
@@ -606,6 +685,108 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   useEffect(() => () => {
     if (steadyTimerRef.current) clearTimeout(steadyTimerRef.current);
   }, []);
+
+  // --- Floating window (desktop): drag, resize, maximize ------------------
+
+  // Track desktop vs mobile. The panel floats on desktop, fills the screen on mobile.
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 640px)');
+    const onChange = (e: MediaQueryListEvent) => {
+      setIsDesktop(e.matches);
+      if (e.matches) {
+        setIsMaximized(false);
+        setWindowRect(centeredRect());
+      }
+    };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  // Keep the panel on-screen (or re-maximize) when the viewport resizes.
+  useEffect(() => {
+    if (!isDesktop) return;
+    const onResize = () => {
+      setWindowRect((r) => (isMaximized ? maximizedRect() : clampIntoViewport(r)));
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [isDesktop, isMaximized]);
+
+  // Stable pointer handlers. We mutate the DOM directly during the gesture (no
+  // per-frame React re-render) and commit the final rect to state on release.
+  const handleWindowPointerMove = useCallback((e: PointerEvent) => {
+    const st = dragRef.current;
+    const el = terminalContainerRef.current;
+    if (!st || !el) return;
+    const dx = e.clientX - st.startX;
+    const dy = e.clientY - st.startY;
+    const next = st.type === 'move'
+      ? moveRect(st.rect, dx, dy)
+      : resizeRect(st.rect, st.dir as ResizeDir, dx, dy);
+    st.latest = next;
+    el.style.left = `${next.x}px`;
+    el.style.top = `${next.y}px`;
+    el.style.width = `${next.width}px`;
+    el.style.height = `${next.height}px`;
+  }, []);
+
+  const handleWindowPointerUp = useCallback(() => {
+    if (dragRef.current) setWindowRect(dragRef.current.latest);
+    dragRef.current = null;
+    window.removeEventListener('pointermove', handleWindowPointerMove);
+    window.removeEventListener('pointerup', handleWindowPointerUp);
+    document.body.style.userSelect = '';
+  }, [handleWindowPointerMove]);
+
+  const beginInteraction = useCallback(
+    (type: 'move' | 'resize', dir: ResizeDir | undefined, e: React.PointerEvent) => {
+      if (!isDesktop || isMaximized) return;
+      dragRef.current = { type, dir, startX: e.clientX, startY: e.clientY, rect: windowRect, latest: windowRect };
+      document.body.style.userSelect = 'none';
+      window.addEventListener('pointermove', handleWindowPointerMove);
+      window.addEventListener('pointerup', handleWindowPointerUp);
+    },
+    [isDesktop, isMaximized, windowRect, handleWindowPointerMove, handleWindowPointerUp]
+  );
+
+  const startDrag = useCallback((e: React.PointerEvent) => {
+    // Don't begin a drag from interactive chrome (the window-control buttons).
+    if ((e.target as HTMLElement).closest('button')) return;
+    e.preventDefault();
+    beginInteraction('move', undefined, e);
+  }, [beginInteraction]);
+
+  const startResize = useCallback(
+    (dir: ResizeDir) => (e: React.PointerEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      beginInteraction('resize', dir, e);
+    },
+    [beginInteraction]
+  );
+
+  const toggleMaximize = useCallback(() => {
+    if (isMaximized) {
+      setWindowRect(clampIntoViewport(preMaxRectRef.current));
+      setIsMaximized(false);
+    } else {
+      preMaxRectRef.current = windowRect;
+      setWindowRect(maximizedRect());
+      setIsMaximized(true);
+    }
+  }, [isMaximized, windowRect]);
+
+  const restoreDefault = useCallback(() => {
+    setIsMaximized(false);
+    setWindowRect(centeredRect());
+  }, []);
+
+  // Tear down any in-progress gesture listeners on unmount.
+  useEffect(() => () => {
+    window.removeEventListener('pointermove', handleWindowPointerMove);
+    window.removeEventListener('pointerup', handleWindowPointerUp);
+    document.body.style.userSelect = '';
+  }, [handleWindowPointerMove, handleWindowPointerUp]);
 
   // Intro typewriter
   const introText = 'Hello, friend.\n\nYou found your way in.\nThe crowd doesn\'t come here.\nThey\'re too busy scrolling.\n\nBut you stopped. You looked deeper.\nThat\'s how everything worth building starts.';
@@ -1329,7 +1510,7 @@ drwxr-xr-x  ..
 
   return (
     <div
-      className="fixed inset-0 z-[200] bg-black/95 flex justify-center p-0 sm:p-8 items-start sm:items-center"
+      className="fixed inset-0 z-[200] bg-black/95 sm:bg-black/80 flex justify-center p-0 sm:p-8 items-start sm:items-center"
       style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
       onClick={() => inputRef.current?.focus()}
     >
@@ -1338,38 +1519,67 @@ drwxr-xr-x  ..
         <div className="w-[800px] h-[600px] rounded-full opacity-20 blur-[120px]" style={{ background: `radial-gradient(circle, ${TERM_ACCENT} 0%, transparent 70%)` }} />
       </div>
 
-      {/* CRT Screen Effect Container - use visual viewport height on mobile for keyboard handling */}
+      {/* CRT Screen Effect Container.
+          Desktop: a floating, draggable, resizable OS-style panel (fixed + inline rect).
+          Mobile: fills the screen and tracks the visual viewport for keyboard handling. */}
       <div
         ref={terminalContainerRef}
-        className={`relative w-full max-w-4xl lg:max-w-5xl overflow-hidden crt-screen rounded-none sm:rounded-xl ${isKeyboardOpen ? 'terminal-keyboard-open' : 'terminal-keyboard-closed'}`}
+        className={`relative overflow-hidden crt-screen ${
+          isDesktop
+            ? 'rounded-xl floating-window'
+            : `w-full max-w-4xl lg:max-w-5xl rounded-none ${isKeyboardOpen ? 'terminal-keyboard-open' : 'terminal-keyboard-closed'}`
+        }`}
+        style={
+          isDesktop
+            ? { position: 'fixed', left: windowRect.x, top: windowRect.y, width: windowRect.width, height: windowRect.height }
+            : undefined
+        }
       >
 
-        {/* Window Title Bar */}
-        <div className="relative z-10 h-10 sm:h-10 bg-[#0c0c0c] border-b border-[#1a1a1a] flex items-center justify-between px-3 sm:px-4">
-          {/* Window controls - larger touch target on mobile */}
-          <button
-            onClick={onClose}
-            className="flex items-center gap-1.5 sm:gap-2 p-1.5 -ml-1.5 active:opacity-70"
-            title="Close"
-          >
-            <div className="w-3 h-3 sm:w-3 sm:h-3 rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors" />
-            <div className="hidden sm:block w-3 h-3 rounded-full bg-[#28c840] opacity-50" />
-            <div className="hidden sm:block w-3 h-3 rounded-full bg-[#ffbd2e] opacity-50" />
-            {/* Mobile: show X label next to red dot */}
-            <span className="sm:hidden text-[11px] font-mono ml-1" style={{ color: TERM_COLOR }}>
-              EXIT
-            </span>
-          </button>
+        {/* Window Title Bar - drag to move, double-click to maximize (desktop) */}
+        <div
+          className={`relative z-10 h-10 bg-[#0c0c0c] border-b border-[#1a1a1a] flex items-center justify-between px-3 sm:px-4 ${
+            isDesktop && !isMaximized ? 'cursor-grab active:cursor-grabbing' : ''
+          }`}
+          style={isDesktop ? { touchAction: 'none' } : undefined}
+          onPointerDown={isDesktop ? startDrag : undefined}
+          onDoubleClick={isDesktop ? toggleMaximize : undefined}
+        >
+          {/* Window controls (traffic lights). Mobile: red dot doubles as EXIT. */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              onClick={onClose}
+              title="Close"
+              className="flex items-center gap-1 p-1.5 -ml-1.5 sm:p-0 sm:ml-0 active:opacity-70 group"
+            >
+              <span className="w-3 h-3 rounded-full bg-[#ff5f57] sm:group-hover:bg-[#ff3b30] transition-colors" />
+              <span className="sm:hidden text-[11px] font-mono ml-1" style={{ color: TERM_COLOR }}>
+                EXIT
+              </span>
+            </button>
+            {/* Restore default size (yellow) - desktop */}
+            <button
+              onClick={restoreDefault}
+              title="Restore size"
+              className="hidden sm:block w-3 h-3 rounded-full bg-[#ffbd2e] opacity-80 hover:opacity-100 transition-opacity"
+            />
+            {/* Maximize / restore (green) - desktop */}
+            <button
+              onClick={toggleMaximize}
+              title={isMaximized ? 'Restore' : 'Maximize'}
+              className="hidden sm:block w-3 h-3 rounded-full bg-[#28c840] opacity-80 hover:opacity-100 transition-opacity"
+            />
+          </div>
 
           {/* Title */}
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-mono" style={{ color: TERM_COLOR_DIM }}>
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-mono pointer-events-none" style={{ color: TERM_COLOR_DIM }}>
             <span className="hidden sm:inline opacity-50">⌘</span>
             <span>friend@2xeb</span>
           </div>
 
-          {/* Keyboard hint - hide on mobile */}
-          <div className="hidden sm:block text-[10px] font-mono opacity-40" style={{ color: TERM_COLOR }}>
-            ESC to exit
+          {/* Hint - hide on mobile */}
+          <div className="hidden sm:block text-[10px] font-mono opacity-40 pointer-events-none" style={{ color: TERM_COLOR }}>
+            {isDesktop ? 'drag • double-click to maximize' : 'ESC to exit'}
           </div>
           {/* Mobile: empty spacer for alignment */}
           <div className="sm:hidden w-16" />
@@ -1588,6 +1798,20 @@ drwxr-xr-x  ..
             <span className="sm:hidden">type help</span>
           </div>
         </div>
+
+        {/* Resize handles (desktop, when not maximized) */}
+        {isDesktop && !isMaximized && (
+          <>
+            <div onPointerDown={startResize('n')} className="absolute top-0 inset-x-0 h-1.5 z-40 cursor-ns-resize touch-none" />
+            <div onPointerDown={startResize('s')} className="absolute bottom-0 inset-x-0 h-1.5 z-40 cursor-ns-resize touch-none" />
+            <div onPointerDown={startResize('w')} className="absolute left-0 inset-y-0 w-1.5 z-40 cursor-ew-resize touch-none" />
+            <div onPointerDown={startResize('e')} className="absolute right-0 inset-y-0 w-1.5 z-40 cursor-ew-resize touch-none" />
+            <div onPointerDown={startResize('nw')} className="absolute top-0 left-0 w-3.5 h-3.5 z-40 cursor-nwse-resize touch-none" />
+            <div onPointerDown={startResize('ne')} className="absolute top-0 right-0 w-3.5 h-3.5 z-40 cursor-nesw-resize touch-none" />
+            <div onPointerDown={startResize('sw')} className="absolute bottom-0 left-0 w-3.5 h-3.5 z-40 cursor-nesw-resize touch-none" />
+            <div onPointerDown={startResize('se')} className="absolute bottom-0 right-0 w-3.5 h-3.5 z-40 cursor-nwse-resize touch-none" />
+          </>
+        )}
       </div>
 
       {/* Inline styles for CRT effects */}
@@ -1661,6 +1885,15 @@ drwxr-xr-x  ..
             0 0 0 1px rgba(96, 165, 250, 0.1),
             0 25px 50px -12px rgba(0, 0, 0, 0.8),
             0 0 120px rgba(37, 99, 235, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        /* Floating desktop panel: a deeper shadow so it reads as a window over the page */
+        .floating-window {
+          box-shadow:
+            0 0 0 1px rgba(96, 165, 250, 0.16),
+            0 24px 70px -16px rgba(0, 0, 0, 0.88),
+            0 0 110px rgba(37, 99, 235, 0.14),
             inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
 
