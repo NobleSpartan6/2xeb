@@ -45,7 +45,6 @@ const COLORS = {
 // Reusable objects to avoid GC pressure
 const _dummy = new THREE.Object3D();
 const _color = new THREE.Color();
-const _vec3 = new THREE.Vector3();
 
 // --- PILLAR BEHAVIORS ---
 // Each pillar represents a discipline with distinct movement patterns

@@ -21,7 +21,7 @@ Full-screen immersive 3D visualization with three discipline "pillars":
 
 **Performance Optimizations:**
 - `InstancedMesh` for all grid cells (single draw call)
-- Reusable THREE objects (`_dummy`, `_color`, `_vec3`) to avoid GC
+- Reusable THREE objects (`_dummy`, `_color`) to avoid GC
 - Responsive grid size (smaller on mobile)
 - Reduced DPR and disabled antialiasing on mobile
 - Pre-computed grid positions in `useMemo`
@@ -34,21 +34,6 @@ const getGridConfig = (isMobile: boolean) => ({
   gap: 0.08,
 });
 ```
-
-### SystemConsoleScene.tsx (Secondary - Project Browser)
-Isometric 3D view for browsing projects organized by discipline lanes.
-
-**Features:**
-- Orthographic camera at isometric angle
-- Three horizontal lanes: DESIGN, CODE, VISION
-- `InstancedMesh` for project modules
-- Pre-computed connection geometry
-- Text labels using @react-three/drei Text
-
-**Performance Optimizations:**
-- `isNodeHighlighted()` uses Set for O(1) lookup
-- Pre-computed `connectionPoints` array
-- Memoized dummy/color objects
 
 ### ContactScene.tsx (Contact Page)
 Interactive 3D grid for the Contact page that responds to form interactions.
@@ -73,9 +58,6 @@ interface InteractionState {
   triggerPulse: number;          // Timestamp to trigger pulse animation
 }
 ```
-
-### OrbitScene.tsx (Background)
-Animated background grid used on secondary pages (About, Video, etc.).
 
 ## Performance Patterns
 

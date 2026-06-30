@@ -25,10 +25,13 @@ A 3D, AI-assisted portfolio SPA for 2xeb (Ebenezer Eshetu) showcasing Software E
 ## Development Commands
 
 ```bash
-npm install     # Install dependencies
-npm run dev     # Start dev server on port 3000
-npm run build   # Build for production (outputs to dist/)
-npm run preview # Preview production build
+npm install      # Install dependencies
+npm run dev      # Start dev server on port 3000
+npm run build    # Build for production (outputs to dist/)
+npm run preview  # Preview production build
+npm run typecheck # tsc --noEmit (runs in CI; build must stay type-clean)
+npm run lint     # ESLint
+npm run format   # Prettier --write
 ```
 
 ### Supabase Functions (Future)
@@ -61,8 +64,7 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 ├── package.json            # Dependencies
 │
 ├── /public
-│   ├── _redirects          # Cloudflare SPA routing
-│   └── _headers            # Security headers
+│   └── _headers            # Security headers (SPA routing handled by wrangler.jsonc)
 │
 ├── /src
 │   ├── main.tsx            # React entry point
@@ -95,9 +97,8 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 │   │       └── DataTable.tsx
 │   │
 │   ├── /3d                 # React Three Fiber scenes
-│   │   ├── ImmersiveScene.tsx      # Full-screen 3D (3 pillars)
-│   │   ├── SystemConsoleScene.tsx  # Interactive project nodes
-│   │   └── OrbitScene.tsx
+│   │   ├── ImmersiveScene.tsx      # Full-screen 3D (3 pillars, Home)
+│   │   └── ContactScene.tsx        # Interactive grid (Contact)
 │   │
 │   ├── /context
 │   │   ├── ConsoleContext.tsx      # 3D state + chat history
@@ -146,7 +147,7 @@ import { Discipline, ConsoleLane, Project } from '../lib/types';
 ### 3D Scene Architecture
 - `ConsoleContext` manages: `hoveredNodeId`, `focusedDiscipline`, `highlightedNodeIds`, `isAgentOpen`
 - Navigation callbacks passed as props (never use router hooks inside Canvas)
-- Context re-provided inside Canvas: see `SystemConsoleScene.tsx:7`
+- Context re-provided inside Canvas: see `ImmersiveScene.tsx`
 
 ### AI Integration Flow
 1. SPA builds context from `buildProjectContext()` combining `PROJECTS` + `SITE_INDEX`
@@ -246,7 +247,7 @@ export async function askPortfolio(question: string, context: string) {
 - **Build command**: `npm install && npm run build`
 - **Output directory**: `dist`
 - **Environment variables**: `VITE_SUPABASE_FUNCTIONS_URL`
-- **SPA routing**: Add `public/_redirects` with `/*   /index.html   200`
+- **SPA routing**: handled by `wrangler.jsonc` (`assets.not_found_handling: "single-page-application"`)
 
 ## Development Checklist
 

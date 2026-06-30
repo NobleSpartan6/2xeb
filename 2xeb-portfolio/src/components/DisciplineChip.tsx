@@ -9,7 +9,7 @@ interface DisciplineChipProps {
 
 const DisciplineChip: React.FC<DisciplineChipProps> = ({ discipline, className = '' }) => {
   let color = COLORS.textMuted;
-  let bg = 'transparent';
+  const bg = 'transparent';
   let border = COLORS.border;
 
   switch (discipline) {

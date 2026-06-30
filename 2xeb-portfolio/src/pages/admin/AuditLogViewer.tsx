@@ -25,7 +25,7 @@ const AuditLogViewer: React.FC = () => {
         query = query.eq('table_name', filter.table);
       }
       if (filter.action) {
-        query = query.eq('action', filter.action);
+        query = query.eq('action', filter.action as AuditLog['action']);
       }
 
       const { data, error } = await query;

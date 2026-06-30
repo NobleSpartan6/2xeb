@@ -18,7 +18,7 @@ interface UseEasterEggOptions {
  * - Direct: Navigate to /friend route
  */
 export const useEasterEgg = ({ onActivate }: UseEasterEggOptions) => {
-  const [buffer, setBuffer] = useState('');
+  const [, setBuffer] = useState('');
   const [isActivated, setIsActivated] = useState(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const lastClickTime = useRef<number>(0);

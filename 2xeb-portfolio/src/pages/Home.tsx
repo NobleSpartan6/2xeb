@@ -147,8 +147,8 @@ const Home: React.FC = () => {
 
   // Tap to toggle on mobile
   const handleDisciplineClick = useCallback((lane: ConsoleLane) => {
-    setFocusedDiscipline(prev => prev === lane ? null : lane);
-  }, [setFocusedDiscipline]);
+    setFocusedDiscipline(focusedDiscipline === lane ? null : lane);
+  }, [focusedDiscipline, setFocusedDiscipline]);
 
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden bg-[#050505]" style={{ minHeight: '-webkit-fill-available' }}>
