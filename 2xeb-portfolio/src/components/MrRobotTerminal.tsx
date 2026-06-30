@@ -1600,8 +1600,8 @@ drwxr-xr-x  ..
         {/* Noise texture */}
         <div className="absolute inset-0 pointer-events-none noise-texture z-20" />
 
-        {/* Main content */}
-        <div className="relative w-full h-[calc(100%-2.5rem)] flex flex-col p-3 sm:p-5 md:p-6 pb-8 sm:pb-10 font-mono text-xs sm:text-sm md:text-base overflow-hidden" style={{ color: TERM_COLOR }}>
+        {/* Main content - one consistent monospace size for input and output */}
+        <div className="relative w-full h-[calc(100%-2.5rem)] flex flex-col p-3 sm:p-5 md:p-6 pb-8 sm:pb-10 font-mono text-[13px] sm:text-sm overflow-hidden" style={{ color: TERM_COLOR }}>
 
           {/* Glitch Phase */}
           {phase === 'glitch' && (
@@ -1641,12 +1641,12 @@ drwxr-xr-x  ..
               {/* Terminal output */}
               <div
                 ref={terminalRef}
-                className="flex-1 min-h-0 overflow-y-auto space-y-1.5 sm:space-y-2 terminal-scroll pr-1 sm:pr-2 text-[11px] sm:text-xs md:text-sm"
+                className="flex-1 min-h-0 overflow-y-auto space-y-1.5 sm:space-y-2 terminal-scroll pr-1 sm:pr-2 text-[13px] sm:text-sm"
               >
                 {terminalHistory.map((entry, i) => (
                   <pre
                     key={i}
-                    className={`whitespace-pre-wrap leading-relaxed ${entry.type === 'input' ? 'pl-0' : 'pl-2 sm:pl-4 border-l-2'}`}
+                    className={`whitespace-pre-wrap leading-[1.5] ${entry.type === 'input' ? 'pl-0' : 'pl-2 sm:pl-4 border-l-2'}`}
                     style={{
                       color: entry.type === 'input' ? TERM_COLOR : TERM_COLOR_DIM,
                       borderColor: entry.type === 'input' ? 'transparent' : 'rgba(96, 165, 250, 0.2)'
@@ -1690,7 +1690,7 @@ drwxr-xr-x  ..
                 style={{ borderTop: `1px solid rgba(96, 165, 250, 0.2)` }}
                 onClick={() => inputRef.current?.focus()}
               >
-                <span className="text-xs sm:text-sm md:text-base whitespace-pre flex-shrink-0 select-none">
+                <span className="text-[13px] sm:text-sm whitespace-pre flex-shrink-0 select-none">
                   <span className="hidden sm:inline" style={{ color: PROMPT_USER }}>{PROMPT_HOST}</span>
                   <span className="hidden sm:inline" style={{ color: TERM_COLOR_DIM }}>:</span>
                   <span style={{ color: PROMPT_PATH }}>{shortenDir(terminalCurrentDir)}</span>
@@ -1699,7 +1699,7 @@ drwxr-xr-x  ..
                 <div className="flex-1 relative font-mono min-h-[44px] sm:min-h-0 flex items-center">
                   {/* Visual representation of input with cursor */}
                   <div
-                    className="relative text-xs sm:text-sm md:text-base pointer-events-none select-none whitespace-pre flex-1"
+                    className="relative text-[13px] sm:text-sm pointer-events-none select-none whitespace-pre flex-1"
                     style={{ color: TERM_COLOR, minHeight: '1.5em' }}
                   >
                     {/* Text before cursor */}
