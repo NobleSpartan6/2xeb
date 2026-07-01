@@ -35,7 +35,7 @@ const MLLab: React.FC = () => {
   ), [projects]);
 
   return (
-    <div className="min-h-screen pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto bg-[#050505]">
+    <div className="min-h-screen pt-28 md:pt-36 pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto bg-[#050505]">
       <div className="grid lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12">
         
         {/* Left Column: Header & Projects */}
@@ -59,7 +59,7 @@ const MLLab: React.FC = () => {
         </div>
 
         {/* Right Column: AI Widget sticky */}
-        <div className="lg:col-span-5 lg:sticky lg:top-28 h-fit">
+        <div className="lg:col-span-5 lg:sticky lg:top-32 h-fit">
           <div className="bg-[#0A0A0A] border border-[#1f2937] overflow-hidden shadow-xl relative transition-all duration-500">
             {/* Blue accent line at top */}
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#2563EB] to-transparent" />
