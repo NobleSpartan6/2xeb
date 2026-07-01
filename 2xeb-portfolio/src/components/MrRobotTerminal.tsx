@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Dithering } from '@paper-design/shaders-react';
 import { useConsole, TerminalEntry } from '../context/ConsoleContext';
 
 /**
@@ -154,6 +155,30 @@ const resizeRect = (r: WindowRect, dir: ResizeDir, dx: number, dy: number): Wind
 
   return { x, y, width: Math.max(WIN_MIN_W, width), height: Math.max(WIN_MIN_H, height) };
 };
+
+// Title-bar height (h-10 = 2.5rem). Used for the window-shade (minimize) collapse.
+const TITLEBAR_PX = 40;
+
+// --- Edge snapping (Aero-Snap style) --------------------------------------
+type SnapKind = 'left' | 'right' | 'max';
+const SNAP_EDGE = 12; // px from a viewport edge that arms a snap
+
+const leftHalfRect = (): WindowRect => ({ x: 0, y: 0, width: Math.round(window.innerWidth / 2), height: window.innerHeight });
+const rightHalfRect = (): WindowRect => {
+  const w = Math.round(window.innerWidth / 2);
+  return { x: window.innerWidth - w, y: 0, width: w, height: window.innerHeight };
+};
+
+// Which snap (if any) is armed for the current pointer position.
+const snapTargetFor = (clientX: number, clientY: number): { kind: SnapKind; rect: WindowRect } | null => {
+  if (clientY <= SNAP_EDGE) return { kind: 'max', rect: maximizedRect() };
+  if (clientX <= SNAP_EDGE) return { kind: 'left', rect: leftHalfRect() };
+  if (clientX >= window.innerWidth - SNAP_EDGE) return { kind: 'right', rect: rightHalfRect() };
+  return null;
+};
+
+// Remembered window geometry across open/close within a session (like a real WM).
+let savedGeometry: { rect: WindowRect; maximized: boolean } | null = null;
 
 // Helper to format time ago
 function getTimeAgo(date: Date): string {
@@ -611,6 +636,18 @@ const useTypewriter = (text: string, speed: number = 30, startDelay: number = 0)
   return { displayedText, isComplete };
 };
 
+// Isolated live clock for the status bar (taskbar-style). Kept as its own
+// component so its per-second tick doesn't re-render the whole terminal.
+const StatusClock: React.FC = () => {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return <span className="tabular-nums">{`${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`}</span>;
+};
+
 const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   // Get persisted terminal state from context
   const {
@@ -641,18 +678,20 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
     () => typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches
   );
   const [windowRect, setWindowRect] = useState<WindowRect>(() =>
-    typeof window !== 'undefined' ? centeredRect() : { x: 0, y: 0, width: 980, height: 680 }
+    typeof window !== 'undefined' ? (savedGeometry?.rect ?? centeredRect()) : { x: 0, y: 0, width: 980, height: 680 }
   );
-  const [isMaximized, setIsMaximized] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(() => savedGeometry?.maximized ?? false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputContainerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminalContainerRef = useRef<HTMLDivElement>(null);
+  const snapPreviewRef = useRef<HTMLDivElement>(null);
   const didAddWelcome = useRef(false);
   const steadyTimerRef = useRef<number | null>(null);
   const preMaxRectRef = useRef<WindowRect>(windowRect);
   const dragRef = useRef<
-    { type: 'move' | 'resize'; dir?: ResizeDir; startX: number; startY: number; rect: WindowRect; latest: WindowRect } | null
+    { type: 'move' | 'resize'; dir?: ResizeDir; startX: number; startY: number; rect: WindowRect; latest: WindowRect; snap: { kind: SnapKind; rect: WindowRect } | null; canSnap: boolean } | null
   >(null);
 
   // Track cursor position changes
@@ -728,10 +767,40 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
     el.style.top = `${next.y}px`;
     el.style.width = `${next.width}px`;
     el.style.height = `${next.height}px`;
+
+    // Arm/disarm edge snapping while dragging the title bar (Aero-Snap style).
+    if (st.type === 'move' && st.canSnap) {
+      const snap = snapTargetFor(e.clientX, e.clientY);
+      if ((st.snap?.kind ?? null) !== (snap?.kind ?? null)) {
+        st.snap = snap;
+        const ov = snapPreviewRef.current;
+        if (ov) {
+          if (snap) {
+            ov.style.left = `${snap.rect.x}px`;
+            ov.style.top = `${snap.rect.y}px`;
+            ov.style.width = `${snap.rect.width}px`;
+            ov.style.height = `${snap.rect.height}px`;
+            ov.style.opacity = '1';
+          } else {
+            ov.style.opacity = '0';
+          }
+        }
+      }
+    }
   }, []);
 
   const handleWindowPointerUp = useCallback(() => {
-    if (dragRef.current) setWindowRect(dragRef.current.latest);
+    const st = dragRef.current;
+    if (st) {
+      if (st.type === 'move' && st.snap) {
+        preMaxRectRef.current = st.rect; // remember pre-snap geometry for restore
+        if (st.snap.kind === 'max') setIsMaximized(true);
+        setWindowRect(st.snap.rect);
+      } else {
+        setWindowRect(st.latest);
+      }
+    }
+    if (snapPreviewRef.current) snapPreviewRef.current.style.opacity = '0';
     dragRef.current = null;
     window.removeEventListener('pointermove', handleWindowPointerMove);
     window.removeEventListener('pointerup', handleWindowPointerUp);
@@ -741,12 +810,17 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   const beginInteraction = useCallback(
     (type: 'move' | 'resize', dir: ResizeDir | undefined, e: React.PointerEvent) => {
       if (!isDesktop || isMaximized) return;
-      dragRef.current = { type, dir, startX: e.clientX, startY: e.clientY, rect: windowRect, latest: windowRect };
+      if (type === 'resize' && isMinimized) return; // no resizing while rolled up
+      const rect = { ...windowRect, height: isMinimized ? TITLEBAR_PX : windowRect.height };
+      dragRef.current = {
+        type, dir, startX: e.clientX, startY: e.clientY,
+        rect, latest: rect, snap: null, canSnap: type === 'move' && !isMinimized,
+      };
       document.body.style.userSelect = 'none';
       window.addEventListener('pointermove', handleWindowPointerMove);
       window.addEventListener('pointerup', handleWindowPointerUp);
     },
-    [isDesktop, isMaximized, windowRect, handleWindowPointerMove, handleWindowPointerUp]
+    [isDesktop, isMaximized, isMinimized, windowRect, handleWindowPointerMove, handleWindowPointerUp]
   );
 
   const startDrag = useCallback((e: React.PointerEvent) => {
@@ -766,6 +840,7 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   );
 
   const toggleMaximize = useCallback(() => {
+    setIsMinimized(false);
     if (isMaximized) {
       setWindowRect(clampIntoViewport(preMaxRectRef.current));
       setIsMaximized(false);
@@ -776,10 +851,20 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
     }
   }, [isMaximized, windowRect]);
 
-  const restoreDefault = useCallback(() => {
-    setIsMaximized(false);
-    setWindowRect(centeredRect());
+  const toggleMinimize = useCallback(() => {
+    setIsMinimized((m) => !m);
   }, []);
+
+  // Double-clicking the title bar un-shades a minimized window, else zooms it.
+  const handleTitleDoubleClick = useCallback(() => {
+    if (isMinimized) setIsMinimized(false);
+    else toggleMaximize();
+  }, [isMinimized, toggleMaximize]);
+
+  // Remember window geometry across open/close within the session (like a WM).
+  useEffect(() => {
+    if (isDesktop) savedGeometry = { rect: windowRect, maximized: isMaximized };
+  }, [isDesktop, windowRect, isMaximized]);
 
   // Tear down any in-progress gesture listeners on unmount.
   useEffect(() => () => {
@@ -1514,10 +1599,28 @@ drwxr-xr-x  ..
       style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
       onClick={() => inputRef.current?.focus()}
     >
+      {/* Animated dithered "desktop wallpaper" behind the floating window (desktop only) */}
+      {isDesktop && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+          <Dithering
+            style={{ width: '100%', height: '100%', opacity: 0.55 }}
+            colorBack="#050505"
+            colorFront="#1e3a8a"
+            shape="warp"
+            type="4x4"
+            speed={0.35}
+            size={2}
+          />
+        </div>
+      )}
+
       {/* Ambient glow behind terminal */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="w-[800px] h-[600px] rounded-full opacity-20 blur-[120px]" style={{ background: `radial-gradient(circle, ${TERM_ACCENT} 0%, transparent 70%)` }} />
       </div>
+
+      {/* Snap-zone preview (Aero-Snap): shown while dragging near a screen edge */}
+      {isDesktop && <div ref={snapPreviewRef} className="snap-preview" aria-hidden="true" />}
 
       {/* CRT Screen Effect Container.
           Desktop: a floating, draggable, resizable OS-style panel (fixed + inline rect).
@@ -1531,7 +1634,7 @@ drwxr-xr-x  ..
         }`}
         style={
           isDesktop
-            ? { position: 'fixed', left: windowRect.x, top: windowRect.y, width: windowRect.width, height: windowRect.height }
+            ? { position: 'fixed', left: windowRect.x, top: windowRect.y, width: windowRect.width, height: isMinimized ? TITLEBAR_PX : windowRect.height }
             : undefined
         }
       >
@@ -1543,32 +1646,39 @@ drwxr-xr-x  ..
           }`}
           style={isDesktop ? { touchAction: 'none' } : undefined}
           onPointerDown={isDesktop ? startDrag : undefined}
-          onDoubleClick={isDesktop ? toggleMaximize : undefined}
+          onDoubleClick={isDesktop ? handleTitleDoubleClick : undefined}
         >
-          {/* Window controls (traffic lights). Mobile: red dot doubles as EXIT. */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Window controls (traffic lights). Mobile: red dot doubles as EXIT.
+              Desktop: glyphs (× − +) reveal on hover, like macOS. */}
+          <div className="flex items-center gap-1.5 sm:gap-2 group/lights">
             <button
               onClick={onClose}
               title="Close"
               className="flex items-center gap-1 p-1.5 -ml-1.5 sm:p-0 sm:ml-0 active:opacity-70 group"
             >
-              <span className="w-3 h-3 rounded-full bg-[#ff5f57] sm:group-hover:bg-[#ff3b30] transition-colors" />
+              <span className="relative w-3 h-3 rounded-full bg-[#ff5f57] sm:group-hover:bg-[#ff3b30] transition-colors flex items-center justify-center">
+                <span className="hidden sm:block text-[8px] leading-none font-bold text-[#7a0b06] opacity-0 group-hover/lights:opacity-100 transition-opacity">✕</span>
+              </span>
               <span className="sm:hidden text-[11px] font-mono ml-1" style={{ color: TERM_COLOR }}>
                 EXIT
               </span>
             </button>
-            {/* Restore default size (yellow) - desktop */}
+            {/* Minimize / window-shade (yellow) - desktop */}
             <button
-              onClick={restoreDefault}
-              title="Restore size"
-              className="hidden sm:block w-3 h-3 rounded-full bg-[#ffbd2e] opacity-80 hover:opacity-100 transition-opacity"
-            />
+              onClick={toggleMinimize}
+              title={isMinimized ? 'Expand' : 'Minimize'}
+              className="hidden sm:flex items-center justify-center w-3 h-3 rounded-full bg-[#ffbd2e] opacity-80 hover:opacity-100 transition-opacity"
+            >
+              <span className="text-[9px] leading-none font-bold text-[#8a5a06] opacity-0 group-hover/lights:opacity-100 transition-opacity">{isMinimized ? '▾' : '−'}</span>
+            </button>
             {/* Maximize / restore (green) - desktop */}
             <button
               onClick={toggleMaximize}
               title={isMaximized ? 'Restore' : 'Maximize'}
-              className="hidden sm:block w-3 h-3 rounded-full bg-[#28c840] opacity-80 hover:opacity-100 transition-opacity"
-            />
+              className="hidden sm:flex items-center justify-center w-3 h-3 rounded-full bg-[#28c840] opacity-80 hover:opacity-100 transition-opacity"
+            >
+              <span className="text-[8px] leading-none font-bold text-[#0b5a1a] opacity-0 group-hover/lights:opacity-100 transition-opacity">{isMaximized ? '⤡' : '⤢'}</span>
+            </button>
           </div>
 
           {/* Title */}
@@ -1579,7 +1689,7 @@ drwxr-xr-x  ..
 
           {/* Hint - hide on mobile */}
           <div className="hidden sm:block text-[10px] font-mono opacity-40 pointer-events-none" style={{ color: TERM_COLOR }}>
-            {isDesktop ? 'drag • double-click to maximize' : 'ESC to exit'}
+            {!isDesktop ? 'ESC to exit' : isMinimized ? 'double-click to expand' : 'drag • snap to edges • ⤢ maximize'}
           </div>
           {/* Mobile: empty spacer for alignment */}
           <div className="sm:hidden w-16" />
@@ -1779,13 +1889,15 @@ drwxr-xr-x  ..
           )}
         </div>
 
-        {/* Bottom status bar - hide on mobile when keyboard is open */}
-        <div className={`absolute bottom-0 left-0 right-0 h-5 sm:h-6 bg-[#0c0c0c]/80 border-t border-[#1a1a1a] flex items-center justify-between px-3 sm:px-4 text-[9px] sm:text-[10px] font-mono z-10 transition-opacity duration-200 ${isKeyboardOpen ? 'opacity-0 sm:opacity-100' : 'opacity-100'}`} style={{ color: TERM_COLOR_DIM, paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        {/* Bottom status bar - hide on mobile when keyboard is open, and while rolled up */}
+        <div className={`absolute bottom-0 left-0 right-0 h-5 sm:h-6 bg-[#0c0c0c]/80 border-t border-[#1a1a1a] flex items-center justify-between px-3 sm:px-4 text-[9px] sm:text-[10px] font-mono z-10 transition-opacity duration-200 ${isMinimized ? 'opacity-0 pointer-events-none' : isKeyboardOpen ? 'opacity-0 sm:opacity-100' : 'opacity-100'}`} style={{ color: TERM_COLOR_DIM, paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="flex items-center gap-2 sm:gap-3">
             <span className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#28c840] animate-pulse" />
               <span>connected</span>
             </span>
+            <span className="hidden sm:inline opacity-40">•</span>
+            <span className="hidden sm:inline opacity-70"><StatusClock /></span>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 opacity-60">
             <span className="hidden sm:inline">↑↓ history</span>
@@ -1799,8 +1911,8 @@ drwxr-xr-x  ..
           </div>
         </div>
 
-        {/* Resize handles (desktop, when not maximized) */}
-        {isDesktop && !isMaximized && (
+        {/* Resize handles (desktop, when not maximized or rolled up) */}
+        {isDesktop && !isMaximized && !isMinimized && (
           <>
             <div onPointerDown={startResize('n')} className="absolute top-0 inset-x-0 h-1.5 z-40 cursor-ns-resize touch-none" />
             <div onPointerDown={startResize('s')} className="absolute bottom-0 inset-x-0 h-1.5 z-40 cursor-ns-resize touch-none" />
@@ -1895,6 +2007,23 @@ drwxr-xr-x  ..
             0 24px 70px -16px rgba(0, 0, 0, 0.88),
             0 0 110px rgba(37, 99, 235, 0.14),
             inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        /* Aero-Snap preview: a translucent hint of where the window will land. */
+        .snap-preview {
+          position: fixed;
+          left: 0;
+          top: 0;
+          width: 0;
+          height: 0;
+          opacity: 0;
+          pointer-events: none;
+          z-index: 199;
+          border-radius: 12px;
+          background: rgba(37, 99, 235, 0.14);
+          border: 1.5px solid rgba(96, 165, 250, 0.55);
+          box-shadow: inset 0 0 60px rgba(37, 99, 235, 0.25);
+          transition: opacity 0.14s ease, left 0.12s ease, top 0.12s ease, width 0.12s ease, height 0.12s ease;
         }
 
         @keyframes turn-on {
