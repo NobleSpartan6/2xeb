@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Dithering } from '@paper-design/shaders-react';
 import { useConsole, TerminalEntry } from '../context/ConsoleContext';
 
 /**
@@ -76,6 +77,108 @@ interface MrRobotTerminalProps {
 const TERM_COLOR = '#60a5fa'; // Lighter blue for readability
 const TERM_COLOR_DIM = 'rgba(96, 165, 250, 0.7)';
 const TERM_ACCENT = '#2563EB'; // Brand blue
+
+// Shell prompt colors (classic Linux look: green user@host, blue path)
+const PROMPT_USER = '#5af78e';
+const PROMPT_PATH = '#60a5fa';
+const PROMPT_HOST = 'friend@2xeb';
+
+// Collapse $HOME to ~ like a real shell
+const shortenDir = (dir: string): string => dir.replace('/home/friend', '~');
+
+// Plain-text prompt used when echoing a command into the scrollback
+const promptString = (dir: string): string => `${PROMPT_HOST}:${shortenDir(dir)}$`;
+
+// --- Floating-window (desktop OS-panel) geometry --------------------------
+export interface WindowRect { x: number; y: number; width: number; height: number; }
+type ResizeDir = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+
+const WIN_MIN_W = 420;
+const WIN_MIN_H = 320;
+const WIN_MARGIN = 8;
+
+// A comfortable centered default size for the panel.
+const centeredRect = (): WindowRect => {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const width = Math.min(980, vw - 2 * WIN_MARGIN);
+  const height = Math.min(680, vh - 2 * WIN_MARGIN);
+  return {
+    x: Math.round((vw - width) / 2),
+    y: Math.round((vh - height) / 2),
+    width,
+    height,
+  };
+};
+
+const maximizedRect = (): WindowRect => ({
+  x: WIN_MARGIN,
+  y: WIN_MARGIN,
+  width: window.innerWidth - 2 * WIN_MARGIN,
+  height: window.innerHeight - 2 * WIN_MARGIN,
+});
+
+// Keep a rect fully on-screen, shrinking if the viewport got smaller.
+const clampIntoViewport = (r: WindowRect): WindowRect => {
+  const width = Math.min(r.width, window.innerWidth - 2 * WIN_MARGIN);
+  const height = Math.min(r.height, window.innerHeight - 2 * WIN_MARGIN);
+  const x = Math.max(WIN_MARGIN, Math.min(r.x, window.innerWidth - width - WIN_MARGIN));
+  const y = Math.max(WIN_MARGIN, Math.min(r.y, window.innerHeight - height - WIN_MARGIN));
+  return { x, y, width, height };
+};
+
+// Apply a move delta, clamped so the window stays on-screen.
+const moveRect = (r: WindowRect, dx: number, dy: number): WindowRect => ({
+  ...r,
+  x: Math.max(0, Math.min(window.innerWidth - r.width, r.x + dx)),
+  y: Math.max(0, Math.min(window.innerHeight - r.height, r.y + dy)),
+});
+
+// Apply a resize delta for the given handle direction, honouring min size + viewport.
+const resizeRect = (r: WindowRect, dir: ResizeDir, dx: number, dy: number): WindowRect => {
+  let { x, y, width, height } = r;
+  const right = r.x + r.width;
+  const bottom = r.y + r.height;
+
+  if (dir.includes('e')) width = r.width + dx;
+  if (dir.includes('s')) height = r.height + dy;
+  if (dir.includes('w')) { width = r.width - dx; x = r.x + dx; }
+  if (dir.includes('n')) { height = r.height - dy; y = r.y + dy; }
+
+  if (width < WIN_MIN_W) { width = WIN_MIN_W; if (dir.includes('w')) x = right - WIN_MIN_W; }
+  if (height < WIN_MIN_H) { height = WIN_MIN_H; if (dir.includes('n')) y = bottom - WIN_MIN_H; }
+
+  if (x < 0) { width += x; x = 0; }
+  if (y < 0) { height += y; y = 0; }
+  if (x + width > window.innerWidth) width = window.innerWidth - x;
+  if (y + height > window.innerHeight) height = window.innerHeight - y;
+
+  return { x, y, width: Math.max(WIN_MIN_W, width), height: Math.max(WIN_MIN_H, height) };
+};
+
+// Title-bar height (h-10 = 2.5rem). Used for the window-shade (minimize) collapse.
+const TITLEBAR_PX = 40;
+
+// --- Edge snapping (Aero-Snap style) --------------------------------------
+type SnapKind = 'left' | 'right' | 'max';
+const SNAP_EDGE = 12; // px from a viewport edge that arms a snap
+
+const leftHalfRect = (): WindowRect => ({ x: 0, y: 0, width: Math.round(window.innerWidth / 2), height: window.innerHeight });
+const rightHalfRect = (): WindowRect => {
+  const w = Math.round(window.innerWidth / 2);
+  return { x: window.innerWidth - w, y: 0, width: w, height: window.innerHeight };
+};
+
+// Which snap (if any) is armed for the current pointer position.
+const snapTargetFor = (clientX: number, clientY: number): { kind: SnapKind; rect: WindowRect } | null => {
+  if (clientY <= SNAP_EDGE) return { kind: 'max', rect: maximizedRect() };
+  if (clientX <= SNAP_EDGE) return { kind: 'left', rect: leftHalfRect() };
+  if (clientX >= window.innerWidth - SNAP_EDGE) return { kind: 'right', rect: rightHalfRect() };
+  return null;
+};
+
+// Remembered window geometry across open/close within a session (like a real WM).
+let savedGeometry: { rect: WindowRect; maximized: boolean } | null = null;
 
 // Helper to format time ago
 function getTimeAgo(date: Date): string {
@@ -533,6 +636,18 @@ const useTypewriter = (text: string, speed: number = 30, startDelay: number = 0)
   return { displayedText, isComplete };
 };
 
+// Isolated live clock for the status bar (taskbar-style). Kept as its own
+// component so its per-second tick doesn't re-render the whole terminal.
+const StatusClock: React.FC = () => {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return <span className="tabular-nums">{`${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`}</span>;
+};
+
 const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   // Get persisted terminal state from context
   const {
@@ -557,11 +672,27 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   const [cursorPosition, setCursorPosition] = useState(0);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [cursorSteady, setCursorSteady] = useState(false);
+  // Desktop floating-window state (the panel is fullscreen on mobile)
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 640px)').matches
+  );
+  const [windowRect, setWindowRect] = useState<WindowRect>(() =>
+    typeof window !== 'undefined' ? (savedGeometry?.rect ?? centeredRect()) : { x: 0, y: 0, width: 980, height: 680 }
+  );
+  const [isMaximized, setIsMaximized] = useState(() => savedGeometry?.maximized ?? false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputContainerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const terminalContainerRef = useRef<HTMLDivElement>(null);
+  const snapPreviewRef = useRef<HTMLDivElement>(null);
   const didAddWelcome = useRef(false);
+  const steadyTimerRef = useRef<number | null>(null);
+  const preMaxRectRef = useRef<WindowRect>(windowRect);
+  const dragRef = useRef<
+    { type: 'move' | 'resize'; dir?: ResizeDir; startX: number; startY: number; rect: WindowRect; latest: WindowRect; snap: { kind: SnapKind; rect: WindowRect } | null; canSnap: boolean } | null
+  >(null);
 
   // Track cursor position changes
   const updateCursorPosition = useCallback(() => {
@@ -569,6 +700,178 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
       setCursorPosition(inputRef.current.selectionStart || 0);
     }
   }, []);
+
+  // Keep the block cursor solid while typing/moving, then resume blinking when idle
+  // (matches how a real terminal cursor behaves).
+  const bumpCursorSteady = useCallback(() => {
+    setCursorSteady(true);
+    if (steadyTimerRef.current) clearTimeout(steadyTimerRef.current);
+    steadyTimerRef.current = window.setTimeout(() => setCursorSteady(false), 650);
+  }, []);
+
+  // Set both the React caret position and the underlying input selection.
+  const setCaret = useCallback((value: string, pos: number) => {
+    setCurrentInput(value);
+    setCursorPosition(pos);
+    requestAnimationFrame(() => {
+      if (inputRef.current) {
+        inputRef.current.selectionStart = inputRef.current.selectionEnd = pos;
+      }
+    });
+  }, []);
+
+  // Clean up the cursor-steady timer on unmount
+  useEffect(() => () => {
+    if (steadyTimerRef.current) clearTimeout(steadyTimerRef.current);
+  }, []);
+
+  // --- Floating window (desktop): drag, resize, maximize ------------------
+
+  // Track desktop vs mobile. The panel floats on desktop, fills the screen on mobile.
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 640px)');
+    const onChange = (e: MediaQueryListEvent) => {
+      setIsDesktop(e.matches);
+      if (e.matches) {
+        setIsMaximized(false);
+        setWindowRect(centeredRect());
+      }
+    };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  // Keep the panel on-screen (or re-maximize) when the viewport resizes.
+  useEffect(() => {
+    if (!isDesktop) return;
+    const onResize = () => {
+      setWindowRect((r) => (isMaximized ? maximizedRect() : clampIntoViewport(r)));
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [isDesktop, isMaximized]);
+
+  // Stable pointer handlers. We mutate the DOM directly during the gesture (no
+  // per-frame React re-render) and commit the final rect to state on release.
+  const handleWindowPointerMove = useCallback((e: PointerEvent) => {
+    const st = dragRef.current;
+    const el = terminalContainerRef.current;
+    if (!st || !el) return;
+    const dx = e.clientX - st.startX;
+    const dy = e.clientY - st.startY;
+    const next = st.type === 'move'
+      ? moveRect(st.rect, dx, dy)
+      : resizeRect(st.rect, st.dir as ResizeDir, dx, dy);
+    st.latest = next;
+    el.style.left = `${next.x}px`;
+    el.style.top = `${next.y}px`;
+    el.style.width = `${next.width}px`;
+    el.style.height = `${next.height}px`;
+
+    // Arm/disarm edge snapping while dragging the title bar (Aero-Snap style).
+    if (st.type === 'move' && st.canSnap) {
+      const snap = snapTargetFor(e.clientX, e.clientY);
+      if ((st.snap?.kind ?? null) !== (snap?.kind ?? null)) {
+        st.snap = snap;
+        const ov = snapPreviewRef.current;
+        if (ov) {
+          if (snap) {
+            ov.style.left = `${snap.rect.x}px`;
+            ov.style.top = `${snap.rect.y}px`;
+            ov.style.width = `${snap.rect.width}px`;
+            ov.style.height = `${snap.rect.height}px`;
+            ov.style.opacity = '1';
+          } else {
+            ov.style.opacity = '0';
+          }
+        }
+      }
+    }
+  }, []);
+
+  const handleWindowPointerUp = useCallback(() => {
+    const st = dragRef.current;
+    if (st) {
+      if (st.type === 'move' && st.snap) {
+        preMaxRectRef.current = st.rect; // remember pre-snap geometry for restore
+        if (st.snap.kind === 'max') setIsMaximized(true);
+        setWindowRect(st.snap.rect);
+      } else {
+        setWindowRect(st.latest);
+      }
+    }
+    if (snapPreviewRef.current) snapPreviewRef.current.style.opacity = '0';
+    dragRef.current = null;
+    window.removeEventListener('pointermove', handleWindowPointerMove);
+    window.removeEventListener('pointerup', handleWindowPointerUp);
+    document.body.style.userSelect = '';
+  }, [handleWindowPointerMove]);
+
+  const beginInteraction = useCallback(
+    (type: 'move' | 'resize', dir: ResizeDir | undefined, e: React.PointerEvent) => {
+      if (!isDesktop || isMaximized) return;
+      if (type === 'resize' && isMinimized) return; // no resizing while rolled up
+      const rect = { ...windowRect, height: isMinimized ? TITLEBAR_PX : windowRect.height };
+      dragRef.current = {
+        type, dir, startX: e.clientX, startY: e.clientY,
+        rect, latest: rect, snap: null, canSnap: type === 'move' && !isMinimized,
+      };
+      document.body.style.userSelect = 'none';
+      window.addEventListener('pointermove', handleWindowPointerMove);
+      window.addEventListener('pointerup', handleWindowPointerUp);
+    },
+    [isDesktop, isMaximized, isMinimized, windowRect, handleWindowPointerMove, handleWindowPointerUp]
+  );
+
+  const startDrag = useCallback((e: React.PointerEvent) => {
+    // Don't begin a drag from interactive chrome (the window-control buttons).
+    if ((e.target as HTMLElement).closest('button')) return;
+    e.preventDefault();
+    beginInteraction('move', undefined, e);
+  }, [beginInteraction]);
+
+  const startResize = useCallback(
+    (dir: ResizeDir) => (e: React.PointerEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      beginInteraction('resize', dir, e);
+    },
+    [beginInteraction]
+  );
+
+  const toggleMaximize = useCallback(() => {
+    setIsMinimized(false);
+    if (isMaximized) {
+      setWindowRect(clampIntoViewport(preMaxRectRef.current));
+      setIsMaximized(false);
+    } else {
+      preMaxRectRef.current = windowRect;
+      setWindowRect(maximizedRect());
+      setIsMaximized(true);
+    }
+  }, [isMaximized, windowRect]);
+
+  const toggleMinimize = useCallback(() => {
+    setIsMinimized((m) => !m);
+  }, []);
+
+  // Double-clicking the title bar un-shades a minimized window, else zooms it.
+  const handleTitleDoubleClick = useCallback(() => {
+    if (isMinimized) setIsMinimized(false);
+    else toggleMaximize();
+  }, [isMinimized, toggleMaximize]);
+
+  // Remember window geometry across open/close within the session (like a WM).
+  useEffect(() => {
+    if (isDesktop) savedGeometry = { rect: windowRect, maximized: isMaximized };
+  }, [isDesktop, windowRect, isMaximized]);
+
+  // Tear down any in-progress gesture listeners on unmount.
+  useEffect(() => () => {
+    window.removeEventListener('pointermove', handleWindowPointerMove);
+    window.removeEventListener('pointerup', handleWindowPointerUp);
+    document.body.style.userSelect = '';
+  }, [handleWindowPointerMove, handleWindowPointerUp]);
 
   // Intro typewriter
   const introText = 'Hello, friend.\n\nYou found your way in.\nThe crowd doesn\'t come here.\nThey\'re too busy scrolling.\n\nBut you stopped. You looked deeper.\nThat\'s how everything worth building starts.';
@@ -739,8 +1042,8 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
     addTerminalCommand(cmd);
     setHistoryIndex(terminalCommandHistory.length + 1);
 
-    // Add input to display
-    addTerminalEntry({ type: 'input', content: `> ${cmd}` });
+    // Add input to display (echo the real shell prompt + command)
+    addTerminalEntry({ type: 'input', content: `${promptString(terminalCurrentDir)} ${cmd}` });
 
     // Process command
     let response: string;
@@ -764,7 +1067,7 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
       if (!functionsUrl) {
         setTerminalHistory([
           ...terminalHistory,
-          { type: 'input', content: `> ${cmd}` },
+          { type: 'input', content: `${promptString(terminalCurrentDir)} ${cmd}` },
           { type: 'output', content: 'Spotify not configured.' }
         ]);
         return;
@@ -1088,6 +1391,54 @@ drwxr-xr-x  ..
   ];
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Any key interaction keeps the cursor solid for a beat, like a real terminal.
+    bumpCursorSteady();
+
+    // Readline-style control shortcuts. Gated on Ctrl only (never Cmd/Alt) so that
+    // Cmd+C / Cmd+V keep working for copy-paste on macOS.
+    if (e.ctrlKey && !e.metaKey && !e.altKey) {
+      const k = e.key.toLowerCase();
+      if (k === 'l') { // clear the screen
+        e.preventDefault();
+        clearTerminalHistory();
+        return;
+      }
+      if (k === 'c') { // cancel the current line
+        e.preventDefault();
+        addTerminalEntry({ type: 'input', content: `${promptString(terminalCurrentDir)} ${currentInput}^C` });
+        setCaret('', 0);
+        setHistoryIndex(terminalCommandHistory.length);
+        return;
+      }
+      if (k === 'u') { // kill to start of line
+        e.preventDefault();
+        setCaret(currentInput.slice(cursorPosition), 0);
+        return;
+      }
+      if (k === 'k') { // kill to end of line
+        e.preventDefault();
+        setCaret(currentInput.slice(0, cursorPosition), cursorPosition);
+        return;
+      }
+      if (k === 'a') { // move to start of line
+        e.preventDefault();
+        setCaret(currentInput, 0);
+        return;
+      }
+      if (k === 'e') { // move to end of line
+        e.preventDefault();
+        setCaret(currentInput, currentInput.length);
+        return;
+      }
+      if (k === 'w') { // delete the previous word
+        e.preventDefault();
+        const before = currentInput.slice(0, cursorPosition).replace(/\s*\S+\s*$/, '');
+        const after = currentInput.slice(cursorPosition);
+        setCaret(before + after, before.length);
+        return;
+      }
+    }
+
     if (e.key === 'Enter') {
       handleCommand(currentInput);
       setCurrentInput('');
@@ -1205,7 +1556,7 @@ drwxr-xr-x  ..
         }
 
         // Show available completions
-        addTerminalEntry({ type: 'input', content: `> ${currentInput}` });
+        addTerminalEntry({ type: 'input', content: `${promptString(terminalCurrentDir)} ${currentInput}` });
         addTerminalEntry({ type: 'output', content: matches.join('  ') });
       }
     } else if (e.key === 'Home') {
@@ -1225,49 +1576,120 @@ drwxr-xr-x  ..
     }
   };
 
+  // Render a scrollback "input" line with a colored shell prompt when it matches the
+  // prompt format; otherwise render the raw text (e.g. legacy entries).
+  const renderInputContent = (content: string): React.ReactNode => {
+    const m = content.match(/^(friend@2xeb):(\S*)\$ ([\s\S]*)$/);
+    if (!m) return content;
+    const [, host, path, rest] = m;
+    return (
+      <>
+        <span style={{ color: PROMPT_USER }}>{host}</span>
+        <span style={{ color: TERM_COLOR_DIM }}>:</span>
+        <span style={{ color: PROMPT_PATH }}>{path}</span>
+        <span style={{ color: TERM_COLOR_DIM }}>$ </span>
+        <span style={{ color: TERM_COLOR }}>{rest}</span>
+      </>
+    );
+  };
+
   return (
     <div
-      className="fixed inset-0 z-[200] bg-black/95 flex justify-center p-0 sm:p-8 items-start sm:items-center"
+      className="fixed inset-0 z-[200] bg-black/95 sm:bg-black/80 flex justify-center p-0 sm:p-8 items-start sm:items-center"
       style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
       onClick={() => inputRef.current?.focus()}
     >
+      {/* Animated dithered "desktop wallpaper" behind the floating window (desktop only) */}
+      {isDesktop && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+          <Dithering
+            style={{ width: '100%', height: '100%', opacity: 0.55 }}
+            colorBack="#050505"
+            colorFront="#1e3a8a"
+            shape="warp"
+            type="4x4"
+            speed={0.35}
+            size={2}
+          />
+        </div>
+      )}
+
       {/* Ambient glow behind terminal */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="w-[800px] h-[600px] rounded-full opacity-20 blur-[120px]" style={{ background: `radial-gradient(circle, ${TERM_ACCENT} 0%, transparent 70%)` }} />
       </div>
 
-      {/* CRT Screen Effect Container - use visual viewport height on mobile for keyboard handling */}
+      {/* Snap-zone preview (Aero-Snap): shown while dragging near a screen edge */}
+      {isDesktop && <div ref={snapPreviewRef} className="snap-preview" aria-hidden="true" />}
+
+      {/* CRT Screen Effect Container.
+          Desktop: a floating, draggable, resizable OS-style panel (fixed + inline rect).
+          Mobile: fills the screen and tracks the visual viewport for keyboard handling. */}
       <div
         ref={terminalContainerRef}
-        className={`relative w-full max-w-4xl overflow-hidden crt-screen rounded-none sm:rounded-lg sm:h-[85vh] sm:max-h-[700px] ${isKeyboardOpen ? 'terminal-keyboard-open' : 'terminal-keyboard-closed'}`}
+        className={`relative overflow-hidden crt-screen ${
+          isDesktop
+            ? 'rounded-xl floating-window'
+            : `w-full max-w-4xl lg:max-w-5xl rounded-none ${isKeyboardOpen ? 'terminal-keyboard-open' : 'terminal-keyboard-closed'}`
+        }`}
+        style={
+          isDesktop
+            ? { position: 'fixed', left: windowRect.x, top: windowRect.y, width: windowRect.width, height: isMinimized ? TITLEBAR_PX : windowRect.height }
+            : undefined
+        }
       >
 
-        {/* Window Title Bar */}
-        <div className="relative z-10 h-10 sm:h-10 bg-[#0c0c0c] border-b border-[#1a1a1a] flex items-center justify-between px-3 sm:px-4">
-          {/* Window controls - larger touch target on mobile */}
-          <button
-            onClick={onClose}
-            className="flex items-center gap-1.5 sm:gap-2 p-1.5 -ml-1.5 active:opacity-70"
-            title="Close"
-          >
-            <div className="w-3 h-3 sm:w-3 sm:h-3 rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors" />
-            <div className="hidden sm:block w-3 h-3 rounded-full bg-[#28c840] opacity-50" />
-            <div className="hidden sm:block w-3 h-3 rounded-full bg-[#ffbd2e] opacity-50" />
-            {/* Mobile: show X label next to red dot */}
-            <span className="sm:hidden text-[11px] font-mono ml-1" style={{ color: TERM_COLOR }}>
-              EXIT
-            </span>
-          </button>
+        {/* Window Title Bar - drag to move, double-click to maximize (desktop) */}
+        <div
+          className={`relative z-10 h-10 bg-[#0c0c0c] border-b border-[#1a1a1a] flex items-center justify-between px-3 sm:px-4 ${
+            isDesktop && !isMaximized ? 'cursor-grab active:cursor-grabbing' : ''
+          }`}
+          style={isDesktop ? { touchAction: 'none' } : undefined}
+          onPointerDown={isDesktop ? startDrag : undefined}
+          onDoubleClick={isDesktop ? handleTitleDoubleClick : undefined}
+        >
+          {/* Window controls (traffic lights). Mobile: red dot doubles as EXIT.
+              Desktop: glyphs (× − +) reveal on hover, like macOS. */}
+          <div className="flex items-center gap-1.5 sm:gap-2 group/lights">
+            <button
+              onClick={onClose}
+              title="Close"
+              className="flex items-center gap-1 p-1.5 -ml-1.5 sm:p-0 sm:ml-0 active:opacity-70 group"
+            >
+              <span className="relative w-3 h-3 rounded-full bg-[#ff5f57] sm:group-hover:bg-[#ff3b30] transition-colors flex items-center justify-center">
+                <span className="hidden sm:block text-[8px] leading-none font-bold text-[#7a0b06] opacity-0 group-hover/lights:opacity-100 transition-opacity">✕</span>
+              </span>
+              <span className="sm:hidden text-[11px] font-mono ml-1" style={{ color: TERM_COLOR }}>
+                EXIT
+              </span>
+            </button>
+            {/* Minimize / window-shade (yellow) - desktop */}
+            <button
+              onClick={toggleMinimize}
+              title={isMinimized ? 'Expand' : 'Minimize'}
+              className="hidden sm:flex items-center justify-center w-3 h-3 rounded-full bg-[#ffbd2e] opacity-80 hover:opacity-100 transition-opacity"
+            >
+              <span className="text-[9px] leading-none font-bold text-[#8a5a06] opacity-0 group-hover/lights:opacity-100 transition-opacity">{isMinimized ? '▾' : '−'}</span>
+            </button>
+            {/* Maximize / restore (green) - desktop */}
+            <button
+              onClick={toggleMaximize}
+              title={isMaximized ? 'Restore' : 'Maximize'}
+              className="hidden sm:flex items-center justify-center w-3 h-3 rounded-full bg-[#28c840] opacity-80 hover:opacity-100 transition-opacity"
+            >
+              <span className="text-[8px] leading-none font-bold text-[#0b5a1a] opacity-0 group-hover/lights:opacity-100 transition-opacity">{isMaximized ? '⤡' : '⤢'}</span>
+            </button>
+          </div>
 
           {/* Title */}
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-mono" style={{ color: TERM_COLOR_DIM }}>
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-mono pointer-events-none" style={{ color: TERM_COLOR_DIM }}>
             <span className="hidden sm:inline opacity-50">⌘</span>
             <span>friend@2xeb</span>
           </div>
 
-          {/* Keyboard hint - hide on mobile */}
-          <div className="hidden sm:block text-[10px] font-mono opacity-40" style={{ color: TERM_COLOR }}>
-            ESC to exit
+          {/* Hint - hide on mobile */}
+          <div className="hidden sm:block text-[10px] font-mono opacity-40 pointer-events-none" style={{ color: TERM_COLOR }}>
+            {!isDesktop ? 'ESC to exit' : isMinimized ? 'double-click to expand' : 'drag • snap to edges • ⤢ maximize'}
           </div>
           {/* Mobile: empty spacer for alignment */}
           <div className="sm:hidden w-16" />
@@ -1279,14 +1701,17 @@ drwxr-xr-x  ..
         {/* Screen curve/vignette */}
         <div className="absolute inset-0 pointer-events-none crt-vignette z-20" />
 
+        {/* Soft screen glare for depth */}
+        <div className="absolute inset-0 pointer-events-none crt-glare z-20" />
+
         {/* Flicker effect */}
         <div className="absolute inset-0 pointer-events-none crt-flicker z-20" />
 
         {/* Noise texture */}
         <div className="absolute inset-0 pointer-events-none noise-texture z-20" />
 
-        {/* Main content */}
-        <div className="relative w-full h-[calc(100%-2.5rem)] flex flex-col p-3 sm:p-5 md:p-6 pb-8 sm:pb-10 font-mono text-xs sm:text-sm md:text-base overflow-hidden" style={{ color: TERM_COLOR }}>
+        {/* Main content - one consistent monospace size for input and output */}
+        <div className="relative w-full h-[calc(100%-2.5rem)] flex flex-col p-3 sm:p-5 md:p-6 pb-8 sm:pb-10 font-mono text-[13px] sm:text-sm overflow-hidden" style={{ color: TERM_COLOR }}>
 
           {/* Glitch Phase */}
           {phase === 'glitch' && (
@@ -1326,18 +1751,18 @@ drwxr-xr-x  ..
               {/* Terminal output */}
               <div
                 ref={terminalRef}
-                className="flex-1 min-h-0 overflow-y-auto space-y-1.5 sm:space-y-2 terminal-scroll pr-1 sm:pr-2 text-[11px] sm:text-xs md:text-sm"
+                className="flex-1 min-h-0 overflow-y-auto space-y-1.5 sm:space-y-2 terminal-scroll pr-1 sm:pr-2 text-[13px] sm:text-sm"
               >
                 {terminalHistory.map((entry, i) => (
                   <pre
                     key={i}
-                    className={`whitespace-pre-wrap leading-relaxed ${entry.type === 'input' ? 'pl-0' : 'pl-2 sm:pl-4 border-l-2'}`}
+                    className={`whitespace-pre-wrap leading-[1.5] ${entry.type === 'input' ? 'pl-0' : 'pl-2 sm:pl-4 border-l-2'}`}
                     style={{
                       color: entry.type === 'input' ? TERM_COLOR : TERM_COLOR_DIM,
                       borderColor: entry.type === 'input' ? 'transparent' : 'rgba(96, 165, 250, 0.2)'
                     }}
                   >
-                    {entry.content}
+                    {entry.type === 'input' ? renderInputContent(entry.content) : entry.content}
                   </pre>
                 ))}
               </div>
@@ -1375,17 +1800,22 @@ drwxr-xr-x  ..
                 style={{ borderTop: `1px solid rgba(96, 165, 250, 0.2)` }}
                 onClick={() => inputRef.current?.focus()}
               >
-                <span className="text-xs sm:text-sm md:text-base" style={{ color: TERM_ACCENT }}>❯</span>
+                <span className="text-[13px] sm:text-sm whitespace-pre flex-shrink-0 select-none">
+                  <span className="hidden sm:inline" style={{ color: PROMPT_USER }}>{PROMPT_HOST}</span>
+                  <span className="hidden sm:inline" style={{ color: TERM_COLOR_DIM }}>:</span>
+                  <span style={{ color: PROMPT_PATH }}>{shortenDir(terminalCurrentDir)}</span>
+                  <span style={{ color: TERM_COLOR_DIM }}>$ </span>
+                </span>
                 <div className="flex-1 relative font-mono min-h-[44px] sm:min-h-0 flex items-center">
                   {/* Visual representation of input with cursor */}
                   <div
-                    className="relative text-xs sm:text-sm md:text-base pointer-events-none select-none whitespace-pre flex-1"
+                    className="relative text-[13px] sm:text-sm pointer-events-none select-none whitespace-pre flex-1"
                     style={{ color: TERM_COLOR, minHeight: '1.5em' }}
                   >
                     {/* Text before cursor */}
                     <span>{currentInput.slice(0, cursorPosition)}</span>
-                    {/* Block cursor - CSS handles the blink animation */}
-                    <span className="terminal-cursor">
+                    {/* Block cursor - solid while typing, blinks when idle */}
+                    <span className={`terminal-cursor${cursorSteady ? ' cursor-steady' : ''}`}>
                       {currentInput[cursorPosition] || '\u00A0'}
                     </span>
                     {/* Text after cursor */}
@@ -1410,6 +1840,7 @@ drwxr-xr-x  ..
                     value={currentInput}
                     onChange={(e) => {
                       setCurrentInput(e.target.value);
+                      bumpCursorSteady();
                       setTimeout(updateCursorPosition, 0);
                     }}
                     onKeyDown={handleKeyDown}
@@ -1458,21 +1889,41 @@ drwxr-xr-x  ..
           )}
         </div>
 
-        {/* Bottom status bar - hide on mobile when keyboard is open */}
-        <div className={`absolute bottom-0 left-0 right-0 h-5 sm:h-6 bg-[#0c0c0c]/80 border-t border-[#1a1a1a] flex items-center justify-between px-3 sm:px-4 text-[9px] sm:text-[10px] font-mono z-10 transition-opacity duration-200 ${isKeyboardOpen ? 'opacity-0 sm:opacity-100' : 'opacity-100'}`} style={{ color: TERM_COLOR_DIM, paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        {/* Bottom status bar - hide on mobile when keyboard is open, and while rolled up */}
+        <div className={`absolute bottom-0 left-0 right-0 h-5 sm:h-6 bg-[#0c0c0c]/80 border-t border-[#1a1a1a] flex items-center justify-between px-3 sm:px-4 text-[9px] sm:text-[10px] font-mono z-10 transition-opacity duration-200 ${isMinimized ? 'opacity-0 pointer-events-none' : isKeyboardOpen ? 'opacity-0 sm:opacity-100' : 'opacity-100'}`} style={{ color: TERM_COLOR_DIM, paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="flex items-center gap-2 sm:gap-3">
             <span className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#28c840] animate-pulse" />
               <span>connected</span>
             </span>
+            <span className="hidden sm:inline opacity-40">•</span>
+            <span className="hidden sm:inline opacity-70"><StatusClock /></span>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 opacity-60">
             <span className="hidden sm:inline">↑↓ history</span>
             <span className="hidden sm:inline">•</span>
             <span className="hidden sm:inline">tab complete</span>
+            <span className="hidden lg:inline">•</span>
+            <span className="hidden lg:inline">^C cancel</span>
+            <span className="hidden lg:inline">•</span>
+            <span className="hidden lg:inline">^L clear</span>
             <span className="sm:hidden">type help</span>
           </div>
         </div>
+
+        {/* Resize handles (desktop, when not maximized or rolled up) */}
+        {isDesktop && !isMaximized && !isMinimized && (
+          <>
+            <div onPointerDown={startResize('n')} className="absolute top-0 inset-x-0 h-1.5 z-40 cursor-ns-resize touch-none" />
+            <div onPointerDown={startResize('s')} className="absolute bottom-0 inset-x-0 h-1.5 z-40 cursor-ns-resize touch-none" />
+            <div onPointerDown={startResize('w')} className="absolute left-0 inset-y-0 w-1.5 z-40 cursor-ew-resize touch-none" />
+            <div onPointerDown={startResize('e')} className="absolute right-0 inset-y-0 w-1.5 z-40 cursor-ew-resize touch-none" />
+            <div onPointerDown={startResize('nw')} className="absolute top-0 left-0 w-3.5 h-3.5 z-40 cursor-nwse-resize touch-none" />
+            <div onPointerDown={startResize('ne')} className="absolute top-0 right-0 w-3.5 h-3.5 z-40 cursor-nesw-resize touch-none" />
+            <div onPointerDown={startResize('sw')} className="absolute bottom-0 left-0 w-3.5 h-3.5 z-40 cursor-nesw-resize touch-none" />
+            <div onPointerDown={startResize('se')} className="absolute bottom-0 right-0 w-3.5 h-3.5 z-40 cursor-nwse-resize touch-none" />
+          </>
+        )}
       </div>
 
       {/* Inline styles for CRT effects */}
@@ -1497,8 +1948,8 @@ drwxr-xr-x  ..
         @media (min-width: 640px) {
           .terminal-keyboard-closed,
           .terminal-keyboard-open {
-            height: 85vh;
-            max-height: 700px;
+            height: min(90vh, 880px);
+            max-height: 880px;
             transition: none;
           }
         }
@@ -1549,6 +2000,32 @@ drwxr-xr-x  ..
             inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
 
+        /* Floating desktop panel: a deeper shadow so it reads as a window over the page */
+        .floating-window {
+          box-shadow:
+            0 0 0 1px rgba(96, 165, 250, 0.16),
+            0 24px 70px -16px rgba(0, 0, 0, 0.88),
+            0 0 110px rgba(37, 99, 235, 0.14),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        /* Aero-Snap preview: a translucent hint of where the window will land. */
+        .snap-preview {
+          position: fixed;
+          left: 0;
+          top: 0;
+          width: 0;
+          height: 0;
+          opacity: 0;
+          pointer-events: none;
+          z-index: 199;
+          border-radius: 12px;
+          background: rgba(37, 99, 235, 0.14);
+          border: 1.5px solid rgba(96, 165, 250, 0.55);
+          box-shadow: inset 0 0 60px rgba(37, 99, 235, 0.25);
+          transition: opacity 0.14s ease, left 0.12s ease, top 0.12s ease, width 0.12s ease, height 0.12s ease;
+        }
+
         @keyframes turn-on {
           0% {
             transform: scale(1, 0.02);
@@ -1588,13 +2065,27 @@ drwxr-xr-x  ..
         }
 
         .crt-flicker {
-          animation: flicker 0.1s infinite;
-          background: transparent;
+          animation: flicker 4s infinite steps(1, end);
+          background: rgba(96, 165, 250, 0.012);
         }
 
+        /* Subtle, slow CRT instability rather than a fast strobe */
         @keyframes flicker {
-          0%, 100% { opacity: 0.98; }
-          50% { opacity: 1; }
+          0%, 100% { opacity: 0.985; }
+          7% { opacity: 1; }
+          12% { opacity: 0.97; }
+          19% { opacity: 1; }
+          47% { opacity: 0.99; }
+          53% { opacity: 0.965; }
+          61% { opacity: 1; }
+          85% { opacity: 0.985; }
+        }
+
+        .crt-glare {
+          background:
+            radial-gradient(120% 55% at 50% -12%, rgba(255, 255, 255, 0.05) 0%, transparent 60%),
+            radial-gradient(100% 75% at 50% 115%, rgba(37, 99, 235, 0.07) 0%, transparent 60%);
+          mix-blend-mode: screen;
         }
 
         .noise-texture {
@@ -1683,6 +2174,14 @@ drwxr-xr-x  ..
           margin: 0 -1px;
         }
 
+        /* Solid cursor while actively typing (no blink) */
+        .terminal-cursor.cursor-steady {
+          animation: none;
+          background-color: ${TERM_COLOR};
+          color: #0a0a0a;
+          box-shadow: 0 0 8px rgba(96, 165, 250, 0.6);
+        }
+
         @keyframes cursor-blink {
           0%, 50% {
             background-color: ${TERM_COLOR};
@@ -1694,6 +2193,19 @@ drwxr-xr-x  ..
             color: ${TERM_COLOR};
             box-shadow: none;
           }
+        }
+
+        /* Respect users who prefer reduced motion: drop the heavy CRT/glitch
+           animations but keep the cursor blink (it carries meaning). */
+        @media (prefers-reduced-motion: reduce) {
+          .crt-screen { animation: none; }
+          .crt-flicker { animation: none; opacity: 0.99; }
+          .glitch-text,
+          .glitch-text::before,
+          .glitch-text::after { animation: none; }
+          .phase-intro,
+          .phase-intro-complete,
+          .phase-terminal { animation: none; }
         }
       `}</style>
     </div>
