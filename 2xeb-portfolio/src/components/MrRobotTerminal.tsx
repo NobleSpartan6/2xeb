@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Dithering } from '@paper-design/shaders-react';
+import { Warp } from '@paper-design/shaders-react';
 import { useConsole, TerminalEntry } from '../context/ConsoleContext';
 
 /**
@@ -1599,17 +1599,21 @@ drwxr-xr-x  ..
       style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
       onClick={() => inputRef.current?.focus()}
     >
-      {/* Animated dithered "desktop wallpaper" behind the floating window (desktop only) */}
+      {/* Animated "desktop wallpaper" behind the floating window (desktop only):
+          a dark, marbled warp gradient in the brand blue. */}
       {isDesktop && (
         <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-          <Dithering
-            style={{ width: '100%', height: '100%', opacity: 0.55 }}
-            colorBack="#050505"
-            colorFront="#1e3a8a"
-            shape="warp"
-            type="4x4"
-            speed={0.35}
-            size={2}
+          <Warp
+            style={{ width: '100%', height: '100%', opacity: 0.9 }}
+            colors={['#02040a', '#050d24', '#1e3a8a', '#03071a']}
+            shape="stripes"
+            proportion={0.38}
+            softness={1}
+            distortion={0.28}
+            swirl={0.7}
+            swirlIterations={8}
+            speed={0.28}
+            scale={1.2}
           />
         </div>
       )}
