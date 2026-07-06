@@ -58,7 +58,9 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 
 ```
 /2xeb-portfolio
-├── index.html              # Entry HTML (Tailwind CDN, fonts)
+├── index.html              # Entry HTML (fonts, root div)
+├── tailwind.config.js      # Tailwind theme (screens, fonts, colors)
+├── postcss.config.js       # PostCSS (tailwindcss + autoprefixer)
 ├── vite.config.ts          # Vite config (alias @/ -> src/)
 ├── tsconfig.json           # TypeScript config
 ├── package.json            # Dependencies
@@ -168,6 +170,7 @@ import { Discipline, ConsoleLane, Project } from '../lib/types';
 - All entrance/scroll animations use [anime.js v4](https://animejs.com/) (`animate`, `createTimeline`, `stagger`, `utils`)
 - Shared hook: `useScrollReveal` in `src/hooks/useAnimations.ts` — staggered rise+fade of `[data-animate]` descendants via IntersectionObserver; re-plays when `deps` change (e.g. Work grid filters)
 - Bespoke timelines: Home hero (letter-by-letter), Contact form + SENT success, NavBar mount + mobile drawer
+- Extra hooks: `useTextScramble` (terminal-style decode on mono labels), `useMagnetic` (cursor-pull CTAs, desktop only)
 - All animation code must respect `prefers-reduced-motion` (use `prefersReducedMotion()` guard — skip animating, leave content visible)
 - Animate `transform`/`opacity` only; avoid targets with Tailwind `transition-all` (inline styles fight CSS transitions), or clear inline styles `onComplete`
 
@@ -190,9 +193,11 @@ import { Discipline, ConsoleLane, Project } from '../lib/types';
 - **Reuse objects**: Pre-allocate `THREE.Object3D`, `THREE.Color` outside useFrame
 - **Pre-compute geometry**: Calculate static positions in `useMemo`
 - **Mobile optimization**: Reduce grid size, disable antialiasing, lower DPR
+- **Code-splitting**: 3D scenes (`ImmersiveScene`, `ContactScene`), `MrRobotTerminal`, `NotFound`, and `CaseStudyExplorer` are `React.lazy` — keep heavy deps (three, R3F, shaders) out of the main bundle
 
 ### Styling
-- Currently using Tailwind CDN in index.html
+- Tailwind compiled at build time (PostCSS): config in `tailwind.config.js`, entry CSS in `src/index.css` (imported by `main.tsx`)
+- Do NOT reintroduce the Tailwind CDN script; do NOT construct class names dynamically (JIT scans literal strings only)
 - Keep MVP styling as-is (do not redesign)
 
 ### Discipline/Lane Mapping

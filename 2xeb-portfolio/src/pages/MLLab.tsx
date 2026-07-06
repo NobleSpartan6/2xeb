@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import AskPortfolioWidget from '../components/AskPortfolioWidget';
 import { useProjects } from '../hooks/useProjects';
-import { useScrollReveal } from '../hooks/useAnimations';
+import { useScrollReveal, useTextScramble } from '../hooks/useAnimations';
 import ProjectCard from '../components/ProjectCard';
 import { Discipline } from '../lib/types';
 import { useConsole } from '../context/ConsoleContext';
@@ -17,7 +17,8 @@ const MLLab: React.FC = () => {
   const { projects } = useProjects();
 
   // Staggered reveal for header, project cards, and the AI widget panel
-  const revealRef = useScrollReveal<HTMLDivElement>({ y: 30, interval: 110 }, [projects]);
+  const revealRef = useScrollReveal<HTMLDivElement>({ y: 24, interval: 75 }, [projects]);
+  const labLabelRef = useTextScramble<HTMLSpanElement>();
 
   // Ensure we land at the top when navigating to this page
   useEffect(() => {
@@ -45,7 +46,7 @@ const MLLab: React.FC = () => {
         {/* Left Column: Header & Projects */}
         <div className="lg:col-span-7 space-y-10 sm:space-y-12 lg:space-y-20">
           <div data-animate>
-            <span className="text-[#2563EB] font-mono text-[11px] sm:text-xs uppercase tracking-widest block mb-3 sm:mb-4">Laboratory</span>
+            <span ref={labLabelRef} className="text-[#2563EB] font-mono text-[11px] sm:text-xs uppercase tracking-widest block mb-3 sm:mb-4">Laboratory</span>
             <h1 className="font-bold text-white font-space-grotesk mb-4 sm:mb-6 md:mb-8 tracking-tighter leading-[0.9]" style={{ fontSize: 'clamp(2.2rem, 6vw + 0.5rem, 8rem)' }}>
               MACHINE<br />LEARNING
             </h1>

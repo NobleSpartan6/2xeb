@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { animate } from 'animejs';
 import { useProjects } from '../hooks/useProjects';
-import { useScrollReveal, prefersReducedMotion } from '../hooks/useAnimations';
+import { useScrollReveal, useTextScramble, prefersReducedMotion } from '../hooks/useAnimations';
 import { Discipline, Project } from '../lib/types';
 import ProjectCard from '../components/ProjectCard';
 
@@ -76,7 +76,8 @@ const Video: React.FC = () => {
   const [showreelProject, setShowreelProject] = useState<Project | undefined>(initialShowreelProject);
 
   // Entrance animations
-  const revealRef = useScrollReveal<HTMLDivElement>({ y: 30, interval: 100 }, [videoProjects]);
+  const revealRef = useScrollReveal<HTMLDivElement>({ y: 24, interval: 70 }, [videoProjects]);
+  const subtitleRef = useTextScramble<HTMLParagraphElement>();
   const reelRef = useRef<HTMLDivElement>(null);
   const hasShuffledRef = useRef(false);
 
@@ -116,7 +117,7 @@ const Video: React.FC = () => {
         >
           VISUAL<span className="text-[#2563EB] px-2">///</span>ARTS
         </h1>
-        <p data-animate className="text-[#A3A3A3] font-mono uppercase tracking-widest text-[12px] md:text-xs">Cinematography · Editing · Motion Design</p>
+        <p ref={subtitleRef} data-animate className="text-[#A3A3A3] font-mono uppercase tracking-widest text-[12px] md:text-xs">Cinematography · Editing · Motion Design</p>
       </div>
 
 	      {/* Showreel Section */}

@@ -1,13 +1,14 @@
 import React from 'react';
 import { useExperience } from '../hooks/useExperience';
-import { useScrollReveal } from '../hooks/useAnimations';
+import { useScrollReveal, useTextScramble } from '../hooks/useAnimations';
 
 const About: React.FC = () => {
   // SWR: static data immediately, DB fetch in background
   const { experience } = useExperience();
 
   // Staggered reveal for header + experience rows as they scroll into view
-  const revealRef = useScrollReveal<HTMLDivElement>({ y: 32, interval: 110 }, [experience]);
+  const revealRef = useScrollReveal<HTMLDivElement>({ y: 24, interval: 80 }, [experience]);
+  const expLabelRef = useTextScramble<HTMLHeadingElement>();
 
   return (
     <div ref={revealRef} className="min-h-screen bg-[#050505] pt-28 md:pt-36 pb-20 px-4 sm:px-6 lg:px-12">
@@ -85,7 +86,7 @@ const About: React.FC = () => {
           
           {/* Section Label */}
           <div className="lg:col-span-3 py-10 md:py-12 border-b lg:border-b-0 lg:border-r border-[#262626] border-opacity-50 pr-0 lg:pr-8">
-            <h2 data-animate className="text-sm font-bold text-[#2563EB] uppercase tracking-[0.2em] lg:sticky lg:top-32">
+            <h2 ref={expLabelRef} data-animate className="text-sm font-bold text-[#2563EB] uppercase tracking-[0.2em] lg:sticky lg:top-32">
               Experience
             </h2>
           </div>

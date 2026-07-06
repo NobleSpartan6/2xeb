@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles migrated from index.html (formerly served alongside the
+   Tailwind Play CDN). Keep in sync with the MVP look — do not redesign. */
+
+/* Ensure proper viewport handling on mobile */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  /* Safe area padding for iOS notch/home indicator */
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+body {
+  background-color: #050505;
+  color: white;
+  /* Prevent iOS rubber-banding issues */
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+::selection {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.glass-panel {
+  background: rgba(10, 10, 10, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2563eb;
+}
+
+/* Fallback for browsers that don't support dvh */
+@supports not (height: 100dvh) {
+  .h-\[100dvh\] {
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
+}
