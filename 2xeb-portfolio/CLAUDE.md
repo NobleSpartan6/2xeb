@@ -164,6 +164,13 @@ import { Discipline, ConsoleLane, Project } from '../lib/types';
 - **Markdown**: Lightweight renderer (code, bold, lists) - no external deps
 - **Model Selector**: Switch between Llama 3.1 8B, Llama 3.3 70B, Gemini 2.0 Flash
 
+### Animations (anime.js)
+- All entrance/scroll animations use [anime.js v4](https://animejs.com/) (`animate`, `createTimeline`, `stagger`, `utils`)
+- Shared hook: `useScrollReveal` in `src/hooks/useAnimations.ts` — staggered rise+fade of `[data-animate]` descendants via IntersectionObserver; re-plays when `deps` change (e.g. Work grid filters)
+- Bespoke timelines: Home hero (letter-by-letter), Contact form + SENT success, NavBar mount + mobile drawer
+- All animation code must respect `prefers-reduced-motion` (use `prefersReducedMotion()` guard — skip animating, leave content visible)
+- Animate `transform`/`opacity` only; avoid targets with Tailwind `transition-all` (inline styles fight CSS transitions), or clear inline styles `onComplete`
+
 ### Case Study Explorer
 - Lazy-loaded component (`React.lazy`) for Portfolio Console project
 - Accordion sections: Problem, Solution, Timeline, Code Snippets, Architecture, Results

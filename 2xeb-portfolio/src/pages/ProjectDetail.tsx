@@ -2,6 +2,7 @@ import React, { useState, Suspense, lazy } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getCaseStudyBySlug } from '../data';
 import { useProject } from '../hooks/useProjects';
+import { useScrollReveal } from '../hooks/useAnimations';
 import { useConsole } from '../context/ConsoleContext';
 import DisciplineChip from '../components/DisciplineChip';
 
@@ -24,6 +25,9 @@ const ProjectDetail: React.FC = () => {
   const { setIsEasterEggActive } = useConsole();
   const [isPlaying, setIsPlaying] = useState(false);
   const [showCaseStudy, setShowCaseStudy] = useState(false);
+
+  // Staggered entrance for header, media, and detail sections
+  const revealRef = useScrollReveal<HTMLElement>({ y: 30, interval: 110 }, [slug]);
 
   // Check if this is the portfolio-console project
   const isPortfolioConsole = slug === 'portfolio-console';
@@ -98,13 +102,13 @@ const ProjectDetail: React.FC = () => {
   const embedUrl = getEmbedUrl(project.videoUrl);
 
   return (
-    <article className="min-h-screen pt-32 pb-20 px-6 md:px-12 max-w-6xl mx-auto bg-[#050505]">
-      <Link to="/work" className="inline-flex items-center text-[#A3A3A3] hover:text-[#2563EB] mb-12 transition-colors text-xs uppercase tracking-widest font-mono">
+    <article ref={revealRef} className="min-h-screen pt-32 pb-20 px-6 md:px-12 max-w-6xl mx-auto bg-[#050505]">
+      <Link to="/work" data-animate className="inline-flex items-center text-[#A3A3A3] hover:text-[#2563EB] mb-12 transition-colors text-xs uppercase tracking-widest font-mono">
         ← Back Index
       </Link>
       
       <header className="mb-16 space-y-6">
-        <div className="flex items-center gap-4">
+        <div data-animate className="flex items-center gap-4">
           <DisciplineChip discipline={project.primaryDiscipline} />
           <span className="text-[#A3A3A3] font-mono text-xs">{project.createdAt.split('-')[0]}</span>
           {project.status === 'wip' && (
@@ -117,6 +121,7 @@ const ProjectDetail: React.FC = () => {
           )}
         </div>
         <h1
+          data-animate
           className="font-bold text-white font-space-grotesk leading-[0.9] tracking-tighter uppercase"
           style={{ fontSize: 'clamp(2.5rem, 6vw + 1rem, 5rem)' }}
         >
@@ -125,12 +130,12 @@ const ProjectDetail: React.FC = () => {
         {project.role && (
             <p className="text-white/60 font-mono text-sm uppercase tracking-widest">{project.role}</p>
         )}
-        <p className="text-xl text-[#D4D4D4] leading-relaxed font-light max-w-3xl">
+        <p data-animate className="text-xl text-[#D4D4D4] leading-relaxed font-light max-w-3xl">
           {project.shortDesc}
         </p>
       </header>
 
-      <div className="w-full aspect-video bg-[#0A0A0A] border border-[#262626] mb-16 relative overflow-hidden group">
+      <div data-animate className="w-full aspect-video bg-[#0A0A0A] border border-[#262626] mb-16 relative overflow-hidden group">
         {gumletEmbed ? (
           <div style={{ position: 'relative', aspectRatio: '16/9' }}>
             <iframe
@@ -177,7 +182,7 @@ const ProjectDetail: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 border-t border-[#262626] pt-16">
         <aside className="lg:col-span-4 space-y-12">
-          <div>
+          <div data-animate>
             <h3 className="text-[10px] font-bold text-[#2563EB] uppercase tracking-widest mb-4">Technology</h3>
             <div className="flex flex-wrap gap-2">
               {project.tags.map(tag => (
@@ -237,7 +242,7 @@ const ProjectDetail: React.FC = () => {
         </aside>
 
         <div className="lg:col-span-8 text-[#D4D4D4] text-lg leading-relaxed space-y-8 font-light">
-          <section>
+          <section data-animate>
             <h2 className="text-2xl text-white font-bold font-space-grotesk mb-4 tracking-tight">Overview</h2>
             <p>{project.longDesc || project.shortDesc}</p>
           </section>

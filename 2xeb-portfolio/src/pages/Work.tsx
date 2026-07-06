@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useProjects } from '../hooks/useProjects';
+import { useScrollReveal } from '../hooks/useAnimations';
 import { useConsole } from '../context/ConsoleContext';
 import { Discipline } from '../lib/types';
 import ProjectCard from '../components/ProjectCard';
@@ -19,6 +20,13 @@ const Work: React.FC = () => {
 
   // SWR: static data immediately, DB fetch in background
   const { projects } = useProjects();
+
+  // Entrance animations: header once, grid re-plays on filter change
+  const headerRef = useScrollReveal<HTMLDivElement>({ y: 32, interval: 140 });
+  const gridWrapRef = useScrollReveal<HTMLDivElement>(
+    { selector: '[data-card]', y: 36, scale: 0.97, interval: 70 },
+    [activeFilter, projects]
+  );
 
   const filteredProjects = useMemo(() => {
     if (activeFilter === 'ALL') return projects;
@@ -86,14 +94,14 @@ const Work: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#050505] pt-28 md:pt-36 pb-16 px-4 sm:px-6 lg:px-12">
-      <div className="max-w-6xl xl:max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-start lg:items-end mb-14 lg:mb-20 gap-10 lg:gap-14 border-b border-[#262626] pb-10 lg:pb-12">
-        <div>
+      <div ref={headerRef} className="max-w-6xl xl:max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-start lg:items-end mb-14 lg:mb-20 gap-10 lg:gap-14 border-b border-[#262626] pb-10 lg:pb-12">
+        <div data-animate>
           <h1 className="text-[2.7rem] sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white font-space-grotesk mb-6 tracking-tighter leading-[0.9]">
             SELECTED<br /><span className="text-[#2563EB]">WORK</span>
           </h1>
         </div>
-        
-        <div className="flex flex-wrap gap-2 border border-[#262626] bg-[#0A0A0A] rounded-lg overflow-hidden w-full lg:w-auto">
+
+        <div data-animate className="flex flex-wrap gap-2 border border-[#262626] bg-[#0A0A0A] rounded-lg overflow-hidden w-full lg:w-auto">
           {filters.map((f) => (
             <button
               key={f.value}
@@ -111,7 +119,7 @@ const Work: React.FC = () => {
       </div>
 
       {/* Grid */}
-      <div className="max-w-6xl xl:max-w-7xl mx-auto">
+      <div ref={gridWrapRef} className="max-w-6xl xl:max-w-7xl mx-auto">
         <div
           ref={gridRef}
           className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-px bg-[#262626] border border-[#262626] rounded-lg overflow-hidden"
@@ -119,6 +127,7 @@ const Work: React.FC = () => {
           {filteredProjects.map((project) => (
             <div
               key={project.id}
+              data-card
               className="bg-[#050505] h-full"
               onClick={handleProjectClick}
             >

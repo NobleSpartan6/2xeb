@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import AskPortfolioWidget from '../components/AskPortfolioWidget';
 import { useProjects } from '../hooks/useProjects';
+import { useScrollReveal } from '../hooks/useAnimations';
 import ProjectCard from '../components/ProjectCard';
 import { Discipline } from '../lib/types';
 import { useConsole } from '../context/ConsoleContext';
@@ -14,6 +15,9 @@ const MLLab: React.FC = () => {
 
   // SWR: static data immediately, DB fetch in background
   const { projects } = useProjects();
+
+  // Staggered reveal for header, project cards, and the AI widget panel
+  const revealRef = useScrollReveal<HTMLDivElement>({ y: 30, interval: 110 }, [projects]);
 
   // Ensure we land at the top when navigating to this page
   useEffect(() => {
@@ -35,12 +39,12 @@ const MLLab: React.FC = () => {
   ), [projects]);
 
   return (
-    <div className="min-h-screen pt-28 md:pt-36 pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto bg-[#050505]">
+    <div ref={revealRef} className="min-h-screen pt-28 md:pt-36 pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto bg-[#050505]">
       <div className="grid lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12">
-        
+
         {/* Left Column: Header & Projects */}
         <div className="lg:col-span-7 space-y-10 sm:space-y-12 lg:space-y-20">
-          <div>
+          <div data-animate>
             <span className="text-[#2563EB] font-mono text-[11px] sm:text-xs uppercase tracking-widest block mb-3 sm:mb-4">Laboratory</span>
             <h1 className="font-bold text-white font-space-grotesk mb-4 sm:mb-6 md:mb-8 tracking-tighter leading-[0.9]" style={{ fontSize: 'clamp(2.2rem, 6vw + 0.5rem, 8rem)' }}>
               MACHINE<br />LEARNING
@@ -53,13 +57,15 @@ const MLLab: React.FC = () => {
 
           <div className="grid gap-6 sm:gap-8">
               {mlProjects.map(p => (
-                <ProjectCard key={p.id} project={p} />
+                <div key={p.id} data-animate>
+                  <ProjectCard project={p} />
+                </div>
               ))}
           </div>
         </div>
 
         {/* Right Column: AI Widget sticky */}
-        <div className="lg:col-span-5 lg:sticky lg:top-32 h-fit">
+        <div data-animate className="lg:col-span-5 lg:sticky lg:top-32 h-fit">
           <div className="bg-[#0A0A0A] border border-[#1f2937] overflow-hidden shadow-xl relative transition-all duration-500">
             {/* Blue accent line at top */}
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#2563EB] to-transparent" />
