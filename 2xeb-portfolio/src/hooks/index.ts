@@ -6,4 +6,4 @@ export { useExperience } from './useExperience';
 export { useEasterEgg } from './useEasterEgg';
 
 // anime.js animation helpers
-export { useScrollReveal, prefersReducedMotion } from './useAnimations';
+export { useScrollReveal, useTextScramble, useMagnetic, prefersReducedMotion } from './useAnimations';

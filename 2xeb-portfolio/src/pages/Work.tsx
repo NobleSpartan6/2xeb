@@ -22,9 +22,9 @@ const Work: React.FC = () => {
   const { projects } = useProjects();
 
   // Entrance animations: header once, grid re-plays on filter change
-  const headerRef = useScrollReveal<HTMLDivElement>({ y: 32, interval: 140 });
+  const headerRef = useScrollReveal<HTMLDivElement>({ y: 26, interval: 100 });
   const gridWrapRef = useScrollReveal<HTMLDivElement>(
-    { selector: '[data-card]', y: 36, scale: 0.97, interval: 70 },
+    { selector: '[data-card]', y: 26, scale: 0.98, duration: 600, interval: 45 },
     [activeFilter, projects]
   );
 

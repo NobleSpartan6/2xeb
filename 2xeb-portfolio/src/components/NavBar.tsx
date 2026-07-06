@@ -20,9 +20,9 @@ const NavBar: React.FC = memo(() => {
     utils.set(items, { opacity: 0 });
     animate(items, {
       opacity: [0, 1],
-      translateY: [-14, 0],
-      duration: 800,
-      delay: stagger(60, { start: 150 }),
+      translateY: [-12, 0],
+      duration: 650,
+      delay: stagger(45, { start: 100 }),
       ease: 'outExpo',
     });
   }, []);
@@ -35,9 +35,9 @@ const NavBar: React.FC = memo(() => {
     utils.set(items, { opacity: 0 });
     animate(items, {
       opacity: [0, 1],
-      translateX: [32, 0],
-      duration: 600,
-      delay: stagger(55, { start: 120 }),
+      translateX: [28, 0],
+      duration: 500,
+      delay: stagger(45, { start: 80 }),
       ease: 'outExpo',
     });
   }, [isOpen]);

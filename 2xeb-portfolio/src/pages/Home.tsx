@@ -1,10 +1,13 @@
-import React, { useCallback, useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useLayoutEffect, useRef, Suspense, lazy } from 'react';
 import { Link } from 'react-router-dom';
 import { createTimeline, stagger, utils } from 'animejs';
-import ImmersiveScene from '../3d/ImmersiveScene';
 import { useConsole } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
-import { prefersReducedMotion } from '../hooks/useAnimations';
+import { prefersReducedMotion, useMagnetic } from '../hooks/useAnimations';
+
+// Lazy load the 3D scene so three.js/R3F stay out of the main bundle —
+// the UI shell paints immediately while the scene streams in
+const ImmersiveScene = lazy(() => import('../3d/ImmersiveScene'));
 
 // Hook for periodic terminal hint - shows a subtle cursor periodically
 const useTerminalHint = () => {
@@ -133,6 +136,8 @@ const Home: React.FC = () => {
   const showTerminalHint = useTerminalHint();
   const showTimestampHint = useTimestampHint();
   const contentRef = useRef<HTMLDivElement>(null);
+  const workCtaRef = useMagnetic<HTMLDivElement>();
+  const askCtaRef = useMagnetic<HTMLDivElement>();
 
   // Entrance choreography: hero letters cascade in, then status bar and CTAs
   useLayoutEffect(() => {
@@ -167,14 +172,14 @@ const Home: React.FC = () => {
     tl.add(letters, {
       opacity: [0, 1],
       translateY: ['0.45em', '0em'],
-      duration: 1100,
-      delay: stagger(28),
+      duration: 850,
+      delay: stagger(20),
     })
-      .add(status, { opacity: [0, 1], translateY: [-10, 0], duration: 700 }, '-=900')
+      .add(status, { opacity: [0, 1], translateY: [-10, 0], duration: 550 }, '-=700')
       .add(
         footer,
-        { opacity: [0, 1], translateY: [18, 0], duration: 800, delay: stagger(110) },
-        '-=850'
+        { opacity: [0, 1], translateY: [16, 0], duration: 650, delay: stagger(80) },
+        '-=650'
       );
   }, [contentVisible]);
 
@@ -183,6 +188,13 @@ const Home: React.FC = () => {
     setSceneReady(true);
     // Small delay after scene ready for smooth transition
     setTimeout(() => setContentVisible(true), 150);
+  }, []);
+
+  // Never hold the hero hostage to the 3D scene: if the lazy chunk or
+  // WebGL is slow, reveal the content anyway after a short grace period
+  useEffect(() => {
+    const failsafe = setTimeout(() => setContentVisible(true), 2000);
+    return () => clearTimeout(failsafe);
   }, []);
 
   // Hover only for mouse (not touch)
@@ -202,7 +214,9 @@ const Home: React.FC = () => {
 
       {/* 3D Background - Full Screen Immersive */}
       <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${sceneReady ? 'opacity-100' : 'opacity-0'}`}>
-        <ImmersiveScene onReady={handleSceneReady} />
+        <Suspense fallback={null}>
+          <ImmersiveScene onReady={handleSceneReady} />
+        </Suspense>
       </div>
 
       {/* Gradient overlays for depth */}
@@ -371,33 +385,36 @@ const Home: React.FC = () => {
               machine learning, and visual storytelling.
             </p>
 
-            {/* CTAs - rendered first on mobile due to flex-col-reverse */}
+            {/* CTAs - rendered first on mobile due to flex-col-reverse.
+                Magnetic wrappers pull the buttons toward the cursor on desktop. */}
             <div className="flex gap-3 2xl:gap-4 pointer-events-auto flex-shrink-0">
-              <Link
-                to="/work"
-                data-hero-footer
-                className="group relative px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 bg-[#2563EB] overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center"
-              >
-                <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-                <span className="relative font-medium tracking-widest text-[11px] md:text-xs 2xl:text-sm uppercase text-white group-hover:text-black transition-colors z-10 whitespace-nowrap">
-                  View Work
-                </span>
-              </Link>
-
-              <button
-                onClick={() => setIsAgentOpen(true)}
-                data-hero-footer
-                className="group px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 border border-white/20 hover:border-[#2563EB] backdrop-blur-sm transition-all hover:scale-[1.02] active:scale-[0.98] bg-black/20 flex items-center gap-2 2xl:gap-3"
-              >
-                <span className="font-medium tracking-widest text-[11px] md:text-xs 2xl:text-sm uppercase text-white">
-                  ASK
-                </span>
-                <div className="w-5 h-5 md:w-6 md:h-6 2xl:w-7 2xl:h-7 bg-[#0A0A0A] border border-white/30 grid place-items-center">
-                  <span className="text-[#2563EB] font-bold text-[10px] md:text-[10px] 2xl:text-[11px] font-space-grotesk tracking-tight">
-                    EB
+              <div ref={workCtaRef} data-hero-footer>
+                <Link
+                  to="/work"
+                  className="group relative px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 bg-[#2563EB] overflow-hidden active:scale-[0.98] flex items-center justify-center h-full"
+                >
+                  <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                  <span className="relative font-medium tracking-widest text-[11px] md:text-xs 2xl:text-sm uppercase text-white group-hover:text-black transition-colors z-10 whitespace-nowrap">
+                    View Work
                   </span>
-                </div>
-              </button>
+                </Link>
+              </div>
+
+              <div ref={askCtaRef} data-hero-footer>
+                <button
+                  onClick={() => setIsAgentOpen(true)}
+                  className="group px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 border border-white/20 hover:border-[#2563EB] backdrop-blur-sm transition-colors active:scale-[0.98] bg-black/20 flex items-center gap-2 2xl:gap-3 h-full"
+                >
+                  <span className="font-medium tracking-widest text-[11px] md:text-xs 2xl:text-sm uppercase text-white">
+                    ASK
+                  </span>
+                  <div className="w-5 h-5 md:w-6 md:h-6 2xl:w-7 2xl:h-7 bg-[#0A0A0A] border border-white/30 grid place-items-center">
+                    <span className="text-[#2563EB] font-bold text-[10px] md:text-[10px] 2xl:text-[11px] font-space-grotesk tracking-tight">
+                      EB
+                    </span>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         </div>

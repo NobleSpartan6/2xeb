@@ -27,7 +27,7 @@ const ProjectDetail: React.FC = () => {
   const [showCaseStudy, setShowCaseStudy] = useState(false);
 
   // Staggered entrance for header, media, and detail sections
-  const revealRef = useScrollReveal<HTMLElement>({ y: 30, interval: 110 }, [slug]);
+  const revealRef = useScrollReveal<HTMLElement>({ y: 24, interval: 75 }, [slug]);
 
   // Check if this is the portfolio-console project
   const isPortfolioConsole = slug === 'portfolio-console';

@@ -1,8 +1,10 @@
-import React, { useState, useRef, useCallback, useLayoutEffect } from 'react';
+import React, { useState, useRef, useCallback, useLayoutEffect, Suspense, lazy } from 'react';
 import { createTimeline, stagger, utils } from 'animejs';
-import ContactScene from '../3d/ContactScene';
 import { submitContact } from '../lib/api';
 import { prefersReducedMotion } from '../hooks/useAnimations';
+
+// Lazy load the 3D background so the form renders instantly
+const ContactScene = lazy(() => import('../3d/ContactScene'));
 
 const Contact: React.FC = () => {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
@@ -26,13 +28,13 @@ const Contact: React.FC = () => {
     const tl = createTimeline({ defaults: { ease: 'outExpo' } });
     tl.add(heading, {
       opacity: [0, 1],
-      translateX: [-28, 0],
-      duration: 900,
-      delay: stagger(120),
+      translateX: [-24, 0],
+      duration: 700,
+      delay: stagger(90),
     }).add(
       fields,
-      { opacity: [0, 1], translateY: [22, 0], duration: 750, delay: stagger(90) },
-      '-=650'
+      { opacity: [0, 1], translateY: [18, 0], duration: 600, delay: stagger(65) },
+      '-=500'
     );
   }, [showForm]);
 
@@ -106,7 +108,9 @@ const Contact: React.FC = () => {
     return (
       <div className="relative w-full h-[100dvh] overflow-hidden bg-[#050505]">
         <div className="absolute inset-0 z-0">
-          <ContactScene isSuccess={true} triggerPulse={triggerPulse} />
+          <Suspense fallback={null}>
+            <ContactScene isSuccess={true} triggerPulse={triggerPulse} />
+          </Suspense>
         </div>
         <div ref={successRef} className="relative z-10 h-full flex items-center px-6 md:px-12 lg:px-20">
           <div>
@@ -137,12 +141,14 @@ const Contact: React.FC = () => {
     <div ref={pageRef} className="relative w-full h-[100dvh] overflow-hidden bg-[#050505]">
       {/* 3D Background */}
       <div className="absolute inset-0 z-0">
-        <ContactScene
-          focusedField={focusedField}
-          isSubmitting={status === 'submitting'}
-          isSuccess={false}
-          triggerPulse={triggerPulse}
-        />
+        <Suspense fallback={null}>
+          <ContactScene
+            focusedField={focusedField}
+            isSubmitting={status === 'submitting'}
+            isSuccess={false}
+            triggerPulse={triggerPulse}
+          />
+        </Suspense>
       </div>
 
       {/* Content */}

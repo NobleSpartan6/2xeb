@@ -11,10 +11,13 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import { ConsoleProvider, useConsole } from './context/ConsoleContext';
 import { useEasterEgg } from './hooks/useEasterEgg';
-import MrRobotTerminal from './components/MrRobotTerminal';
 
 // Lazy load 404 page (has heavy 3D components)
 const NotFound = React.lazy(() => import('./pages/NotFound'));
+
+// Lazy load the easter egg terminal (pulls in the shader library) —
+// it should never weigh down normal page loads
+const MrRobotTerminal = React.lazy(() => import('./components/MrRobotTerminal'));
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -100,7 +103,11 @@ const EasterEggOverlay = () => {
 
   if (!isEasterEggActive) return null;
 
-  return <MrRobotTerminal onClose={() => setIsEasterEggActive(false)} />;
+  return (
+    <React.Suspense fallback={null}>
+      <MrRobotTerminal onClose={() => setIsEasterEggActive(false)} />
+    </React.Suspense>
+  );
 };
 
 // Check if current route is 404
