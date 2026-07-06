@@ -1,6 +1,8 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useLayoutEffect } from 'react';
+import { createTimeline, stagger, utils } from 'animejs';
 import ContactScene from '../3d/ContactScene';
 import { submitContact } from '../lib/api';
+import { prefersReducedMotion } from '../hooks/useAnimations';
 
 const Contact: React.FC = () => {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
@@ -8,6 +10,55 @@ const Contact: React.FC = () => {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [triggerPulse, setTriggerPulse] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
+  const successRef = useRef<HTMLDivElement>(null);
+
+  // Entrance: heading slides in, then form fields cascade upward
+  const showForm = status !== 'success';
+  useLayoutEffect(() => {
+    const root = pageRef.current;
+    if (!showForm || !root || prefersReducedMotion()) return;
+
+    const heading = root.querySelectorAll('[data-contact-heading]');
+    const fields = root.querySelectorAll('[data-field]');
+    utils.set([...heading, ...fields], { opacity: 0 });
+
+    const tl = createTimeline({ defaults: { ease: 'outExpo' } });
+    tl.add(heading, {
+      opacity: [0, 1],
+      translateX: [-28, 0],
+      duration: 900,
+      delay: stagger(120),
+    }).add(
+      fields,
+      { opacity: [0, 1], translateY: [22, 0], duration: 750, delay: stagger(90) },
+      '-=650'
+    );
+  }, [showForm]);
+
+  // Success: "SENT" letters spring in
+  useLayoutEffect(() => {
+    const root = successRef.current;
+    if (status !== 'success' || !root || prefersReducedMotion()) return;
+
+    const letters = root.querySelectorAll('.sent-letter');
+    const rest = root.querySelectorAll('[data-sent-detail]');
+    utils.set([...letters, ...rest], { opacity: 0 });
+
+    const tl = createTimeline();
+    tl.add(letters, {
+      opacity: [0, 1],
+      translateY: ['0.6em', '0em'],
+      scale: [0.6, 1],
+      duration: 1200,
+      ease: 'outElastic',
+      delay: stagger(90),
+    }).add(
+      rest,
+      { opacity: [0, 1], translateY: [16, 0], duration: 700, ease: 'outExpo', delay: stagger(120) },
+      '-=900'
+    );
+  }, [status]);
 
   // Trigger a pulse in the 3D scene
   const emitPulse = useCallback(() => {
@@ -57,15 +108,20 @@ const Contact: React.FC = () => {
         <div className="absolute inset-0 z-0">
           <ContactScene isSuccess={true} triggerPulse={triggerPulse} />
         </div>
-        <div className="relative z-10 h-full flex items-center px-6 md:px-12 lg:px-20">
+        <div ref={successRef} className="relative z-10 h-full flex items-center px-6 md:px-12 lg:px-20">
           <div>
             <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold text-white font-space-grotesk tracking-tight leading-none">
-              SENT
+              {'SENT'.split('').map((char, i) => (
+                <span key={i} className="sent-letter inline-block will-change-transform">
+                  {char}
+                </span>
+              ))}
             </h1>
-            <p className="mt-6 text-[#666] text-sm md:text-base max-w-md leading-relaxed">
+            <p data-sent-detail className="mt-6 text-[#666] text-sm md:text-base max-w-md leading-relaxed">
               Message received. I'll get back to you soon.
             </p>
             <button
+              data-sent-detail
               onClick={() => setStatus('idle')}
               className="mt-8 px-6 py-3 bg-[#22c55e] text-white text-sm font-medium tracking-wide hover:bg-[#16a34a] transition-colors"
             >
@@ -78,7 +134,7 @@ const Contact: React.FC = () => {
   }
 
   return (
-    <div className="relative w-full h-[100dvh] overflow-hidden bg-[#050505]">
+    <div ref={pageRef} className="relative w-full h-[100dvh] overflow-hidden bg-[#050505]">
       {/* 3D Background */}
       <div className="absolute inset-0 z-0">
         <ContactScene
@@ -94,12 +150,12 @@ const Contact: React.FC = () => {
         <div className="max-w-xl">
           {/* Bold Header - matching home page style */}
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white font-space-grotesk tracking-tight leading-none mb-4">
-            GET IN
+            <span data-contact-heading className="inline-block">GET IN</span>
             <br />
-            <span className="text-[#2563EB]">TOUCH</span>
+            <span data-contact-heading className="inline-block text-[#2563EB]">TOUCH</span>
           </h1>
 
-          <p className="text-[#666] text-sm md:text-base max-w-md leading-relaxed mb-8">
+          <p data-contact-heading className="text-[#666] text-sm md:text-base max-w-md leading-relaxed mb-8">
             Have a project in mind or want to collaborate?
             Send me a message.
           </p>
@@ -119,7 +175,7 @@ const Contact: React.FC = () => {
             <div className="space-y-4">
               {/* Name & Email */}
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div data-field>
                   <label className="block text-[10px] text-[#666] tracking-widest uppercase mb-1.5 font-mono">
                     Name
                   </label>
@@ -136,7 +192,7 @@ const Contact: React.FC = () => {
                   />
                 </div>
 
-                <div>
+                <div data-field>
                   <label className="block text-[10px] text-[#666] tracking-widest uppercase mb-1.5 font-mono">
                     Email
                   </label>
@@ -155,7 +211,7 @@ const Contact: React.FC = () => {
               </div>
 
               {/* Subject */}
-              <div>
+              <div data-field>
                 <label className="block text-[10px] text-[#666] tracking-widest uppercase mb-1.5 font-mono">
                   Subject
                 </label>
@@ -176,7 +232,7 @@ const Contact: React.FC = () => {
               </div>
 
               {/* Message */}
-              <div>
+              <div data-field>
                 <label className="block text-[10px] text-[#666] tracking-widest uppercase mb-1.5 font-mono">
                   Message
                 </label>
@@ -194,7 +250,7 @@ const Contact: React.FC = () => {
               </div>
 
               {/* Submit */}
-              <div className="flex items-center gap-6 pt-4">
+              <div data-field className="flex items-center gap-6 pt-4">
                 <button
                   type="submit"
                   disabled={status === 'submitting'}

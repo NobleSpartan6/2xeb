@@ -1,19 +1,23 @@
 import React from 'react';
 import { useExperience } from '../hooks/useExperience';
+import { useScrollReveal } from '../hooks/useAnimations';
 
 const About: React.FC = () => {
   // SWR: static data immediately, DB fetch in background
   const { experience } = useExperience();
 
+  // Staggered reveal for header + experience rows as they scroll into view
+  const revealRef = useScrollReveal<HTMLDivElement>({ y: 32, interval: 110 }, [experience]);
+
   return (
-    <div className="min-h-screen bg-[#050505] pt-28 md:pt-36 pb-20 px-4 sm:px-6 lg:px-12">
+    <div ref={revealRef} className="min-h-screen bg-[#050505] pt-28 md:pt-36 pb-20 px-4 sm:px-6 lg:px-12">
       {/* Header */}
       <div className="max-w-5xl xl:max-w-6xl mx-auto mb-20 lg:mb-28 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
         <div className="flex flex-col items-start gap-5">
-           <h1 className="font-bold text-white font-space-grotesk tracking-tighter leading-[0.85]" style={{ fontSize: 'clamp(3rem, 5vw + 1rem, 8rem)' }}>
+           <h1 data-animate className="font-bold text-white font-space-grotesk tracking-tighter leading-[0.85]" style={{ fontSize: 'clamp(3rem, 5vw + 1rem, 8rem)' }}>
             EBENEZER<br/>ESHETU
           </h1>
-          <div className="inline-flex flex-wrap items-center gap-5 mt-2 text-[#a3a3a3]">
+          <div data-animate className="inline-flex flex-wrap items-center gap-5 mt-2 text-[#a3a3a3]">
             <a
               href="https://www.linkedin.com/in/ebenezer-eshetu/"
               target="_blank"
@@ -68,7 +72,7 @@ const About: React.FC = () => {
           </div>
         </div>
         <div className="flex items-end">
-           <p className="text-lg md:text-2xl text-[#D4D4D4] leading-relaxed font-light border-l-2 border-[#2563EB] pl-6 md:pl-8">
+           <p data-animate className="text-lg md:text-2xl text-[#D4D4D4] leading-relaxed font-light border-l-2 border-[#2563EB] pl-6 md:pl-8">
             Software Engineer based in New York City. <br/>
             Specializing in high-performance financial systems, machine learning applications, and creative visual media.
           </p>
@@ -81,7 +85,7 @@ const About: React.FC = () => {
           
           {/* Section Label */}
           <div className="lg:col-span-3 py-10 md:py-12 border-b lg:border-b-0 lg:border-r border-[#262626] border-opacity-50 pr-0 lg:pr-8">
-            <h2 className="text-sm font-bold text-[#2563EB] uppercase tracking-[0.2em] lg:sticky lg:top-32">
+            <h2 data-animate className="text-sm font-bold text-[#2563EB] uppercase tracking-[0.2em] lg:sticky lg:top-32">
               Experience
             </h2>
           </div>
@@ -89,7 +93,7 @@ const About: React.FC = () => {
           {/* List */}
           <div className="lg:col-span-9">
             {experience.map((item, idx) => (
-              <div key={item.id} className={`group grid md:grid-cols-12 gap-6 md:gap-8 py-10 md:py-12 px-6 md:px-8 hover:bg-[#0A0A0A] transition-colors ${idx !== experience.length - 1 ? 'border-b border-[#262626]' : ''}`}>
+              <div key={item.id} data-animate className={`group grid md:grid-cols-12 gap-6 md:gap-8 py-10 md:py-12 px-6 md:px-8 hover:bg-[#0A0A0A] transition-colors ${idx !== experience.length - 1 ? 'border-b border-[#262626]' : ''}`}>
                 {/* Date */}
                 <div className="md:col-span-3">
                   <span className="font-mono text-xs text-[#A3A3A3] uppercase tracking-wider block mb-1 group-hover:text-white transition-colors">

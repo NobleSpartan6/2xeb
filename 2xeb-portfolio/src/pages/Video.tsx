@@ -1,5 +1,7 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { animate } from 'animejs';
 import { useProjects } from '../hooks/useProjects';
+import { useScrollReveal, prefersReducedMotion } from '../hooks/useAnimations';
 import { Discipline, Project } from '../lib/types';
 import ProjectCard from '../components/ProjectCard';
 
@@ -73,13 +75,31 @@ const Video: React.FC = () => {
 
   const [showreelProject, setShowreelProject] = useState<Project | undefined>(initialShowreelProject);
 
+  // Entrance animations
+  const revealRef = useScrollReveal<HTMLDivElement>({ y: 30, interval: 100 }, [videoProjects]);
+  const reelRef = useRef<HTMLDivElement>(null);
+  const hasShuffledRef = useRef(false);
+
   // Update when initial project changes
   useEffect(() => {
     setShowreelProject(initialShowreelProject);
   }, [initialShowreelProject]);
 
+  // Pop the showreel back in when a new video is shuffled
+  const showreelId = showreelProject?.id;
+  useEffect(() => {
+    if (!hasShuffledRef.current || !reelRef.current || prefersReducedMotion()) return;
+    animate(reelRef.current, {
+      opacity: [0, 1],
+      scale: [0.97, 1],
+      duration: 700,
+      ease: 'outCubic',
+    });
+  }, [showreelId]);
+
   const shuffleFeatured = () => {
     if (videoProjects.length === 0) return;
+    hasShuffledRef.current = true;
     const randomIndex = Math.floor(Math.random() * videoProjects.length);
     setShowreelProject(videoProjects[randomIndex]);
   };
@@ -87,20 +107,21 @@ const Video: React.FC = () => {
   const embedUrl = useMemo(() => getEmbedUrl(showreelProject?.videoUrl), [showreelProject?.videoUrl]);
 
   return (
-    <div className="min-h-screen pt-28 md:pt-32 pb-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto bg-[#050505]">
+    <div ref={revealRef} className="min-h-screen pt-28 md:pt-32 pb-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto bg-[#050505]">
       <div className="flex flex-col items-center justify-center text-center mb-20 md:mb-24 px-2">
         <h1
+          data-animate
           className="font-bold text-white font-space-grotesk mb-6 md:mb-8 tracking-tighter leading-tight max-w-5xl mx-auto"
           style={{ fontSize: 'clamp(2.6rem, 5vw + 1rem, 9rem)' }}
         >
           VISUAL<span className="text-[#2563EB] px-2">///</span>ARTS
         </h1>
-        <p className="text-[#A3A3A3] font-mono uppercase tracking-widest text-[12px] md:text-xs">Cinematography · Editing · Motion Design</p>
+        <p data-animate className="text-[#A3A3A3] font-mono uppercase tracking-widest text-[12px] md:text-xs">Cinematography · Editing · Motion Design</p>
       </div>
 
 	      {/* Showreel Section */}
 		      {showreelProject && embedUrl && (
-		        <div className="mb-32 max-w-6xl mx-auto w-full overflow-hidden">
+		        <div ref={reelRef} data-animate className="mb-32 max-w-6xl mx-auto w-full overflow-hidden">
 		          <div className="aspect-video w-full bg-black overflow-hidden border border-[#262626] relative group">
                   <div style={{ position: 'relative', aspectRatio: '16/9' }}>
                     <iframe
@@ -132,14 +153,16 @@ const Video: React.FC = () => {
 
       {/* Video Grid */}
       <div className="border-t border-[#262626] pt-16">
-        <div className="flex justify-between items-center mb-12">
+        <div data-animate className="flex justify-between items-center mb-12">
           <h2 className="text-2xl text-white font-bold font-space-grotesk uppercase tracking-tighter">Featured Productions</h2>
           <span className="text-[#2563EB] font-mono text-xs">0{videoProjects.length} Items</span>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {videoProjects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <div key={project.id} data-animate className="h-full">
+              <ProjectCard project={project} />
+            </div>
           ))}
         </div>
       </div>

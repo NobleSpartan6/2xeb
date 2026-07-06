@@ -1,12 +1,46 @@
-import React, { useState, useEffect, useRef, memo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, memo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { animate, stagger, utils } from 'animejs';
 import { useConsole } from '../context/ConsoleContext';
+import { prefersReducedMotion } from '../hooks/useAnimations';
 
 const NavBar: React.FC = memo(() => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const { setIsAgentOpen } = useConsole();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  // Initial load: nav items drop in one after another
+  useLayoutEffect(() => {
+    const root = navRef.current;
+    if (!root || prefersReducedMotion()) return;
+    const items = root.querySelectorAll('[data-nav-item]');
+    utils.set(items, { opacity: 0 });
+    animate(items, {
+      opacity: [0, 1],
+      translateY: [-14, 0],
+      duration: 800,
+      delay: stagger(60, { start: 150 }),
+      ease: 'outExpo',
+    });
+  }, []);
+
+  // Mobile drawer: links cascade in from the right on open
+  useEffect(() => {
+    const root = drawerRef.current;
+    if (!isOpen || !root || prefersReducedMotion()) return;
+    const items = root.querySelectorAll('[data-drawer-item]');
+    utils.set(items, { opacity: 0 });
+    animate(items, {
+      opacity: [0, 1],
+      translateX: [32, 0],
+      duration: 600,
+      delay: stagger(55, { start: 120 }),
+      ease: 'outExpo',
+    });
+  }, [isOpen]);
 
   const navLinks = [
     { path: '/', label: 'Home' },
@@ -47,13 +81,13 @@ const NavBar: React.FC = memo(() => {
   return (
     <>
       {/* Main Header */}
-      <nav className="fixed top-0 left-0 w-full z-[100] text-white pointer-events-none">
+      <nav ref={navRef} className="fixed top-0 left-0 w-full z-[100] text-white pointer-events-none">
         <div
           className="max-w-[1800px] 3xl:max-w-[2200px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-20 3xl:px-24 pointer-events-auto"
           style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
         >
           <div className="relative flex items-center justify-between h-[74px] sm:h-[82px] md:h-[100px] 2xl:h-[110px] 3xl:h-[120px] rounded-2xl px-4 md:px-6 lg:px-8 2xl:px-10 3xl:px-12 bg-black/30 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
-            <div className="flex-shrink-0 z-50">
+            <div data-nav-item className="flex-shrink-0 z-50">
               <Link to="/" className="text-white font-bold text-xl sm:text-2xl 2xl:text-3xl 3xl:text-4xl tracking-tighter font-space-grotesk hover:text-[#2563EB] transition-colors">
                 2XEB
               </Link>
@@ -66,7 +100,8 @@ const NavBar: React.FC = memo(() => {
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`text-[11px] 2xl:text-xs 3xl:text-sm font-bold uppercase tracking-[0.15em] transition-colors duration-150 font-mono ${
+                    data-nav-item
+                    className={`inline-block text-[11px] 2xl:text-xs 3xl:text-sm font-bold uppercase tracking-[0.15em] transition-colors duration-150 font-mono ${
                       isActive(link.path)
                         ? 'text-[#2563EB]'
                         : 'text-[#A3A3A3] hover:text-white'
@@ -79,7 +114,7 @@ const NavBar: React.FC = memo(() => {
             </div>
 
             {/* Mobile Menu Button */}
-            <div className="md:hidden z-50">
+            <div data-nav-item className="md:hidden z-50">
               <button
                 onClick={() => setIsOpen(true)}
                 type="button"
@@ -112,6 +147,7 @@ const NavBar: React.FC = memo(() => {
 
         {/* Drawer Panel */}
         <div
+          ref={drawerRef}
           className={`absolute right-0 top-0 bottom-0 w-[88vw] max-w-[360px] bg-[#060606] border-l border-[#262626] shadow-[0_0_60px_rgba(0,0,0,0.55)] transform transition-transform duration-300 ease-out flex flex-col ${
             isOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
@@ -141,6 +177,7 @@ const NavBar: React.FC = memo(() => {
               <Link
                 key={link.path}
                 to={link.path}
+                data-drawer-item
                 className={`block text-4xl font-bold font-space-grotesk uppercase tracking-tighter transition-colors duration-150 ${
                   isActive(link.path)
                     ? 'text-[#2563EB]'
@@ -152,7 +189,7 @@ const NavBar: React.FC = memo(() => {
             ))}
 
             {/* Divider */}
-            <div className="h-px bg-[#262626] w-full my-4" />
+            <div data-drawer-item className="h-px bg-[#262626] w-full my-4" />
 
             {/* Agent Trigger */}
             <button
@@ -161,6 +198,7 @@ const NavBar: React.FC = memo(() => {
                  // Small delay to allow drawer to close
                  setTimeout(() => setIsAgentOpen(true), 300);
                }}
+               data-drawer-item
                className="text-left group flex items-center gap-3"
             >
                <div>

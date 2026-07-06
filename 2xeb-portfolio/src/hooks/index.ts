@@ -4,3 +4,6 @@ export { useExperience } from './useExperience';
 
 // Easter egg hook
 export { useEasterEgg } from './useEasterEgg';
+
+// anime.js animation helpers
+export { useScrollReveal, prefersReducedMotion } from './useAnimations';

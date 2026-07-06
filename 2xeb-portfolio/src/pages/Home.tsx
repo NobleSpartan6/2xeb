@@ -1,8 +1,10 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { createTimeline, stagger, utils } from 'animejs';
 import ImmersiveScene from '../3d/ImmersiveScene';
 import { useConsole } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
+import { prefersReducedMotion } from '../hooks/useAnimations';
 
 // Hook for periodic terminal hint - shows a subtle cursor periodically
 const useTerminalHint = () => {
@@ -130,6 +132,51 @@ const Home: React.FC = () => {
   const nowPlaying = useSpotifyNowPlaying();
   const showTerminalHint = useTerminalHint();
   const showTimestampHint = useTimestampHint();
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Entrance choreography: hero letters cascade in, then status bar and CTAs
+  useLayoutEffect(() => {
+    const root = contentRef.current;
+    if (!contentVisible || !root || prefersReducedMotion()) return;
+
+    const letters = root.querySelectorAll('.hero-letter');
+    const status = root.querySelectorAll('[data-hero-status]');
+    const footer = root.querySelectorAll('[data-hero-footer]');
+
+    const all = [...letters, ...status, ...footer] as HTMLElement[];
+
+    // Hide everything synchronously before first paint to avoid a flash,
+    // and suspend CSS transitions so they don't fight the animation
+    utils.set(all, { opacity: 0 });
+    all.forEach((el) => {
+      el.style.transition = 'none';
+    });
+
+    const tl = createTimeline({
+      defaults: { ease: 'outExpo' },
+      // Clear inline styles afterwards so Tailwind transitions and hover
+      // transforms (e.g. hover:scale on the CTAs) work again
+      onComplete: () => {
+        all.forEach((el) => {
+          el.style.transform = '';
+          el.style.opacity = '';
+          el.style.transition = '';
+        });
+      },
+    });
+    tl.add(letters, {
+      opacity: [0, 1],
+      translateY: ['0.45em', '0em'],
+      duration: 1100,
+      delay: stagger(28),
+    })
+      .add(status, { opacity: [0, 1], translateY: [-10, 0], duration: 700 }, '-=900')
+      .add(
+        footer,
+        { opacity: [0, 1], translateY: [18, 0], duration: 800, delay: stagger(110) },
+        '-=850'
+      );
+  }, [contentVisible]);
 
   // Coordinated reveal: wait for 3D scene, then fade in content
   const handleSceneReady = useCallback(() => {
@@ -178,6 +225,7 @@ const Home: React.FC = () => {
 
       {/* Content Layer */}
       <div
+        ref={contentRef}
         className={`absolute inset-0 z-20 flex flex-col justify-between transition-opacity duration-1000 ease-out ${
           contentVisible ? 'opacity-100' : 'opacity-0'
         }`}
@@ -205,7 +253,7 @@ const Home: React.FC = () => {
 
         {/* Top Section - Live Status */}
         <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-[100px] sm:pt-[110px] md:pt-[136px] 2xl:pt-[148px] 3xl:pt-[160px] flex-shrink-0">
-          <div className="flex items-start gap-2 sm:gap-3">
+          <div data-hero-status className="flex items-start gap-2 sm:gap-3">
             <div className="w-5 sm:w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[4px] sm:mt-[6px] pointer-events-none" />
             <div className="font-mono text-[8px] sm:text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.15em] sm:tracking-[0.3em]">
               {/* Desktop: single line */}
@@ -282,7 +330,11 @@ const Home: React.FC = () => {
                   onPointerLeave={(e) => handleDisciplineHover(null, e)}
                   onClick={(e) => { e.stopPropagation(); handleDisciplineClick(lane); }}
                 >
-                  {label}
+                  {label.split('').map((char, i) => (
+                    <span key={i} className="hero-letter inline-block will-change-transform">
+                      {char}
+                    </span>
+                  ))}
                 </span>
               ))}
             </h1>
@@ -314,7 +366,7 @@ const Home: React.FC = () => {
         <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-32 sm:pb-28 md:pb-24 lg:pb-24 2xl:pb-28 3xl:pb-32 flex-shrink-0">
           <div className="flex flex-col-reverse md:flex-row md:items-end md:justify-between gap-1.5 sm:gap-4 md:gap-8 2xl:gap-12">
             {/* Description */}
-            <p className="text-white/40 text-[10px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[260px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-snug sm:leading-relaxed pointer-events-none">
+            <p data-hero-footer className="text-white/40 text-[10px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[260px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-snug sm:leading-relaxed pointer-events-none">
               A multidisciplinary portfolio exploring the intersection of software engineering,
               machine learning, and visual storytelling.
             </p>
@@ -323,6 +375,7 @@ const Home: React.FC = () => {
             <div className="flex gap-3 2xl:gap-4 pointer-events-auto flex-shrink-0">
               <Link
                 to="/work"
+                data-hero-footer
                 className="group relative px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 bg-[#2563EB] overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center"
               >
                 <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
@@ -333,6 +386,7 @@ const Home: React.FC = () => {
 
               <button
                 onClick={() => setIsAgentOpen(true)}
+                data-hero-footer
                 className="group px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 border border-white/20 hover:border-[#2563EB] backdrop-blur-sm transition-all hover:scale-[1.02] active:scale-[0.98] bg-black/20 flex items-center gap-2 2xl:gap-3"
               >
                 <span className="font-medium tracking-widest text-[11px] md:text-xs 2xl:text-sm uppercase text-white">
