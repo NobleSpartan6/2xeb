@@ -38,14 +38,17 @@ export const CASE_STUDIES: CaseStudy[] = [
 
 The 3D scenes use InstancedMesh for performance. Rendering 1600+ grid cells at 60fps on mobile required some tuning. The AI assistant streams responses via Supabase Edge Functions, with client-side rate limiting to stay within free-tier API limits.
 
-Deployed on Cloudflare Pages with code splitting to keep initial load fast. The architecture is intentionally simple: static content, serverless functions, no database for public content.`,
+Motion is handled by anime.js v4: a shared IntersectionObserver-driven scroll-reveal hook staggers content in as you browse, the home hero cascades in letter by letter, CTAs are magnetic on desktop, and mono labels decode with a terminal-style text scramble. Everything animates transform/opacity only and backs off under prefers-reduced-motion.
+
+Deployed on Cloudflare Workers with aggressive code splitting: Tailwind is compiled at build time (it originally ran as a runtime CDN script), and three.js/R3F plus the easter-egg terminal are lazy chunks — cutting the main bundle by 62%. The architecture is intentionally simple: static content, serverless functions, no database for public content.`,
 
     techStack: [
       'React 19 + TypeScript',
       'React Three Fiber',
       'Supabase Edge Functions',
       'Groq API (Llama 3.1/3.3)',
-      'Cloudflare Pages',
+      'anime.js v4',
+      'Cloudflare Workers',
       'Tailwind CSS',
       'Vite',
     ],
@@ -87,6 +90,18 @@ Deployed on Cloudflare Pages with code splitting to keep initial load fast. The 
           'Edge Function handles Spotify OAuth refresh flow. Polls every 30s, shows what I\'m listening to. Small detail but adds some life to the page.',
         type: 'milestone',
       },
+      {
+        title: 'Motion system with anime.js',
+        description:
+          'Replaced static CSS entrances with orchestrated anime.js timelines: staggered scroll reveals, a letter-by-letter hero, magnetic CTAs, and terminal-style text scrambles. One shared hook drives reveals site-wide.',
+        type: 'milestone',
+      },
+      {
+        title: 'The site felt sluggish',
+        description:
+          'Tailwind was compiling CSS in the browser via the Play CDN, and three.js shipped in the main bundle to every page. Moved Tailwind to build time and lazy-loaded the WebGL scenes + easter-egg terminal: main JS went from 458KB to 173KB gzipped.',
+        type: 'challenge',
+      },
     ],
 
     results: [
@@ -101,9 +116,9 @@ Deployed on Cloudflare Pages with code splitting to keep initial load fast. The 
         description: 'Streaming via Groq. Plain text output avoids JSON parsing delays.',
       },
       {
-        metric: 'Initial load',
-        value: '~200KB',
-        description: 'Code splitting keeps admin routes out of the main bundle.',
+        metric: 'Main bundle',
+        value: '173KB gzip',
+        description: 'Down 62% — build-time Tailwind, lazy three.js/R3F, lazy easter-egg terminal.',
       },
       {
         metric: 'Monthly cost',
@@ -145,6 +160,8 @@ Deployed on Cloudflare Pages with code splitting to keep initial load fast. The 
       'Static TypeScript > CMS for small sites. Faster, type-safe, version controlled, free.',
       'Client-side rate limiting pairs well with server-side validation for defense in depth.',
       'Streaming makes AI feel fast even when it\'s not. First token time > total time.',
+      'Never ship a runtime CSS compiler. The Tailwind Play CDN is great for prototypes and terrible for production.',
+      'Animate transform and opacity only, and always respect prefers-reduced-motion.',
       'Free tiers are underrated. This whole stack costs nothing to run.',
     ],
   },

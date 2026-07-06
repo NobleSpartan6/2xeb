@@ -218,7 +218,7 @@ const NavBar: React.FC = memo(() => {
                    <span className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1">New York, NY</span>
                    <span className="text-[10px] text-[#2563EB] font-mono uppercase tracking-widest">Est. 2025</span>
                 </div>
-                <span className="text-[10px] text-[#444] font-mono">v2.0.4</span>
+                <span className="text-[10px] text-[#444] font-mono">v2.1.0</span>
              </div>
           </div>
         </div>
