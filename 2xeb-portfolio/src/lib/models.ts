@@ -31,7 +31,7 @@ export const MODELS: ModelConfig[] = [
     id: 'llama-3.1-8b-instant',
     name: 'Llama 3.1 8B',
     provider: 'groq',
-    description: 'Fast & efficient, best for simple Q&A',
+    description: 'Fastest replies, highest daily limits',
     contextWindow: 131072,
     limits: {
       requestsPerMinute: 30,
@@ -42,10 +42,24 @@ export const MODELS: ModelConfig[] = [
     category: 'fast',
   },
   {
-    id: 'llama-3.1-70b-versatile',
-    name: 'Llama 3.1 70B',
+    id: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    name: 'Llama 4 Scout',
     provider: 'groq',
-    description: 'Balanced performance, good for general use',
+    description: 'Fast MoE model — best speed/quality balance',
+    contextWindow: 131072,
+    limits: {
+      requestsPerMinute: 30,
+      requestsPerDay: 1000,
+      tokensPerMinute: 30000,
+      tokensPerDay: 500000,
+    },
+    category: 'balanced',
+  },
+  {
+    id: 'llama-3.3-70b-versatile',
+    name: 'Llama 3.3 70B',
+    provider: 'groq',
+    description: 'Dense 70B, thorough answers',
     contextWindow: 131072,
     limits: {
       requestsPerMinute: 30,
@@ -56,22 +70,22 @@ export const MODELS: ModelConfig[] = [
     category: 'balanced',
   },
   {
-    id: 'llama-3.3-70b-versatile',
-    name: 'Llama 3.3 70B',
+    id: 'openai/gpt-oss-120b',
+    name: 'GPT-OSS 120B',
     provider: 'groq',
-    description: 'More capable, complex reasoning',
+    description: 'Strongest reasoning on the free tier',
     contextWindow: 131072,
     limits: {
       requestsPerMinute: 30,
       requestsPerDay: 1000,
-      tokensPerMinute: 12000,
-      tokensPerDay: 100000,
+      tokensPerMinute: 8000,
+      tokensPerDay: 200000,
     },
     category: 'powerful',
   },
 ];
 
-export const DEFAULT_MODEL_ID = 'llama-3.3-70b-versatile';
+export const DEFAULT_MODEL_ID = 'meta-llama/llama-4-scout-17b-16e-instruct';
 
 export function getModelById(id: string): ModelConfig | undefined {
   return MODELS.find(m => m.id === id);

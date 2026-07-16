@@ -5,6 +5,37 @@
 /* Global styles migrated from index.html (formerly served alongside the
    Tailwind Play CDN). Keep in sync with the MVP look — do not redesign. */
 
+/* Motion tokens (see .claude/skills/emil-design-eng): built-in CSS easings
+   are too weak for UI — these strong curves are the site-wide defaults.
+   Mirrored as Tailwind `ease-*` utilities in tailwind.config.js. */
+:root {
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@layer components {
+  /* Press feedback for any pressable element: instant scale-down on :active
+     confirms the press. Owns the full transition list, so don't combine it
+     with Tailwind `transition-*` utilities on the same element. */
+  .pressable {
+    transition:
+      transform 160ms var(--ease-out-strong),
+      color 150ms ease,
+      background-color 150ms ease,
+      border-color 150ms ease,
+      opacity 150ms ease;
+  }
+  .pressable:active {
+    transform: scale(0.97);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pressable:active {
+      transform: none;
+    }
+  }
+}
+
 /* Ensure proper viewport handling on mobile */
 html,
 body {

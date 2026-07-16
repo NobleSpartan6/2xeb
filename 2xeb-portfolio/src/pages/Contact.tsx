@@ -193,7 +193,7 @@ const Contact: React.FC = () => {
                     onBlur={handleBlur}
                     className={`w-full bg-transparent border-b-2 ${
                       focusedField === 'name' ? 'border-[#2563EB]' : 'border-[#222]'
-                    } px-0 py-2 text-white text-sm focus:outline-none placeholder:text-[#444] transition-all duration-300`}
+                    } px-0 py-2 text-white text-sm focus:outline-none placeholder:text-[#444] transition-colors duration-200`}
                     placeholder="Your name"
                   />
                 </div>
@@ -210,7 +210,7 @@ const Contact: React.FC = () => {
                     onBlur={handleBlur}
                     className={`w-full bg-transparent border-b-2 ${
                       focusedField === 'email' ? 'border-[#2563EB]' : 'border-[#222]'
-                    } px-0 py-2 text-white text-sm focus:outline-none placeholder:text-[#444] transition-all duration-300`}
+                    } px-0 py-2 text-white text-sm focus:outline-none placeholder:text-[#444] transition-colors duration-200`}
                     placeholder="you@email.com"
                   />
                 </div>
@@ -227,7 +227,7 @@ const Contact: React.FC = () => {
                   onBlur={handleBlur}
                   className={`w-full bg-transparent border-b-2 ${
                     focusedField === 'reason' ? 'border-[#2563EB]' : 'border-[#222]'
-                  } px-0 py-2 text-white text-sm focus:outline-none appearance-none cursor-pointer transition-all duration-300`}
+                  } px-0 py-2 text-white text-sm focus:outline-none appearance-none cursor-pointer transition-colors duration-200`}
                 >
                   <option value="general" className="bg-[#111]">General Inquiry</option>
                   <option value="swe" className="bg-[#111]">Software Engineering</option>
@@ -250,7 +250,7 @@ const Contact: React.FC = () => {
                   onBlur={handleBlur}
                   className={`w-full bg-transparent border-b-2 ${
                     focusedField === 'message' ? 'border-[#2563EB]' : 'border-[#222]'
-                  } px-0 py-2 text-white text-sm focus:outline-none resize-none placeholder:text-[#444] transition-all duration-300`}
+                  } px-0 py-2 text-white text-sm focus:outline-none resize-none placeholder:text-[#444] transition-colors duration-200`}
                   placeholder="Tell me about your project..."
                 ></textarea>
               </div>
@@ -260,7 +260,7 @@ const Contact: React.FC = () => {
                 <button
                   type="submit"
                   disabled={status === 'submitting'}
-                  className="group px-6 py-3 bg-[#2563EB] text-white text-sm font-medium tracking-wide hover:bg-[#1d4ed8] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="group px-6 py-3 bg-[#2563EB] text-white text-sm font-medium tracking-wide hover:bg-[#1d4ed8] pressable disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {status === 'submitting' ? (
                     <>

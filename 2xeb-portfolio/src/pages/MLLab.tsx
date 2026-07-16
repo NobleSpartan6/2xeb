@@ -67,7 +67,7 @@ const MLLab: React.FC = () => {
 
         {/* Right Column: AI Widget sticky */}
         <div data-animate className="lg:col-span-5 lg:sticky lg:top-32 h-fit">
-          <div className="bg-[#0A0A0A] border border-[#1f2937] overflow-hidden shadow-xl relative transition-all duration-500">
+          <div className="bg-[#0A0A0A] border border-[#1f2937] overflow-hidden shadow-xl relative">
             {/* Blue accent line at top */}
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#2563EB] to-transparent" />
 
@@ -102,7 +102,7 @@ const MLLab: React.FC = () => {
             <div
               id="ml-widget-panel"
               className={`
-                transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
+                transition-[max-height,opacity] duration-500 ease-drawer
                 ${isExpanded ? 'max-h-[calc(100vh-200px)] sm:max-h-[540px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}
               `}
             >

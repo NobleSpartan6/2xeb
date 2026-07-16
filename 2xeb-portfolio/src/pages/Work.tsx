@@ -106,7 +106,7 @@ const Work: React.FC = () => {
             <button
               key={f.value}
               onClick={() => handleFilterChange(f.value)}
-              className={`px-4 sm:px-5 lg:px-6 py-3 text-[11px] font-bold uppercase tracking-[0.16em] transition-all duration-200 border-r border-[#262626] last:border-r-0 ${
+              className={`px-4 sm:px-5 lg:px-6 py-3 text-[11px] font-bold uppercase tracking-[0.16em] pressable border-r border-[#262626] last:border-r-0 ${
                 activeFilter === f.value
                   ? 'bg-[#2563EB] text-white'
                   : 'bg-[#0A0A0A] text-[#A3A3A3] hover:bg-white hover:text-black'
@@ -150,7 +150,7 @@ const Work: React.FC = () => {
             font-mono text-xs text-[#2563EB]/70 hover:text-[#2563EB]
             border border-[#2563EB]/20 hover:border-[#2563EB]/50
             bg-[#2563EB]/5 hover:bg-[#2563EB]/10
-            rounded transition-all duration-500 ease-out
+            rounded transition-[opacity,transform,color,border-color,background-color] duration-300 ease-out-strong
             ${showScrollHint
               ? 'opacity-100 translate-y-0'
               : 'opacity-0 translate-y-4 pointer-events-none'

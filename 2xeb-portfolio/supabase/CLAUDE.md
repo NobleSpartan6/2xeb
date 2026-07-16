@@ -32,8 +32,10 @@ AI assistant for portfolio questions. **Groq only** with optional SSE streaming.
   | Model ID | Daily Limit | Default |
   |----------|-------------|---------|
   | `llama-3.1-8b-instant` | 14,400 | No |
-  | `llama-3.1-70b-versatile` | 1,000 | No |
-  | `llama-3.3-70b-versatile` | 1,000 | **Yes** |
+  | `meta-llama/llama-4-scout-17b-16e-instruct` | 1,000 | **Yes** |
+  | `llama-3.3-70b-versatile` | 1,000 | No |
+  | `openai/gpt-oss-120b` | 1,000 | No |
+- **Reasoning models**: `openai/gpt-oss-*` get `reasoning_effort: "low"` so chat replies stay snappy
 - **Security**: Server validates model ID against whitelist (ALLOWED_GROQ_MODELS)
 - **Requires**: `GROQ_API_KEY` secret
 

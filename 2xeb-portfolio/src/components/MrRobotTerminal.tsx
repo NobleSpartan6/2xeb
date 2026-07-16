@@ -1784,7 +1784,7 @@ drwxr-xr-x  ..
                         e.stopPropagation();
                         handleCommand(cmd);
                       }}
-                      className="px-2.5 py-1.5 text-[10px] font-mono rounded border transition-all active:scale-95"
+                      className="px-2.5 py-1.5 text-[10px] font-mono rounded border pressable"
                       style={{
                         color: TERM_COLOR,
                         borderColor: 'rgba(96, 165, 250, 0.3)',
@@ -1869,7 +1869,7 @@ drwxr-xr-x  ..
                       e.stopPropagation();
                       inputRef.current?.blur();
                     }}
-                    className="flex sm:hidden items-center gap-1 px-2 py-1 rounded border transition-all active:scale-95"
+                    className="flex sm:hidden items-center gap-1 px-2 py-1 rounded border pressable"
                     style={{
                       color: TERM_COLOR,
                       borderColor: 'rgba(96, 165, 250, 0.4)',

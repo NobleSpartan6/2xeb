@@ -41,12 +41,16 @@ const CaseStudyExplorer: React.FC<CaseStudyExplorerProps> = ({ caseStudy, onClos
     </button>
   );
 
+  // grid-rows 0fr -> 1fr animates to the content's real height (a max-height
+  // guess either clips or makes the ease land early)
   const SectionContent: React.FC<{ section: Section; children: React.ReactNode }> = ({ section, children }) => (
-    <div className={`overflow-hidden transition-all duration-300 ${
-      expandedSection === section ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+    <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out-strong ${
+      expandedSection === section ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
     }`}>
-      <div className="p-5 bg-[#0a0a0a] border-b border-[#1f2937]">
-        {children}
+      <div className="overflow-hidden">
+        <div className="p-5 bg-[#0a0a0a] border-b border-[#1f2937]">
+          {children}
+        </div>
       </div>
     </div>
   );

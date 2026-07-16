@@ -375,7 +375,7 @@ const NotFound: React.FC = () => {
   };
 
   return (
-    <div className={`h-screen w-screen bg-[#050505] relative overflow-hidden transition-all duration-1000 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+    <div className={`h-screen w-screen bg-[#050505] relative overflow-hidden transition-[opacity,transform] duration-1000 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
       <style>{`
         .terminal-cursor { animation: blink 1s step-end infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
@@ -420,7 +420,7 @@ const NotFound: React.FC = () => {
         {!terminalOpen && (
           <button
             onClick={() => setTerminalOpen(true)}
-            className="mb-4 px-6 py-3 bg-[#0a0a0a]/80 backdrop-blur border border-[#333] hover:border-[#2563EB] transition-all duration-300 font-mono text-sm text-white"
+            className="mb-4 px-6 py-3 bg-[#0a0a0a]/80 backdrop-blur border border-[#333] hover:border-[#2563EB] pressable font-mono text-sm text-white"
           >
             Open Terminal
           </button>
@@ -486,7 +486,7 @@ const NotFound: React.FC = () => {
               setIsTransitioning(true);
               setTimeout(() => navigate('/'), 1000);
             }}
-            className="group px-6 py-3 bg-[#0a0a0a]/80 backdrop-blur border border-[#333] hover:border-[#2563EB] transition-all duration-300 flex items-center gap-2"
+            className="group px-6 py-3 bg-[#0a0a0a]/80 backdrop-blur border border-[#333] hover:border-[#2563EB] pressable flex items-center gap-2"
           >
             <span className="text-[#2563EB] group-hover:translate-x-[-4px] transition-transform">&larr;</span>
             <span className="text-white font-mono text-sm">Go Home</span>

@@ -21,7 +21,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
               loading="lazy"
               width="800"
               height="450"
-              className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 ease-out"
+              className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-[opacity,transform] duration-500 ease-out-strong"
            />
          ) : (
            <div className="w-full h-full bg-[#111] flex items-center justify-center text-[#333] font-mono text-xs">

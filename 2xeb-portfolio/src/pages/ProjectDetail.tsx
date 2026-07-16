@@ -171,7 +171,7 @@ const ProjectDetail: React.FC = () => {
              />
              {embedUrl && (
                <div className="absolute inset-0 flex items-center justify-center">
-                 <div className="w-20 h-20 rounded-full border border-white/20 flex items-center justify-center bg-black/50 backdrop-blur-sm group-hover:scale-110 group-hover:border-[#2563EB] transition-all duration-300">
+                 <div className="w-20 h-20 rounded-full border border-white/20 flex items-center justify-center bg-black/50 backdrop-blur-sm group-hover:scale-110 group-hover:border-[#2563EB] transition-[transform,border-color] duration-300 ease-out-strong">
                    <div className="w-0 h-0 border-t-[10px] border-t-transparent border-l-[20px] border-l-white border-b-[10px] border-b-transparent ml-1 group-hover:border-l-[#2563EB] transition-colors"></div>
                  </div>
                </div>
@@ -200,7 +200,7 @@ const ProjectDetail: React.FC = () => {
                   href={project.externalUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="bg-[#2563EB] text-white hover:bg-white hover:text-black px-6 py-3 transition-all block w-max text-sm font-bold uppercase tracking-widest"
+                  className="bg-[#2563EB] text-white hover:bg-white hover:text-black px-6 py-3 pressable block w-max text-sm font-bold uppercase tracking-widest"
                 >
                   Visit Project ↗
                 </a>
@@ -214,7 +214,7 @@ const ProjectDetail: React.FC = () => {
                   href={project.videoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-white hover:text-[#2563EB] border-b border-white/20 hover:border-[#2563EB] pb-1 transition-all block w-max text-sm font-bold uppercase tracking-wider"
+                  className="text-white hover:text-[#2563EB] border-b border-white/20 hover:border-[#2563EB] pb-1 transition-colors duration-200 block w-max text-sm font-bold uppercase tracking-wider"
                 >
                   Watch video ↗
                 </a>
@@ -229,7 +229,7 @@ const ProjectDetail: React.FC = () => {
                 onClick={() => setIsEasterEggActive(true)}
                 className="group flex items-center gap-3 text-left w-full"
               >
-                <div className="w-10 h-10 border border-[#262626] bg-[#0A0A0A] flex items-center justify-center group-hover:border-[#2563EB] group-hover:bg-[#2563EB]/5 transition-all">
+                <div className="w-10 h-10 border border-[#262626] bg-[#0A0A0A] flex items-center justify-center group-hover:border-[#2563EB] group-hover:bg-[#2563EB]/5 transition-colors duration-200">
                   <span className="text-[#2563EB]/60 group-hover:text-[#2563EB] font-mono text-sm animate-pulse">&gt;_</span>
                 </div>
                 <div>

@@ -254,7 +254,7 @@ const Home: React.FC = () => {
           className={`
             fixed top-[100px] sm:top-[110px] md:top-[136px] right-6 md:right-12 lg:right-16 z-30
             font-mono text-[10px] sm:text-xs text-[#2563EB]/60 hover:text-[#2563EB]
-            transition-all duration-500 ease-out pointer-events-auto
+            transition-[opacity,transform,color] duration-300 ease-out-strong pointer-events-auto
             ${showTerminalHint ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}
           `}
           title="Hello, friend."
@@ -282,9 +282,9 @@ const Home: React.FC = () => {
                     setIsEasterEggActive(true);
                   }}
                   className={`
-                    text-[#2563EB]/60 hover:text-[#2563EB] transition-all duration-500 ease-out
+                    text-[#2563EB]/60 hover:text-[#2563EB] transition-[opacity,transform,color] duration-300 ease-out-strong
                     pointer-events-auto cursor-pointer
-                    ${showTimestampHint ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'}
+                    ${showTimestampHint ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'}
                   `}
                   title="Hello, friend."
                 >
@@ -308,9 +308,9 @@ const Home: React.FC = () => {
                       setIsEasterEggActive(true);
                     }}
                     className={`
-                      text-[#2563EB]/60 hover:text-[#2563EB] transition-all duration-500 ease-out
+                      text-[#2563EB]/60 hover:text-[#2563EB] transition-[opacity,transform,color] duration-300 ease-out-strong
                       pointer-events-auto cursor-pointer
-                      ${showTimestampHint ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'}
+                      ${showTimestampHint ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'}
                     `}
                     title="Hello, friend."
                   >
@@ -332,7 +332,7 @@ const Home: React.FC = () => {
               {DISCIPLINES.map(({ lane, label, color }) => (
                 <span
                   key={lane}
-                  className="block transition-all duration-500 ease-out cursor-pointer pointer-events-auto active:scale-[0.98]"
+                  className="block transition-[color,opacity,transform,text-shadow] duration-300 ease-in-out-strong cursor-pointer pointer-events-auto"
                   style={{
                     fontSize: 'clamp(2.25rem, 8vw, 14rem)',
                     color: focusedDiscipline === lane ? color : '#ffffff',
@@ -355,13 +355,13 @@ const Home: React.FC = () => {
 
             {/* Discipline description that appears on hover/tap */}
             <div
-              className="h-5 sm:h-8 2xl:h-10 mt-3 sm:mt-6 2xl:mt-8 3xl:mt-10 overflow-hidden transition-all duration-300"
+              className="h-5 sm:h-8 2xl:h-10 mt-3 sm:mt-6 2xl:mt-8 3xl:mt-10 overflow-hidden transition-opacity duration-300"
               style={{ opacity: focusedDiscipline ? 1 : 0 }}
             >
               {DISCIPLINES.map(({ lane, description, color }) => (
                 <p
                   key={lane}
-                  className="font-mono text-[10px] sm:text-xs 2xl:text-sm 3xl:text-base tracking-widest uppercase transition-all duration-300"
+                  className="font-mono text-[10px] sm:text-xs 2xl:text-sm 3xl:text-base tracking-widest uppercase transition-[opacity,transform] duration-300 ease-out-strong"
                   style={{
                     color: color,
                     opacity: focusedDiscipline === lane ? 1 : 0,
@@ -391,7 +391,7 @@ const Home: React.FC = () => {
               <div ref={workCtaRef} data-hero-footer>
                 <Link
                   to="/work"
-                  className="group relative px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 bg-[#2563EB] overflow-hidden active:scale-[0.98] flex items-center justify-center h-full"
+                  className="group relative px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 bg-[#2563EB] overflow-hidden pressable flex items-center justify-center h-full"
                 >
                   <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
                   <span className="relative font-medium tracking-widest text-[11px] md:text-xs 2xl:text-sm uppercase text-white group-hover:text-black transition-colors z-10 whitespace-nowrap">
@@ -403,7 +403,7 @@ const Home: React.FC = () => {
               <div ref={askCtaRef} data-hero-footer>
                 <button
                   onClick={() => setIsAgentOpen(true)}
-                  className="group px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 border border-white/20 hover:border-[#2563EB] backdrop-blur-sm transition-colors active:scale-[0.98] bg-black/20 flex items-center gap-2 2xl:gap-3 h-full"
+                  className="group px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 border border-white/20 hover:border-[#2563EB] backdrop-blur-sm pressable bg-black/20 flex items-center gap-2 2xl:gap-3 h-full"
                 >
                   <span className="font-medium tracking-widest text-[11px] md:text-xs 2xl:text-sm uppercase text-white">
                     ASK

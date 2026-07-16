@@ -82,13 +82,13 @@ const FooterHUD: React.FC = () => {
       />
 
       {/* Footer HUD Container - fixed to bottom */}
-      <div className={`fixed bottom-0 left-0 right-0 z-[75] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]`}>
-        
+      <div className="fixed bottom-0 left-0 right-0 z-[75]">
+
         {/* Expandable Chat Panel */}
         <div
           className={`
             relative bg-[#0A0A0A] border-t border-[#1f2937] overflow-hidden
-            transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
+            transition-[height,opacity] duration-500 ease-drawer
             ${isAgentOpen ? 'h-[70vh] sm:h-[60vh] md:h-[55vh] lg:h-[50vh] 2xl:h-[45vh] 3xl:h-[40vh] opacity-100' : 'h-0 opacity-0'}
           `}
         >
@@ -191,7 +191,7 @@ const FooterHUD: React.FC = () => {
                       EB Active
                     </span>
                   ) : (
-                    <button onClick={() => setIsAgentOpen(!isAgentOpen)} className={`flex items-center gap-2 2xl:gap-2.5 px-4 2xl:px-5 py-2 2xl:py-2.5 transition-all border ${isAgentOpen ? 'bg-[#2563EB] border-[#2563EB] text-white' : 'bg-transparent border-[#333] text-[#a3a3a3] hover:border-[#2563EB] hover:text-white hover:bg-[#2563EB]/10'}`}>
+                    <button onClick={() => setIsAgentOpen(!isAgentOpen)} className={`flex items-center gap-2 2xl:gap-2.5 px-4 2xl:px-5 py-2 2xl:py-2.5 pressable border ${isAgentOpen ? 'bg-[#2563EB] border-[#2563EB] text-white' : 'bg-transparent border-[#333] text-[#a3a3a3] hover:border-[#2563EB] hover:text-white hover:bg-[#2563EB]/10'}`}>
                     <span>{isAgentOpen ? 'CLOSE' : 'ASK'}</span>
                     <div className={`w-5 h-5 2xl:w-6 2xl:h-6 border grid place-items-center transition-colors ${isAgentOpen ? 'bg-white/10 border-white/30' : 'bg-[#0A0A0A] border-[#333]'}`}>
                       <span className={`font-bold text-[8px] 2xl:text-[9px] font-space-grotesk tracking-tight ${isAgentOpen ? 'text-white' : 'text-[#2563EB]'}`}>EB</span>
@@ -237,7 +237,7 @@ const FooterHUD: React.FC = () => {
                     <button
                       onClick={() => setIsAgentOpen(!isAgentOpen)}
                       className={`
-                        flex items-center gap-1.5 px-3 py-1 leading-none rounded border text-[9px] transition-all
+                        flex items-center gap-1.5 px-3 py-1 leading-none rounded border text-[9px] pressable
                         ${isAgentOpen
                           ? 'bg-[#2563EB] border-[#2563EB] text-white'
                           : 'bg-transparent border-[#333] text-[#a3a3a3]'

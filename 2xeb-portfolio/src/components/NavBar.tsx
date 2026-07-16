@@ -123,7 +123,7 @@ const NavBar: React.FC = memo(() => {
               >
                 <div className="flex flex-col gap-1.5 items-end">
                    <span className="block w-8 h-[2px] bg-white group-hover:bg-[#2563EB] transition-colors"></span>
-                   <span className="block w-5 h-[2px] bg-white group-hover:bg-[#2563EB] transition-colors group-hover:w-8"></span>
+                   <span className="block w-5 h-[2px] bg-white group-hover:bg-[#2563EB] transition-[background-color,width] duration-200 ease-out-strong group-hover:w-8"></span>
                 </div>
               </button>
             </div>
@@ -133,7 +133,7 @@ const NavBar: React.FC = memo(() => {
 
       {/* Mobile Side Drawer */}
       <div
-          className={`fixed inset-0 z-[110] md:hidden transition-[visibility] duration-500 ${isOpen ? 'pointer-events-auto' : 'pointer-events-none delay-500'}`}
+          className={`fixed inset-0 z-[110] md:hidden transition-[visibility] duration-300 ${isOpen ? 'pointer-events-auto' : 'pointer-events-none delay-300'}`}
         aria-hidden={!isOpen}
       >
         
@@ -148,8 +148,8 @@ const NavBar: React.FC = memo(() => {
         {/* Drawer Panel */}
         <div
           ref={drawerRef}
-          className={`absolute right-0 top-0 bottom-0 w-[88vw] max-w-[360px] bg-[#060606] border-l border-[#262626] shadow-[0_0_60px_rgba(0,0,0,0.55)] transform transition-transform duration-300 ease-out flex flex-col ${
-            isOpen ? 'translate-x-0' : 'translate-x-full'
+          className={`absolute right-0 top-0 bottom-0 w-[88vw] max-w-[360px] bg-[#060606] border-l border-[#262626] shadow-[0_0_60px_rgba(0,0,0,0.55)] transform transition-transform ease-drawer flex flex-col ${
+            isOpen ? 'translate-x-0 duration-[450ms]' : 'translate-x-full duration-300'
           }`}
           role="dialog"
           aria-modal="true"

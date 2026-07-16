@@ -2,6 +2,11 @@
 // Ported 1:1 from the former inline `tailwind.config` in index.html (Play CDN).
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  future: {
+    // Gate hover: variants behind (hover) and (pointer: fine) so touch
+    // devices don't get sticky hover states on tap.
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     screens: {
       sm: '640px',
@@ -33,10 +38,17 @@ export default {
         primary: '#2563EB',
         'swiss-blue': '#2563EB',
       },
+      transitionTimingFunction: {
+        // Strong curves — the built-in ease-out/ease-in-out are too weak
+        'out-strong': 'cubic-bezier(0.23, 1, 0.32, 1)',
+        'in-out-strong': 'cubic-bezier(0.77, 0, 0.175, 1)',
+        drawer: 'cubic-bezier(0.32, 0.72, 0, 1)',
+      },
       animation: {
         'spin-slow': 'spin 20s linear infinite',
         'slide-in': 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         'fade-in': 'fadeIn 0.2s ease-out forwards',
+        'message-in': 'messageIn 0.25s cubic-bezier(0.23, 1, 0.32, 1) both',
       },
       keyframes: {
         slideIn: {
@@ -46,6 +58,10 @@ export default {
         fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
+        },
+        messageIn: {
+          '0%': { opacity: '0', transform: 'translateY(6px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
       maxWidth: {
