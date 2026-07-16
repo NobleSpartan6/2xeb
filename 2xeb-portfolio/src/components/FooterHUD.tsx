@@ -84,12 +84,16 @@ const FooterHUD: React.FC = () => {
       {/* Footer HUD Container - fixed to bottom */}
       <div className="fixed bottom-0 left-0 right-0 z-[75]">
 
-        {/* Expandable Chat Panel */}
+        {/* Expandable Chat Panel: fixed height, slides up from behind the
+            footer bar. Transform/opacity only — animating height reflows the
+            panel (and its blurred backdrop) on every frame. */}
+        <div className="absolute inset-x-0 bottom-full overflow-hidden pointer-events-none">
         <div
           className={`
             relative bg-[#0A0A0A] border-t border-[#1f2937] overflow-hidden
-            transition-[height,opacity] duration-500 ease-drawer
-            ${isAgentOpen ? 'h-[70vh] sm:h-[60vh] md:h-[55vh] lg:h-[50vh] 2xl:h-[45vh] 3xl:h-[40vh] opacity-100' : 'h-0 opacity-0'}
+            h-[70vh] sm:h-[60vh] md:h-[55vh] lg:h-[50vh] 2xl:h-[45vh] 3xl:h-[40vh]
+            transition-[transform,opacity,visibility] duration-500 ease-drawer
+            ${isAgentOpen ? 'translate-y-0 opacity-100 visible pointer-events-auto' : 'translate-y-full opacity-0 invisible'}
           `}
         >
           {/* Blue accent line */}
@@ -122,6 +126,7 @@ const FooterHUD: React.FC = () => {
               <AskPortfolioWidget compact autoFocus={isAgentOpen} />
             </div>
           </div>
+        </div>
         </div>
 
         {/* Footer Bar - always visible */}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Stars } from '@react-three/drei';
 import * as THREE from 'three';
+import { prefersReducedMotion } from '../hooks/useAnimations';
 
 // Error boundary for Canvas
 class CanvasErrorBoundary extends React.Component<
@@ -230,6 +231,8 @@ const GlitchText: React.FC<{ text: string; matrixMode: boolean }> = ({ text, mat
   const [glitch, setGlitch] = useState(false);
 
   useEffect(() => {
+    // Reduced motion: static glow, no jitter
+    if (prefersReducedMotion()) return;
     const interval = setInterval(() => {
       if (Math.random() > 0.7) {
         setGlitch(true);

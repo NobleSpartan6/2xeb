@@ -213,7 +213,7 @@ const Home: React.FC = () => {
     <div className="relative w-full h-[100dvh] overflow-hidden bg-[#050505]" style={{ minHeight: '-webkit-fill-available' }}>
 
       {/* 3D Background - Full Screen Immersive */}
-      <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${sceneReady ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`absolute inset-0 z-0 transition-opacity duration-500 ease-out-strong ${sceneReady ? 'opacity-100' : 'opacity-0'}`}>
         <Suspense fallback={null}>
           <ImmersiveScene onReady={handleSceneReady} />
         </Suspense>
@@ -240,7 +240,7 @@ const Home: React.FC = () => {
       {/* Content Layer */}
       <div
         ref={contentRef}
-        className={`absolute inset-0 z-20 flex flex-col justify-between transition-opacity duration-1000 ease-out ${
+        className={`absolute inset-0 z-20 flex flex-col justify-between transition-opacity duration-500 ease-out-strong ${
           contentVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={() => setFocusedDiscipline(null)}
@@ -393,7 +393,7 @@ const Home: React.FC = () => {
                   to="/work"
                   className="group relative px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 bg-[#2563EB] overflow-hidden pressable flex items-center justify-center h-full"
                 >
-                  <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                  <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out-strong" />
                   <span className="relative font-medium tracking-widest text-[11px] md:text-xs 2xl:text-sm uppercase text-white group-hover:text-black transition-colors z-10 whitespace-nowrap">
                     View Work
                   </span>

@@ -36,6 +36,19 @@
   }
 }
 
+/* Reduced motion for the Tailwind animation utilities: keep opacity/color
+   feedback, drop movement. (anime.js timelines check prefersReducedMotion()
+   in JS; spinners and pulse are opacity-only and stay.) */
+@media (prefers-reduced-motion: reduce) {
+  .animate-bounce {
+    animation: none;
+  }
+  .animate-message-in {
+    /* keep the fade, drop the 6px rise */
+    animation-name: fadeIn;
+  }
+}
+
 /* Ensure proper viewport handling on mobile */
 html,
 body {

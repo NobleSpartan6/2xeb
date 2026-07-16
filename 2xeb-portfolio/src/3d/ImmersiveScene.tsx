@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useConsole, ConsoleContext } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
+import { prefersReducedMotion } from '../hooks/useAnimations';
 
 // --- RESPONSIVE CONFIGURATION ---
 type ScreenSize = 'mobile' | 'desktop' | 'large' | 'ultrawide';
@@ -129,9 +130,14 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     return data;
   }, [gridSize, cellSize]);
 
+  // Reduced motion: freeze the clock so pillars, waves and breathing hold a
+  // static (still lit and colored) pose; the mouse highlight stays as direct
+  // interaction feedback.
+  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+
   useFrame((state) => {
     if (!meshRef.current) return;
-    const time = state.clock.getElapsedTime();
+    const time = reduceMotion ? 0 : state.clock.getElapsedTime();
 
     // Update pillar positions
     updateSWEPillar(pillars.current.swe, time);
@@ -273,8 +279,10 @@ const PillarLights: React.FC = () => {
     video: { position: new THREE.Vector3(), velocity: new THREE.Vector3(), phase: 0 },
   });
 
+  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+
   useFrame((state) => {
-    const time = state.clock.getElapsedTime();
+    const time = reduceMotion ? 0 : state.clock.getElapsedTime();
 
     updateSWEPillar(pillars.current.swe, time);
     updateMLPillar(pillars.current.ml, time);
@@ -316,8 +324,15 @@ const PillarLights: React.FC = () => {
 const CameraRig: React.FC = () => {
   const { camera, mouse } = useThree();
   const targetPos = useRef(new THREE.Vector3(0, 12, 16));
+  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
 
   useFrame(() => {
+    // Reduced motion: no viewport-wide parallax — hold the framing
+    if (reduceMotion) {
+      camera.lookAt(0, -1, 0);
+      return;
+    }
+
     // Parallax effect based on mouse
     const targetX = mouse.x * 3;
     const targetY = 12 + mouse.y * 1;

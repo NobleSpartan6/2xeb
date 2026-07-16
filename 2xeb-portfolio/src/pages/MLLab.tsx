@@ -98,21 +98,25 @@ const MLLab: React.FC = () => {
               </svg>
             </button>
 
-            {/* Widget Content - collapsible */}
+            {/* Widget Content - collapsible. grid-rows 0fr -> 1fr animates to
+                the content's true height (max-height guesses clip or land the
+                ease early) — same pattern as CaseStudyExplorer */}
             <div
               id="ml-widget-panel"
               className={`
-                transition-[max-height,opacity] duration-500 ease-drawer
-                ${isExpanded ? 'max-h-[calc(100vh-200px)] sm:max-h-[540px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}
+                grid transition-[grid-template-rows,opacity] duration-500 ease-drawer
+                ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}
               `}
             >
-              <div className="h-[calc(100vh-200px)] sm:h-[520px] flex flex-col">
-                <div className="flex-1 min-h-0">
-                  <AskPortfolioWidget compact />
+              <div className="min-h-0 overflow-hidden">
+                <div className="h-[calc(100vh-200px)] sm:h-[520px] flex flex-col">
+                  <div className="flex-1 min-h-0">
+                    <AskPortfolioWidget compact />
+                  </div>
+                  <p className="text-[10px] sm:text-[10px] text-[#404040] text-center font-mono uppercase tracking-widest mt-2 sm:mt-3 pb-3 sm:pb-4 px-2">
+                    Model: {currentModel.name} · Context: Project Metadata
+                  </p>
                 </div>
-                <p className="text-[10px] sm:text-[10px] text-[#404040] text-center font-mono uppercase tracking-widest mt-2 sm:mt-3 pb-3 sm:pb-4 px-2">
-                  Model: {currentModel.name} · Context: Project Metadata
-                </p>
               </div>
             </div>
           </div>

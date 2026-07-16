@@ -123,7 +123,7 @@ const NavBar: React.FC = memo(() => {
               >
                 <div className="flex flex-col gap-1.5 items-end">
                    <span className="block w-8 h-[2px] bg-white group-hover:bg-[#2563EB] transition-colors"></span>
-                   <span className="block w-5 h-[2px] bg-white group-hover:bg-[#2563EB] transition-[background-color,width] duration-200 ease-out-strong group-hover:w-8"></span>
+                   <span className="block w-8 h-[2px] bg-white origin-right scale-x-[0.625] group-hover:scale-x-100 group-hover:bg-[#2563EB] transition-[background-color,transform] duration-200 ease-out-strong"></span>
                 </div>
               </button>
             </div>
