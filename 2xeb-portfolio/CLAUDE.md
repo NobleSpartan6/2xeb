@@ -165,6 +165,7 @@ import { Discipline, ConsoleLane, Project } from '../lib/types';
 - **Clear**: Reset chat history
 - **Markdown**: Lightweight renderer (code, bold, lists) - no external deps
 - **Model Selector**: Switch between Llama 3.1 8B, Llama 4 Scout (default), Llama 3.3 70B, GPT-OSS 120B (all Groq; keep `src/lib/models.ts` and the Edge Function whitelist in sync)
+- **Rate-limit Fallback**: if Groq returns 429, the Edge Function retries once on Cerebras `gpt-oss-120b` (needs `CEREBRAS_API_KEY` secret); streaming keeps working and the response reports `provider: 'cerebras'`
 
 ### Animations (anime.js)
 - All entrance/scroll animations use [anime.js v4](https://animejs.com/) (`animate`, `createTimeline`, `stagger`, `utils`)
@@ -240,7 +241,7 @@ on contact_messages for insert to public with check (true);
 ```
 
 ### Edge Functions
-- `ask-portfolio`: Multi-model AI (Groq/Gemini), SSE streaming support
+- `ask-portfolio`: Multi-model AI (Groq primary, Cerebras 429 fallback), SSE streaming support
   - Input: `{ question, context, model?, provider?, stream? }`
   - Output: `{ answer, projectSlugs, model, provider }` or SSE stream
 - `submit-contact`: Inserts into `contact_messages`, sends email via Resend

@@ -19,7 +19,7 @@ Handles contact form submissions. Inserts into `contact_messages` table and send
 - **Email**: Sends notification to email (requires `RESEND_API_KEY`)
 
 ### ask-portfolio
-AI assistant for portfolio questions. **Groq only** with optional SSE streaming.
+AI assistant for portfolio questions. **Groq primary, Cerebras 429 fallback**, with optional SSE streaming.
 
 - **Endpoint**: `POST /functions/v1/ask-portfolio`
 - **Input**: `{ question, context, model?, stream? }`
@@ -35,9 +35,10 @@ AI assistant for portfolio questions. **Groq only** with optional SSE streaming.
   | `meta-llama/llama-4-scout-17b-16e-instruct` | 1,000 | **Yes** |
   | `llama-3.3-70b-versatile` | 1,000 | No |
   | `openai/gpt-oss-120b` | 1,000 | No |
-- **Reasoning models**: `openai/gpt-oss-*` get `reasoning_effort: "low"` so chat replies stay snappy
-- **Security**: Server validates model ID against whitelist (ALLOWED_GROQ_MODELS)
-- **Requires**: `GROQ_API_KEY` secret
+- **Reasoning models**: `gpt-oss` models get `reasoning_effort: "low"` so chat replies stay snappy
+- **Fallback**: if Groq responds 429 (rate limit) and `CEREBRAS_API_KEY` is set, the request is retried once against Cerebras (`https://api.cerebras.ai/v1/chat/completions`, OpenAI-compatible) with `gpt-oss-120b` — Cerebras's only production free-tier model, the same open weights as Groq's `openai/gpt-oss-120b`. Works for both streaming and JSON modes; the response/metadata event then reports `provider: "cerebras"` and the Cerebras model ID. If Groq isn't configured at all, Cerebras is used directly.
+- **Security**: Server validates model ID against whitelist (ALLOWED_GROQ_MODELS); the Cerebras fallback model is fixed server-side (never client-chosen)
+- **Requires**: `GROQ_API_KEY` secret (`CEREBRAS_API_KEY` optional, enables fallback)
 
 ### spotify-now-playing
 Returns current Spotify playback status for display in portfolio header.
@@ -86,6 +87,7 @@ Edge Functions require these secrets (set in Supabase Dashboard > Project Settin
 | Secret | Description |
 |--------|-------------|
 | `GROQ_API_KEY` | Groq API key for ask-portfolio (required) |
+| `CEREBRAS_API_KEY` | Cerebras API key — optional, enables free 429 fallback for ask-portfolio |
 | `RESEND_API_KEY` | Resend API key for email notifications (submit-contact) |
 | `SPOTIFY_CLIENT_ID` | Spotify app client ID (spotify-now-playing) |
 | `SPOTIFY_CLIENT_SECRET` | Spotify app client secret (spotify-now-playing) |

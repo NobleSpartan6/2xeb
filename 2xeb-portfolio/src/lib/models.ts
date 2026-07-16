@@ -3,12 +3,17 @@
  *
  * Centralized config for all available models via Groq.
  * Includes rate limits for client-side protection.
+ *
+ * Fallback: if Groq returns 429, the ask-portfolio Edge Function transparently
+ * retries on Cerebras (CEREBRAS_FALLBACK_MODEL_ID below) — responses then
+ * report provider 'cerebras'. Keep in sync with
+ * supabase/functions/ask-portfolio/index.ts (ALLOWED_GROQ_MODELS + fallback).
  */
 
 export interface ModelConfig {
   id: string;
   name: string;
-  provider: 'groq';
+  provider: 'groq'; // primary provider; Cerebras is a server-side 429 fallback
   description: string;
   contextWindow: number;
   // Free tier limits
@@ -86,6 +91,10 @@ export const MODELS: ModelConfig[] = [
 ];
 
 export const DEFAULT_MODEL_ID = 'meta-llama/llama-4-scout-17b-16e-instruct';
+
+// Server-side 429 fallback (Cerebras hosts the same open-weights GPT-OSS 120B
+// that Groq serves as openai/gpt-oss-120b). Not user-selectable.
+export const CEREBRAS_FALLBACK_MODEL_ID = 'gpt-oss-120b';
 
 export function getModelById(id: string): ModelConfig | undefined {
   return MODELS.find(m => m.id === id);

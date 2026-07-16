@@ -19,6 +19,8 @@ Centralized LLM model configuration with rate limiting. **Groq only** (no Gemini
 
 Keep this list in sync with `ALLOWED_GROQ_MODELS` in `supabase/functions/ask-portfolio/index.ts`.
 
+**Cerebras Fallback:** when Groq returns 429, the Edge Function retries on Cerebras `gpt-oss-120b` (`CEREBRAS_FALLBACK_MODEL_ID`). It is server-side only and not user-selectable; responses that used it report `provider: 'cerebras'` (`LLMProvider` in `api.ts` covers both).
+
 **Rate Limiting (Client-Side):**
 - 2 second cooldown between requests
 - 80% of RPM limit used as buffer
