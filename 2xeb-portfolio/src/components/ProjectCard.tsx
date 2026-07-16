@@ -15,13 +15,22 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
     <>
       <div className="aspect-video w-full overflow-hidden bg-black relative">
          {project.imageUrl ? (
-           <img 
-              src={project.imageUrl} 
-              alt={project.title} 
+           <img
+              src={project.imageUrl}
+              alt={project.title}
               loading="lazy"
               width="800"
               height="450"
               className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-[opacity,transform] duration-500 ease-out-strong"
+              onLoad={(e) => {
+                // YouTube serves a 120x90 stub (HTTP 200) when a video has no
+                // maxres thumbnail — fall back to the always-present hqdefault
+                const img = e.currentTarget;
+                if (img.naturalWidth <= 120 && img.src.includes('maxresdefault') && !img.dataset.fallback) {
+                  img.dataset.fallback = '1';
+                  img.src = img.src.replace('maxresdefault', 'hqdefault');
+                }
+              }}
            />
          ) : (
            <div className="w-full h-full bg-[#111] flex items-center justify-center text-[#333] font-mono text-xs">
@@ -73,7 +82,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
   const handleMouseEnter = () => setHighlightedNodeIds([project.slug]);
   const handleMouseLeave = () => setHighlightedNodeIds([]);
 
-  const containerClass = "group block bg-[#0A0A0A] border border-[#262626] hover:border-[#2563EB] transition-colors duration-300 flex flex-col h-full";
+  // Press feedback on the whole card (subtle 0.99 — large surface). Gated
+  // behind motion-safe; lives on the card root, not the [data-card] wrapper,
+  // which is an anime.js reveal target (inline transforms would conflict).
+  const containerClass = "group block bg-[#0A0A0A] border border-[#262626] hover:border-[#2563EB] transition-[border-color,transform] duration-200 ease-out-strong motion-safe:active:scale-[0.99] flex flex-col h-full";
 
   if (project.isExternal && project.externalUrl) {
     return (

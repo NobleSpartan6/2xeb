@@ -109,10 +109,10 @@ const Video: React.FC = () => {
 
   return (
     <div ref={revealRef} className="min-h-screen pt-28 md:pt-32 pb-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto bg-[#050505]">
-      <div className="flex flex-col items-center justify-center text-center mb-20 md:mb-24 px-2">
+      <div className="mb-20 md:mb-24 px-2 border-b border-[#262626] pb-10 md:pb-12">
         <h1
           data-animate
-          className="font-bold text-white font-space-grotesk mb-6 md:mb-8 tracking-tighter leading-tight max-w-5xl mx-auto"
+          className="font-bold text-white font-space-grotesk mb-6 md:mb-8 tracking-tighter leading-[0.9]"
           style={{ fontSize: 'clamp(2.6rem, 5vw + 1rem, 9rem)' }}
         >
           VISUAL<span className="text-[#2563EB] px-2">///</span>ARTS

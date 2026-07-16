@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { createTimeline, stagger, utils } from 'animejs';
 import { useConsole } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
-import { prefersReducedMotion, useMagnetic } from '../hooks/useAnimations';
+import { prefersReducedMotion, useMagnetic, hasRouteRevealPlayed, markRouteRevealPlayed } from '../hooks/useAnimations';
 
 // Lazy load the 3D scene so three.js/R3F stay out of the main bundle —
 // the UI shell paints immediately while the scene streams in
@@ -139,10 +139,12 @@ const Home: React.FC = () => {
   const workCtaRef = useMagnetic<HTMLDivElement>();
   const askCtaRef = useMagnetic<HTMLDivElement>();
 
-  // Entrance choreography: hero letters cascade in, then status bar and CTAs
+  // Entrance choreography: hero letters cascade in, then status bar and CTAs.
+  // Plays once per session — revisits via the nav render instantly.
   useLayoutEffect(() => {
     const root = contentRef.current;
-    if (!contentVisible || !root || prefersReducedMotion()) return;
+    if (!contentVisible || !root || prefersReducedMotion() || hasRouteRevealPlayed()) return;
+    markRouteRevealPlayed();
 
     const letters = root.querySelectorAll('.hero-letter');
     const status = root.querySelectorAll('[data-hero-status]');
@@ -379,11 +381,18 @@ const Home: React.FC = () => {
         {/* Bottom Section - CTA & Description */}
         <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-32 sm:pb-28 md:pb-24 lg:pb-24 2xl:pb-28 3xl:pb-32 flex-shrink-0">
           <div className="flex flex-col-reverse md:flex-row md:items-end md:justify-between gap-1.5 sm:gap-4 md:gap-8 2xl:gap-12">
-            {/* Description */}
-            <p data-hero-footer className="text-white/40 text-[10px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[260px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-snug sm:leading-relaxed pointer-events-none">
-              A multidisciplinary portfolio exploring the intersection of software engineering,
-              machine learning, and visual storytelling.
-            </p>
+            {/* Identity + description */}
+            <div className="flex flex-col gap-2 sm:gap-3">
+              <p data-hero-footer className="font-mono text-[9px] sm:text-[10px] md:text-[11px] 2xl:text-xs uppercase tracking-[0.2em] text-[#A3A3A3] pointer-events-none">
+                Ebenezer Eshetu <span className="text-[#525252]">·</span>{' '}
+                <span className="text-[#2563EB]">2XEB</span> <span className="text-[#525252]">·</span>{' '}
+                Engineer <span className="text-[#525252]">×</span> Filmmaker
+              </p>
+              <p data-hero-footer className="text-white/40 text-[10px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[260px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-snug sm:leading-relaxed pointer-events-none">
+                A multidisciplinary portfolio exploring the intersection of software engineering,
+                machine learning, and visual storytelling.
+              </p>
+            </div>
 
             {/* CTAs - rendered first on mobile due to flex-col-reverse.
                 Magnetic wrappers pull the buttons toward the cursor on desktop. */}

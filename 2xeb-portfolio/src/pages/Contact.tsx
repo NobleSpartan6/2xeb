@@ -151,9 +151,10 @@ const Contact: React.FC = () => {
         </Suspense>
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 h-full flex flex-col justify-center px-6 md:px-12 lg:px-20 py-20">
-        <div className="max-w-xl">
+      {/* Content: my-auto instead of justify-center so short viewports can
+          scroll to the top of the form instead of clipping it under the nav */}
+      <div className="relative z-10 h-full flex flex-col overflow-y-auto px-6 md:px-12 lg:px-20 pt-28 md:pt-32 pb-16">
+        <div className="max-w-xl my-auto">
           {/* Bold Header - matching home page style */}
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white font-space-grotesk tracking-tight leading-none mb-4">
             <span data-contact-heading className="inline-block">GET IN</span>

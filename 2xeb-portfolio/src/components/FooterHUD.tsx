@@ -44,6 +44,9 @@ const FooterHUD: React.FC = () => {
 
   // Check if we're on ML Lab (has inline widget, so hide trigger there)
   const isMLLabPage = location.pathname === '/ml-lab';
+  // Home's hero already carries an ASK EB CTA (and the page doesn't scroll),
+  // so the footer chip would sit duplicated right below it
+  const isHomePage = location.pathname === '/';
 
   // Close on route change when navigating to ML Lab (inline widget there) or on mobile
   useEffect(() => {
@@ -152,7 +155,7 @@ const FooterHUD: React.FC = () => {
                   >
                     <span>2XEB</span>
                     <span className="text-[#2563EB]">.</span>
-                    <span className="text-[#2563EB]/60 text-[10px] 2xl:text-xs font-mono animate-pulse group-hover:text-[#2563EB] transition-colors">&gt;_</span>
+                    <span className="text-[#2563EB]/60 text-[10px] 2xl:text-xs font-mono group-hover:text-[#2563EB] transition-colors">&gt;_</span>
                   </div>
                   <div className="flex items-center gap-4 2xl:gap-5">
                     <a href="https://www.linkedin.com/in/ebenezer-eshetu/" target="_blank" rel="noreferrer" className="text-[#a3a3a3] hover:text-white transition-colors" aria-label="LinkedIn">
@@ -195,7 +198,7 @@ const FooterHUD: React.FC = () => {
                       </div>
                       EB Active
                     </span>
-                  ) : (
+                  ) : isHomePage ? null : (
                     <button onClick={() => setIsAgentOpen(!isAgentOpen)} className={`flex items-center gap-2 2xl:gap-2.5 px-4 2xl:px-5 py-2 2xl:py-2.5 pressable border ${isAgentOpen ? 'bg-[#2563EB] border-[#2563EB] text-white' : 'bg-transparent border-[#333] text-[#a3a3a3] hover:border-[#2563EB] hover:text-white hover:bg-[#2563EB]/10'}`}>
                     <span>{isAgentOpen ? 'CLOSE' : 'ASK'}</span>
                     <div className={`w-5 h-5 2xl:w-6 2xl:h-6 border grid place-items-center transition-colors ${isAgentOpen ? 'bg-white/10 border-white/30' : 'bg-[#0A0A0A] border-[#333]'}`}>
@@ -221,7 +224,7 @@ const FooterHUD: React.FC = () => {
                     >
                       <span>2XEB</span>
                       <span className="text-[#2563EB]">.</span>
-                      <span className="text-[#2563EB]/60 text-[9px] font-mono animate-pulse">&gt;_</span>
+                      <span className="text-[#2563EB]/60 text-[9px] font-mono">&gt;_</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <a href="https://www.linkedin.com/in/ebenezer-eshetu/" target="_blank" rel="noreferrer" className="text-[#a3a3a3] hover:text-white transition-colors" aria-label="LinkedIn">
@@ -238,7 +241,7 @@ const FooterHUD: React.FC = () => {
                       </a>
                     </div>
                   </div>
-                  {!isMLLabPage && (
+                  {!isMLLabPage && !isHomePage && (
                     <button
                       onClick={() => setIsAgentOpen(!isAgentOpen)}
                       className={`
