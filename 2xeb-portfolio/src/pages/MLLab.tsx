@@ -17,7 +17,7 @@ const MLLab: React.FC = () => {
   const { projects } = useProjects();
 
   // Staggered reveal for header, project cards, and the AI widget panel
-  const revealRef = useScrollReveal<HTMLDivElement>({ y: 24, interval: 75 }, [projects]);
+  const revealRef = useScrollReveal<HTMLDivElement>({ y: 16, interval: 50 }, [projects]);
   const labLabelRef = useTextScramble<HTMLSpanElement>();
 
   // Ensure we land at the top when navigating to this page

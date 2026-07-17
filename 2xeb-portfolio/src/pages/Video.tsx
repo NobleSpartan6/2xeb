@@ -76,7 +76,7 @@ const Video: React.FC = () => {
   const [showreelProject, setShowreelProject] = useState<Project | undefined>(initialShowreelProject);
 
   // Entrance animations
-  const revealRef = useScrollReveal<HTMLDivElement>({ y: 24, interval: 70 }, [videoProjects]);
+  const revealRef = useScrollReveal<HTMLDivElement>({ y: 16, interval: 50 }, [videoProjects]);
   const subtitleRef = useTextScramble<HTMLParagraphElement>();
   const reelRef = useRef<HTMLDivElement>(null);
   const hasShuffledRef = useRef(false);

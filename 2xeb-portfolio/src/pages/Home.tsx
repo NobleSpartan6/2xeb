@@ -130,7 +130,6 @@ const DISCIPLINES = [
 const Home: React.FC = () => {
   const { focusedDiscipline, setFocusedDiscipline, setIsAgentOpen, setIsEasterEggActive } = useConsole();
   const [sceneReady, setSceneReady] = useState(false);
-  const [contentVisible, setContentVisible] = useState(false);
   const clock = useLiveClock();
   const nowPlaying = useSpotifyNowPlaying();
   const showTerminalHint = useTerminalHint();
@@ -140,10 +139,11 @@ const Home: React.FC = () => {
   const askCtaRef = useMagnetic<HTMLDivElement>();
 
   // Entrance choreography: hero letters cascade in, then status bar and CTAs.
-  // Plays once per session — revisits via the nav render instantly.
+  // Starts on mount — content never waits for the 3D scene (it fades in
+  // behind). Plays once per session; revisits via the nav render instantly.
   useLayoutEffect(() => {
     const root = contentRef.current;
-    if (!contentVisible || !root || prefersReducedMotion() || hasRouteRevealPlayed()) return;
+    if (!root || prefersReducedMotion() || hasRouteRevealPlayed()) return;
     markRouteRevealPlayed();
 
     const letters = root.querySelectorAll('.hero-letter');
@@ -174,29 +174,20 @@ const Home: React.FC = () => {
     tl.add(letters, {
       opacity: [0, 1],
       translateY: ['0.45em', '0em'],
-      duration: 850,
-      delay: stagger(20),
+      duration: 600,
+      delay: stagger(14),
     })
-      .add(status, { opacity: [0, 1], translateY: [-10, 0], duration: 550 }, '-=700')
+      .add(status, { opacity: [0, 1], translateY: [-10, 0], duration: 400 }, '-=500')
       .add(
         footer,
-        { opacity: [0, 1], translateY: [16, 0], duration: 650, delay: stagger(80) },
-        '-=650'
+        { opacity: [0, 1], translateY: [16, 0], duration: 500, delay: stagger(60) },
+        '-=450'
       );
-  }, [contentVisible]);
-
-  // Coordinated reveal: wait for 3D scene, then fade in content
-  const handleSceneReady = useCallback(() => {
-    setSceneReady(true);
-    // Small delay after scene ready for smooth transition
-    setTimeout(() => setContentVisible(true), 150);
   }, []);
 
-  // Never hold the hero hostage to the 3D scene: if the lazy chunk or
-  // WebGL is slow, reveal the content anyway after a short grace period
-  useEffect(() => {
-    const failsafe = setTimeout(() => setContentVisible(true), 2000);
-    return () => clearTimeout(failsafe);
+  // The 3D scene fades itself in behind the content once WebGL is ready
+  const handleSceneReady = useCallback(() => {
+    setSceneReady(true);
   }, []);
 
   // Hover only for mouse (not touch)
@@ -239,12 +230,10 @@ const Home: React.FC = () => {
         }}
       />
 
-      {/* Content Layer */}
+      {/* Content Layer - never gated on the 3D scene */}
       <div
         ref={contentRef}
-        className={`absolute inset-0 z-20 flex flex-col justify-between transition-opacity duration-500 ease-out-strong ${
-          contentVisible ? 'opacity-100' : 'opacity-0'
-        }`}
+        className="absolute inset-0 z-20 flex flex-col justify-between"
         onClick={() => setFocusedDiscipline(null)}
       >
         {/* Terminal Hint - Periodic subtle cursor */}

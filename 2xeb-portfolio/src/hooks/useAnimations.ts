@@ -42,13 +42,13 @@ export const markRouteRevealPlayed = (): void => {
 export interface RevealOptions {
   /** CSS selector for the elements to reveal (default: '[data-animate]') */
   selector?: string;
-  /** Vertical travel distance in px (default: 22) */
+  /** Vertical travel distance in px (default: 16) */
   y?: number;
   /** Starting scale (default: 1 — no scaling) */
   scale?: number;
-  /** Duration per element in ms (default: 700) */
+  /** Duration per element in ms (default: 550) */
   duration?: number;
-  /** Stagger interval between elements revealed together in ms (default: 60) */
+  /** Stagger interval between elements revealed together in ms (default: 45) */
   interval?: number;
 }
 
@@ -64,7 +64,7 @@ export function useScrollReveal<T extends HTMLElement>(
 ) {
   const ref = useRef<T>(null);
   const skipRef = useRef<boolean | null>(null);
-  const { selector = '[data-animate]', y = 22, scale = 1, duration = 700, interval = 60 } = options;
+  const { selector = '[data-animate]', y = 16, scale = 1, duration = 550, interval = 45 } = options;
 
   useLayoutEffect(() => {
     const root = ref.current;

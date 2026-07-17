@@ -7,7 +7,7 @@ const About: React.FC = () => {
   const { experience } = useExperience();
 
   // Staggered reveal for header + experience rows as they scroll into view
-  const revealRef = useScrollReveal<HTMLDivElement>({ y: 24, interval: 80 }, [experience]);
+  const revealRef = useScrollReveal<HTMLDivElement>({ y: 16, interval: 55 }, [experience]);
   const expLabelRef = useTextScramble<HTMLHeadingElement>();
 
   return (
