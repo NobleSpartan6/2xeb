@@ -77,6 +77,7 @@ const Video: React.FC = () => {
 
   // Entrance animations
   const revealRef = useScrollReveal<HTMLDivElement>({ y: 16, interval: 50 }, [videoProjects]);
+  const kickerRef = useTextScramble<HTMLSpanElement>();
   const subtitleRef = useTextScramble<HTMLParagraphElement>();
   const reelRef = useRef<HTMLDivElement>(null);
   const hasShuffledRef = useRef(false);
@@ -110,6 +111,7 @@ const Video: React.FC = () => {
   return (
     <div ref={revealRef} className="min-h-screen pt-28 md:pt-32 pb-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto bg-[#050505]">
       <div className="mb-20 md:mb-24 px-2 border-b border-[#262626] pb-10 md:pb-12">
+        <span ref={kickerRef} data-animate className="text-[#2563EB] font-mono text-[11px] sm:text-xs uppercase tracking-widest block mb-3 sm:mb-4">Showreel</span>
         <h1
           data-animate
           className="font-bold text-white font-space-grotesk mb-6 md:mb-8 tracking-tighter leading-[0.9]"
@@ -160,9 +162,9 @@ const Video: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {videoProjects.map((project) => (
+          {videoProjects.map((project, i) => (
             <div key={project.id} data-animate className="h-full">
-              <ProjectCard project={project} />
+              <ProjectCard project={project} index={i} />
             </div>
           ))}
         </div>

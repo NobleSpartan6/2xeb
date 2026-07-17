@@ -36,6 +36,14 @@
   }
 }
 
+/* Keyboard focus: brand-blue ring on interactive elements, invisible to
+   pointer users. Form fields are excluded — they carry focus in their
+   border-color instead. */
+:is(a, button, [role='button'], summary):focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
 /* Reduced motion for the Tailwind animation utilities: keep opacity/color
    feedback, drop movement. (anime.js timelines check prefersReducedMotion()
    in JS; spinners and pulse are opacity-only and stay.) */

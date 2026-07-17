@@ -6,9 +6,11 @@ import { useConsole } from '../context/ConsoleContext';
 
 interface ProjectCardProps {
   project: Project;
+  /** Position within its grid — rendered as an editorial index mark (01, 02…) */
+  index?: number;
 }
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
+const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
   const { setHighlightedNodeIds } = useConsole();
 
   const CardContent = () => (
@@ -55,7 +57,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
       </div>
       <div className="p-6 flex flex-col flex-grow">
         <div className="mb-3">
-           <h3 className="text-2xl font-bold text-white font-space-grotesk tracking-tight leading-none group-hover:text-[#2563EB] transition-colors flex items-center gap-2">
+           <h3
+             title={project.title}
+             className="text-2xl font-bold text-white font-space-grotesk tracking-tight leading-tight line-clamp-2 group-hover:text-[#2563EB] transition-colors"
+           >
              {project.title}
            </h3>
            {project.role && (
@@ -68,12 +73,17 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
         <p className="text-[#A3A3A3] text-sm leading-relaxed mb-6 font-sans flex-grow">
           {project.shortDesc}
         </p>
-        <div className="flex flex-wrap gap-2 mt-auto pt-4 border-t border-[#262626] group-hover:border-[#2563EB]/30 transition-colors">
+        <div className="flex flex-wrap items-baseline gap-2 mt-auto pt-4 border-t border-[#262626] group-hover:border-[#2563EB]/30 transition-colors">
           {project.tags.slice(0, 3).map((tag) => (
             <span key={tag} className="text-[10px] uppercase tracking-wider text-[#A3A3A3] font-mono">
               {tag}
             </span>
           ))}
+          {index !== undefined && (
+            <span className="ml-auto text-[10px] font-mono tracking-wider text-[#525252] group-hover:text-[#2563EB]/70 transition-colors">
+              {String(index + 1).padStart(2, '0')}
+            </span>
+          )}
         </div>
       </div>
     </>

@@ -118,7 +118,7 @@ const NavBar: React.FC = memo(() => {
               <button
                 onClick={() => setIsOpen(true)}
                 type="button"
-                className="group inline-flex items-center justify-center p-2 text-white focus:outline-none"
+                className="group inline-flex items-center justify-center p-2 text-white"
                 aria-label="Open menu"
               >
                 <div className="flex flex-col gap-1.5 items-end">

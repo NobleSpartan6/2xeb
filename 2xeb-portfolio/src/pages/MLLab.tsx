@@ -57,9 +57,9 @@ const MLLab: React.FC = () => {
           </div>
 
           <div className="grid gap-6 sm:gap-8">
-              {mlProjects.map(p => (
+              {mlProjects.map((p, i) => (
                 <div key={p.id} data-animate>
-                  <ProjectCard project={p} />
+                  <ProjectCard project={p} index={i} />
                 </div>
               ))}
           </div>

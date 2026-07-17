@@ -8,6 +8,7 @@ const About: React.FC = () => {
 
   // Staggered reveal for header + experience rows as they scroll into view
   const revealRef = useScrollReveal<HTMLDivElement>({ y: 16, interval: 55 }, [experience]);
+  const kickerRef = useTextScramble<HTMLSpanElement>();
   const expLabelRef = useTextScramble<HTMLHeadingElement>();
 
   return (
@@ -15,9 +16,12 @@ const About: React.FC = () => {
       {/* Header */}
       <div className="max-w-5xl xl:max-w-6xl mx-auto mb-20 lg:mb-28 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
         <div className="flex flex-col items-start gap-5">
-           <h1 data-animate className="font-bold text-white font-space-grotesk tracking-tighter leading-[0.85]" style={{ fontSize: 'clamp(3rem, 5vw + 1rem, 8rem)' }}>
-            EBENEZER<br/>ESHETU
-          </h1>
+           <div data-animate>
+             <span ref={kickerRef} className="text-[#2563EB] font-mono text-[11px] sm:text-xs uppercase tracking-widest block mb-3 sm:mb-4">Profile</span>
+             <h1 className="font-bold text-white font-space-grotesk tracking-tighter leading-[0.85]" style={{ fontSize: 'clamp(3rem, 5vw + 1rem, 8rem)' }}>
+              EBENEZER<br/>ESHETU
+            </h1>
+           </div>
           <div data-animate className="inline-flex flex-wrap items-center gap-5 mt-2 text-[#a3a3a3]">
             <a
               href="https://www.linkedin.com/in/ebenezer-eshetu/"
