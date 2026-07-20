@@ -127,7 +127,7 @@ const Contact: React.FC = () => {
             <button
               data-sent-detail
               onClick={() => setStatus('idle')}
-              className="mt-8 px-6 py-3 bg-[#22c55e] text-white text-sm font-medium tracking-wide hover:bg-[#16a34a] transition-colors"
+              className="mt-8 px-6 py-3 bg-[#22c55e] text-white text-sm font-medium tracking-wide hover:bg-[#16a34a] pressable"
             >
               SEND ANOTHER
             </button>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useExperience } from '../hooks/useExperience';
-import { useScrollReveal, useTextScramble } from '../hooks/useAnimations';
+import { useScrollReveal, useTextScramble, hasRouteRevealPlayed } from '../hooks/useAnimations';
 
 const About: React.FC = () => {
   // SWR: static data immediately, DB fetch in background
@@ -10,6 +10,9 @@ const About: React.FC = () => {
   const revealRef = useScrollReveal<HTMLDivElement>({ y: 16, interval: 55 }, [experience]);
   const kickerRef = useTextScramble<HTMLSpanElement>();
   const expLabelRef = useTextScramble<HTMLHeadingElement>();
+  // Render-time check happens before the reveal marks the route, so first
+  // visits get the draw-in and revisits get a static line
+  const revealedBefore = hasRouteRevealPlayed();
 
   return (
     <div ref={revealRef} className="min-h-screen bg-[#050505] pt-28 md:pt-36 pb-20 px-4 sm:px-6 lg:px-12">
@@ -77,7 +80,13 @@ const About: React.FC = () => {
           </div>
         </div>
         <div className="flex items-end">
-           <p data-animate className="text-lg md:text-2xl text-[#D4D4D4] leading-relaxed font-light border-l-2 border-[#2563EB] pl-6 md:pl-8">
+           <p data-animate className="relative text-lg md:text-2xl text-[#D4D4D4] leading-relaxed font-light pl-6 md:pl-8">
+            {/* Accent line draws in top-to-bottom on the page's first visit
+                this session; static on revisits (matches the reveal gating) */}
+            <span
+              aria-hidden
+              className={`absolute left-0 top-0 bottom-0 w-[2px] bg-[#2563EB] ${revealedBefore ? '' : 'accent-draw'}`}
+            />
             Software Engineer based in New York City. <br/>
             Specializing in high-performance financial systems, machine learning applications, and creative visual media.
           </p>

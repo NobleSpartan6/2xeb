@@ -378,7 +378,7 @@ const NotFound: React.FC = () => {
   };
 
   return (
-    <div className={`h-screen w-screen bg-[#050505] relative overflow-hidden transition-[opacity,transform] duration-1000 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+    <div className={`h-screen w-screen bg-[#050505] relative overflow-hidden transition-[opacity,transform] duration-300 ease-out-strong ${isTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'}`}>
       <style>{`
         .terminal-cursor { animation: blink 1s step-end infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }

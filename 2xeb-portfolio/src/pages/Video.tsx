@@ -143,7 +143,7 @@ const Video: React.FC = () => {
              <div className="flex items-center gap-3 sm:gap-4 shrink-0 flex-shrink-0">
                <button
                  onClick={shuffleFeatured}
-                 className="px-3 py-1.5 border border-[#525252] hover:border-white text-[#525252] hover:text-white transition-colors uppercase tracking-widest text-[10px] sm:text-[10px] whitespace-nowrap flex-shrink-0"
+                 className="px-3 py-1.5 border border-[#525252] hover:border-white text-[#525252] hover:text-white pressable uppercase tracking-widest text-[10px] sm:text-[10px] whitespace-nowrap flex-shrink-0"
                  aria-label="Shuffle featured video"
                >
                  Shuffle

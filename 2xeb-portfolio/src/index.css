@@ -36,6 +36,25 @@
   }
 }
 
+/* Accent line that draws in top-to-bottom (About intro). Transform-only. */
+.accent-draw {
+  transform-origin: top;
+  animation: accent-draw 500ms var(--ease-out-strong) 150ms both;
+}
+@keyframes accent-draw {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .accent-draw {
+    animation: none;
+  }
+}
+
 /* Keyboard focus: brand-blue ring on interactive elements, invisible to
    pointer users. Form fields are excluded — they carry focus in their
    border-color instead. */
@@ -53,6 +72,10 @@
   }
   .animate-message-in {
     /* keep the fade, drop the 6px rise */
+    animation-name: fadeIn;
+  }
+  .animate-modal-in {
+    /* keep the fade, drop the scale */
     animation-name: fadeIn;
   }
 }

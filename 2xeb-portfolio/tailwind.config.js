@@ -46,14 +46,14 @@ export default {
       },
       animation: {
         'spin-slow': 'spin 20s linear infinite',
-        'slide-in': 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         'fade-in': 'fadeIn 0.2s ease-out forwards',
         'message-in': 'messageIn 0.25s cubic-bezier(0.23, 1, 0.32, 1) both',
+        'modal-in': 'modalIn 0.2s cubic-bezier(0.23, 1, 0.32, 1) both',
       },
       keyframes: {
-        slideIn: {
-          '0%': { transform: 'translateX(100%)' },
-          '100%': { transform: 'translateX(0)' },
+        modalIn: {
+          '0%': { opacity: '0', transform: 'scale(0.97)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
         },
         fadeIn: {
           '0%': { opacity: '0' },
