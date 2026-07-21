@@ -130,6 +130,8 @@ const DISCIPLINES = [
 const Home: React.FC = () => {
   const { focusedDiscipline, setFocusedDiscipline, setIsAgentOpen, setIsEasterEggActive } = useConsole();
   const [sceneReady, setSceneReady] = useState(false);
+  // Click shockwave signal for the 3D grid (NDC coords + timestamp)
+  const [scenePulse, setScenePulse] = useState<{ nx: number; ny: number; t: number } | null>(null);
   const clock = useLiveClock();
   const nowPlaying = useSpotifyNowPlaying();
   const showTerminalHint = useTerminalHint();
@@ -208,7 +210,7 @@ const Home: React.FC = () => {
       {/* 3D Background - Full Screen Immersive */}
       <div className={`absolute inset-0 z-0 transition-opacity duration-500 ease-out-strong ${sceneReady ? 'opacity-100' : 'opacity-0'}`}>
         <Suspense fallback={null}>
-          <ImmersiveScene onReady={handleSceneReady} />
+          <ImmersiveScene onReady={handleSceneReady} pulse={scenePulse} />
         </Suspense>
       </div>
 
@@ -228,7 +230,15 @@ const Home: React.FC = () => {
       <div
         ref={contentRef}
         className="absolute inset-0 z-20 flex flex-col justify-between"
-        onClick={() => setFocusedDiscipline(null)}
+        onClick={(e) => {
+          setFocusedDiscipline(null);
+          // Fire a shockwave through the grid from the click point
+          setScenePulse({
+            nx: (e.clientX / window.innerWidth) * 2 - 1,
+            ny: -((e.clientY / window.innerHeight) * 2 - 1),
+            t: Date.now(),
+          });
+        }}
       >
         {/* Terminal Hint - Periodic subtle cursor */}
         <button

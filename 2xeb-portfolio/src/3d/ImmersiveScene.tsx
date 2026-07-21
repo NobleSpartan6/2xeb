@@ -1,5 +1,6 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { useConsole, ConsoleContext } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
@@ -94,17 +95,59 @@ const updateVideoPillar = (state: PillarState, time: number): void => {
   state.phase = t;
 };
 
+// Click shockwave signal, in NDC (-1..1) with a timestamp for dedup
+export interface PulseSignal {
+  nx: number;
+  ny: number;
+  t: number;
+}
+
 // --- MAIN GRID COMPONENT ---
 interface InteractiveGridProps {
   focusedDiscipline: ConsoleLane | null;
   gridSize: number;
   cellSize: number;
+  pulse: PulseSignal | null;
 }
 
-const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gridSize, cellSize }) => {
+const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gridSize, cellSize, pulse }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const { mouse, viewport } = useThree();
   const totalCells = gridSize * gridSize;
+
+  // Instance colors double as emitters: bloom picks up vColor² so lit cells
+  // glow like neon while the near-black floor stays dark
+  const gridMaterial = useMemo(() => {
+    const mat = new THREE.MeshStandardMaterial({ metalness: 0.7, roughness: 0.3, envMapIntensity: 0.5 });
+    mat.onBeforeCompile = (shader) => {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <emissivemap_fragment>',
+        [
+          '#include <emissivemap_fragment>',
+          '#if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )',
+          '  totalEmissiveRadiance += vColor * vColor * 1.5;',
+          '#endif',
+        ].join('\n')
+      );
+    };
+    return mat;
+  }, []);
+
+  // Trails: cells remember recent light and let it decay, so the pillars and
+  // the cursor paint fading comet streaks instead of only occupying cells
+  const trails = useMemo(
+    () => ({
+      r: new Float32Array(totalCells),
+      g: new Float32Array(totalCells),
+      b: new Float32Array(totalCells),
+      h: new Float32Array(totalCells),
+    }),
+    [totalCells]
+  );
+
+  // Active click shockwaves (world-space origins)
+  const pulsesRef = useRef<{ ox: number; oz: number; start: number }[]>([]);
+  const lastPulseRef = useRef(0);
 
   // Pillar states
   const pillars = useRef({
@@ -135,9 +178,10 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
   // interaction feedback.
   const reduceMotion = useMemo(() => prefersReducedMotion(), []);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!meshRef.current) return;
-    const time = reduceMotion ? 0 : state.clock.getElapsedTime();
+    const rawTime = state.clock.getElapsedTime();
+    const time = reduceMotion ? 0 : rawTime;
 
     // Update pillar positions
     updateSWEPillar(pillars.current.swe, time);
@@ -157,10 +201,28 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     const showMl = !focusedDiscipline || focusedDiscipline === ConsoleLane.VISION;
     const showVideo = !focusedDiscipline || focusedDiscipline === ConsoleLane.DESIGN;
 
+    // Register a newly signalled click shockwave. Pulses run on real time
+    // (user-triggered feedback) but at reduced amplitude under reduced motion.
+    if (pulse && pulse.t > lastPulseRef.current) {
+      lastPulseRef.current = pulse.t;
+      pulsesRef.current.push({
+        ox: (pulse.nx * viewport.width) / 2,
+        oz: -(pulse.ny * viewport.height) / 2,
+        start: rawTime,
+      });
+    }
+    pulsesRef.current = pulsesRef.current.filter((p) => rawTime - p.start < 2.4);
+    const pulseAmp = reduceMotion ? 0.4 : 1;
+
+    // Frame-rate-independent trail decay (~0.9/frame at 60fps)
+    const decay = Math.exp(-6 * delta);
+    const tR = trails.r, tG = trails.g, tB = trails.b, tH = trails.h;
+
     for (let i = 0; i < totalCells; i++) {
       const { x, z, idx } = gridData[i];
-      let targetY = 0;
-      let r = 0.03, g = 0.03, b = 0.03; // Base dark
+      // Instantaneous influence for this frame (fed into the trail buffers)
+      let ih = 0;
+      let ir = 0, ig = 0, ib = 0;
 
       // === SWE INFLUENCE: Cross/Grid Pattern ===
       if (showSwe) {
@@ -178,10 +240,10 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
           const intensity = Math.max(0, 1 - dist / crossWidth);
           const falloff = 1 - Math.max(dSweX, dSweZ) / crossLength;
 
-          targetY += intensity * falloff * 1.2;
-          r += COLORS.swe.r * intensity * falloff * 0.9;
-          g += COLORS.swe.g * intensity * falloff * 0.9;
-          b += COLORS.swe.b * intensity * falloff * 0.9;
+          ih += intensity * falloff * 1.2;
+          ir += COLORS.swe.r * intensity * falloff * 0.9;
+          ig += COLORS.swe.g * intensity * falloff * 0.9;
+          ib += COLORS.swe.b * intensity * falloff * 0.9;
         }
       }
 
@@ -194,10 +256,10 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
           const intensity = 1 - (dMl / mlRadius);
           const wave = Math.sin(dMl * 2 - time * 4) * 0.5 + 0.5;
 
-          targetY += wave * intensity * 0.8;
-          r += COLORS.ml.r * intensity * wave * 0.8;
-          g += COLORS.ml.g * intensity * wave * 0.8;
-          b += COLORS.ml.b * intensity * wave * 0.8;
+          ih += wave * intensity * 0.8;
+          ir += COLORS.ml.r * intensity * wave * 0.8;
+          ig += COLORS.ml.g * intensity * wave * 0.8;
+          ib += COLORS.ml.b * intensity * wave * 0.8;
         }
       }
 
@@ -211,10 +273,10 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
           // Vertical gradient based on z
           const zGradient = 0.5 + Math.sin(z * 0.5 + time * 2) * 0.3;
 
-          targetY += intensity * zGradient * 0.5;
-          r += COLORS.video.r * intensity * zGradient * 0.9;
-          g += COLORS.video.g * intensity * zGradient * 0.9;
-          b += COLORS.video.b * intensity * zGradient * 0.9;
+          ih += intensity * zGradient * 0.5;
+          ir += COLORS.video.r * intensity * zGradient * 0.9;
+          ig += COLORS.video.g * intensity * zGradient * 0.9;
+          ib += COLORS.video.b * intensity * zGradient * 0.9;
         }
       }
 
@@ -223,16 +285,38 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       const mouseRadius = 4;
       if (dMouse < mouseRadius) {
         const intensity = 1 - (dMouse / mouseRadius);
-        targetY += intensity * 0.6;
+        ih += intensity * 0.6;
         // Swiss Blue accent on mouse hover
-        r += COLORS.accent.r * intensity * 0.4;
-        g += COLORS.accent.g * intensity * 0.4;
-        b += COLORS.accent.b * intensity * 0.4;
+        ir += COLORS.accent.r * intensity * 0.4;
+        ig += COLORS.accent.g * intensity * 0.4;
+        ib += COLORS.accent.b * intensity * 0.4;
+      }
+
+      // === TRAILS: keep the brighter of "now" and the decaying memory ===
+      const hT = (tH[i] = Math.max(ih, tH[i] * decay));
+      const rT = (tR[i] = Math.max(ir, tR[i] * decay));
+      const gT = (tG[i] = Math.max(ig, tG[i] * decay));
+      const bT = (tB[i] = Math.max(ib, tB[i] * decay));
+
+      // === CLICK SHOCKWAVES: expanding blue-white ring, on top of trails ===
+      let ph = 0;
+      let pr = 0, pg = 0, pb = 0;
+      for (const p of pulsesRef.current) {
+        const age = rawTime - p.start;
+        const ringDist = Math.abs(Math.hypot(x - p.ox, z - p.oz) - age * 9);
+        const ringWidth = 1.6;
+        if (ringDist < ringWidth) {
+          const k = Math.pow(1 - ringDist / ringWidth, 2) * Math.max(0, 1 - age / 2.2) * pulseAmp;
+          ph += k * 1.1;
+          pr += (COLORS.accent.r + 0.25) * k;
+          pg += (COLORS.accent.g + 0.25) * k;
+          pb += (COLORS.accent.b + 0.25) * k;
+        }
       }
 
       // === SUBTLE BREATHING ===
       const breathe = Math.sin(time * 0.5 + idx * 0.01) * 0.03;
-      targetY += breathe;
+      const targetY = hT + ph + breathe;
 
       // Apply position
       _dummy.position.set(x, targetY - 0.5, z);
@@ -240,11 +324,11 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       _dummy.updateMatrix();
       meshRef.current.setMatrixAt(i, _dummy.matrix);
 
-      // Apply color with smooth clamping
+      // Apply color with smooth clamping (0.03 base dark floor)
       _color.setRGB(
-        Math.min(1, r),
-        Math.min(1, g),
-        Math.min(1, b)
+        Math.min(1, 0.03 + rT + pr),
+        Math.min(1, 0.03 + gT + pg),
+        Math.min(1, 0.03 + bT + pb)
       );
       meshRef.current.setColorAt(i, _color);
     }
@@ -258,11 +342,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, totalCells]}>
       <boxGeometry args={[cellSize, 1, cellSize]} />
-      <meshStandardMaterial
-        metalness={0.7}
-        roughness={0.3}
-        envMapIntensity={0.5}
-      />
+      <primitive object={gridMaterial} attach="material" />
     </instancedMesh>
   );
 };
@@ -326,17 +406,19 @@ const CameraRig: React.FC = () => {
   const targetPos = useRef(new THREE.Vector3(0, 12, 16));
   const reduceMotion = useMemo(() => prefersReducedMotion(), []);
 
-  useFrame(() => {
+  useFrame((state) => {
     // Reduced motion: no viewport-wide parallax — hold the framing
     if (reduceMotion) {
       camera.lookAt(0, -1, 0);
       return;
     }
 
-    // Parallax effect based on mouse
-    const targetX = mouse.x * 3;
-    const targetY = 12 + mouse.y * 1;
-    const targetZ = 16 - mouse.y * 2;
+    // Slow autonomous drift keeps the scene alive without a cursor;
+    // mouse parallax layers on top
+    const t = state.clock.getElapsedTime();
+    const targetX = mouse.x * 3 + Math.sin(t * 0.08) * 0.9;
+    const targetY = 12 + mouse.y * 1 + Math.sin(t * 0.05) * 0.3;
+    const targetZ = 16 - mouse.y * 2 + Math.cos(t * 0.06) * 0.5;
 
     targetPos.current.set(targetX, targetY, targetZ);
 
@@ -368,9 +450,11 @@ const ReadyDetector: React.FC<{ onReady: () => void }> = ({ onReady }) => {
 interface ImmersiveSceneProps {
   className?: string;
   onReady?: () => void;
+  /** Click shockwave signal from the overlay (NDC coords + timestamp) */
+  pulse?: PulseSignal | null;
 }
 
-const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady }) => {
+const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady, pulse = null }) => {
   const consoleCtx = useConsole();
   const [screenSize, setScreenSize] = useState<ScreenSize>('desktop');
 
@@ -416,6 +500,11 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
       <Canvas
         dpr={getDpr()}
         camera={{ position: [0, 12, 16], fov: getFov(), near: 0.1, far: 100 }}
+        // The hero content overlay sits above the canvas and would swallow
+        // pointer events — source them from the app root so mouse parallax
+        // and the cursor highlight work through it
+        eventSource={document.getElementById('root') as HTMLElement}
+        eventPrefix="client"
         gl={{
           antialias: !isMobile, // Disable antialiasing on mobile for performance
           toneMapping: THREE.ACESFilmicToneMapping,
@@ -444,10 +533,19 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
             focusedDiscipline={consoleCtx.focusedDiscipline}
             gridSize={config.gridSize}
             cellSize={config.cellSize}
+            pulse={pulse}
           />
           <PillarLights />
           <CameraRig />
           {onReady && <ReadyDetector onReady={onReady} />}
+
+          {/* Bloom turns the emissive cells into neon light sources.
+              Desktop only — mobile keeps the flat-lit look for performance */}
+          {!isMobile && (
+            <EffectComposer>
+              <Bloom mipmapBlur intensity={0.85} luminanceThreshold={0.3} luminanceSmoothing={0.2} radius={0.75} />
+            </EffectComposer>
+          )}
         </ConsoleContext.Provider>
       </Canvas>
     </div>
