@@ -18,16 +18,37 @@ const hasFinePointer = (): boolean =>
   typeof window.matchMedia === 'function' &&
   window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
+/**
+ * Routes whose entrance reveal has already played this SPA session.
+ * Navigation is a high-frequency action: entrance choreography plays on a
+ * route's first visit and renders instantly on revisits. In-memory on
+ * purpose — a hard reload is a fresh visit and plays again.
+ */
+const playedRoutes = new Set<string>();
+
+export const hasRouteRevealPlayed = (): boolean =>
+  typeof window !== 'undefined' && playedRoutes.has(window.location.pathname);
+
+/**
+ * Deferred one tick so every reveal hook in the same commit still sees the
+ * route as "not played" on its first visit.
+ */
+export const markRouteRevealPlayed = (): void => {
+  if (typeof window === 'undefined') return;
+  const path = window.location.pathname;
+  setTimeout(() => playedRoutes.add(path), 0);
+};
+
 export interface RevealOptions {
   /** CSS selector for the elements to reveal (default: '[data-animate]') */
   selector?: string;
-  /** Vertical travel distance in px (default: 22) */
+  /** Vertical travel distance in px (default: 16) */
   y?: number;
   /** Starting scale (default: 1 — no scaling) */
   scale?: number;
-  /** Duration per element in ms (default: 700) */
+  /** Duration per element in ms (default: 550) */
   duration?: number;
-  /** Stagger interval between elements revealed together in ms (default: 60) */
+  /** Stagger interval between elements revealed together in ms (default: 45) */
   interval?: number;
 }
 
@@ -42,7 +63,8 @@ export function useScrollReveal<T extends HTMLElement>(
   deps: readonly unknown[] = []
 ) {
   const ref = useRef<T>(null);
-  const { selector = '[data-animate]', y = 22, scale = 1, duration = 700, interval = 60 } = options;
+  const skipRef = useRef<boolean | null>(null);
+  const { selector = '[data-animate]', y = 16, scale = 1, duration = 550, interval = 45 } = options;
 
   useLayoutEffect(() => {
     const root = ref.current;
@@ -50,6 +72,14 @@ export function useScrollReveal<T extends HTMLElement>(
 
     const els = Array.from(root.querySelectorAll<HTMLElement>(selector));
     if (els.length === 0 || prefersReducedMotion()) return;
+
+    // Mounting on a route already seen this session: render instantly, and
+    // latch that decision for this mount so deps re-runs (SWR refreshes,
+    // filter changes) stay instant too. On a route's first visit, deps
+    // re-runs still animate — that content actually changed.
+    if (skipRef.current === null) skipRef.current = hasRouteRevealPlayed();
+    if (skipRef.current) return;
+    markRouteRevealPlayed();
 
     utils.set(els, { opacity: 0 });
 
@@ -101,7 +131,7 @@ export function useTextScramble<T extends HTMLElement>(enabled = true) {
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || !enabled || prefersReducedMotion()) return;
+    if (!el || !enabled || prefersReducedMotion() || hasRouteRevealPlayed()) return;
 
     const original = el.textContent ?? '';
     if (!original.trim()) return;

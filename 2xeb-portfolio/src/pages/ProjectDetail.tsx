@@ -27,7 +27,7 @@ const ProjectDetail: React.FC = () => {
   const [showCaseStudy, setShowCaseStudy] = useState(false);
 
   // Staggered entrance for header, media, and detail sections
-  const revealRef = useScrollReveal<HTMLElement>({ y: 24, interval: 75 }, [slug]);
+  const revealRef = useScrollReveal<HTMLElement>({ y: 16, interval: 50 }, [slug]);
 
   // Check if this is the portfolio-console project
   const isPortfolioConsole = slug === 'portfolio-console';
@@ -171,7 +171,7 @@ const ProjectDetail: React.FC = () => {
              />
              {embedUrl && (
                <div className="absolute inset-0 flex items-center justify-center">
-                 <div className="w-20 h-20 rounded-full border border-white/20 flex items-center justify-center bg-black/50 backdrop-blur-sm group-hover:scale-110 group-hover:border-[#2563EB] transition-all duration-300">
+                 <div className="w-20 h-20 rounded-full border border-white/20 flex items-center justify-center bg-black/50 backdrop-blur-sm group-hover:scale-110 group-hover:border-[#2563EB] transition-[transform,border-color] duration-300 ease-out-strong">
                    <div className="w-0 h-0 border-t-[10px] border-t-transparent border-l-[20px] border-l-white border-b-[10px] border-b-transparent ml-1 group-hover:border-l-[#2563EB] transition-colors"></div>
                  </div>
                </div>
@@ -200,7 +200,7 @@ const ProjectDetail: React.FC = () => {
                   href={project.externalUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="bg-[#2563EB] text-white hover:bg-white hover:text-black px-6 py-3 transition-all block w-max text-sm font-bold uppercase tracking-widest"
+                  className="bg-[#2563EB] text-white hover:bg-white hover:text-black px-6 py-3 pressable block w-max text-sm font-bold uppercase tracking-widest"
                 >
                   Visit Project ↗
                 </a>
@@ -214,7 +214,7 @@ const ProjectDetail: React.FC = () => {
                   href={project.videoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-white hover:text-[#2563EB] border-b border-white/20 hover:border-[#2563EB] pb-1 transition-all block w-max text-sm font-bold uppercase tracking-wider"
+                  className="text-white hover:text-[#2563EB] border-b border-white/20 hover:border-[#2563EB] pb-1 transition-colors duration-200 block w-max text-sm font-bold uppercase tracking-wider"
                 >
                   Watch video ↗
                 </a>
@@ -229,7 +229,7 @@ const ProjectDetail: React.FC = () => {
                 onClick={() => setIsEasterEggActive(true)}
                 className="group flex items-center gap-3 text-left w-full"
               >
-                <div className="w-10 h-10 border border-[#262626] bg-[#0A0A0A] flex items-center justify-center group-hover:border-[#2563EB] group-hover:bg-[#2563EB]/5 transition-all">
+                <div className="w-10 h-10 border border-[#262626] bg-[#0A0A0A] flex items-center justify-center group-hover:border-[#2563EB] group-hover:bg-[#2563EB]/5 transition-colors duration-200">
                   <span className="text-[#2563EB]/60 group-hover:text-[#2563EB] font-mono text-sm animate-pulse">&gt;_</span>
                 </div>
                 <div>
@@ -251,7 +251,7 @@ const ProjectDetail: React.FC = () => {
           {caseStudy && !showCaseStudy && (
             <button
               onClick={() => setShowCaseStudy(true)}
-              className="flex items-center gap-3 px-6 py-4 border border-[#2563EB] bg-[#2563EB]/5 hover:bg-[#2563EB]/10 transition-colors group"
+              className="flex items-center gap-3 px-6 py-4 border border-[#2563EB] bg-[#2563EB]/5 hover:bg-[#2563EB]/10 pressable group"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-[#2563EB]">
                 <path d="M10.75 16.82A7.462 7.462 0 0115 15.5c.71 0 1.396.098 2.046.282A.75.75 0 0018 15.06v-11a.75.75 0 00-.546-.721A9.006 9.006 0 0015 3a8.963 8.963 0 00-4.25 1.065V16.82zM9.25 4.065A8.963 8.963 0 005 3c-.85 0-1.673.118-2.454.339A.75.75 0 002 4.06v11a.75.75 0 00.954.721A7.506 7.506 0 015 15.5c1.579 0 3.042.487 4.25 1.32V4.065z" />

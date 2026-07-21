@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { createTimeline, stagger, utils } from 'animejs';
 import { useConsole } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
-import { prefersReducedMotion, useMagnetic } from '../hooks/useAnimations';
+import { prefersReducedMotion, useMagnetic, hasRouteRevealPlayed, markRouteRevealPlayed } from '../hooks/useAnimations';
 
 // Lazy load the 3D scene so three.js/R3F stay out of the main bundle —
 // the UI shell paints immediately while the scene streams in
@@ -130,7 +130,6 @@ const DISCIPLINES = [
 const Home: React.FC = () => {
   const { focusedDiscipline, setFocusedDiscipline, setIsAgentOpen, setIsEasterEggActive } = useConsole();
   const [sceneReady, setSceneReady] = useState(false);
-  const [contentVisible, setContentVisible] = useState(false);
   const clock = useLiveClock();
   const nowPlaying = useSpotifyNowPlaying();
   const showTerminalHint = useTerminalHint();
@@ -139,10 +138,13 @@ const Home: React.FC = () => {
   const workCtaRef = useMagnetic<HTMLDivElement>();
   const askCtaRef = useMagnetic<HTMLDivElement>();
 
-  // Entrance choreography: hero letters cascade in, then status bar and CTAs
+  // Entrance choreography: hero letters cascade in, then status bar and CTAs.
+  // Starts on mount — content never waits for the 3D scene (it fades in
+  // behind). Plays once per session; revisits via the nav render instantly.
   useLayoutEffect(() => {
     const root = contentRef.current;
-    if (!contentVisible || !root || prefersReducedMotion()) return;
+    if (!root || prefersReducedMotion() || hasRouteRevealPlayed()) return;
+    markRouteRevealPlayed();
 
     const letters = root.querySelectorAll('.hero-letter');
     const status = root.querySelectorAll('[data-hero-status]');
@@ -172,29 +174,20 @@ const Home: React.FC = () => {
     tl.add(letters, {
       opacity: [0, 1],
       translateY: ['0.45em', '0em'],
-      duration: 850,
-      delay: stagger(20),
+      duration: 600,
+      delay: stagger(14),
     })
-      .add(status, { opacity: [0, 1], translateY: [-10, 0], duration: 550 }, '-=700')
+      .add(status, { opacity: [0, 1], translateY: [-10, 0], duration: 400 }, '-=500')
       .add(
         footer,
-        { opacity: [0, 1], translateY: [16, 0], duration: 650, delay: stagger(80) },
-        '-=650'
+        { opacity: [0, 1], translateY: [16, 0], duration: 500, delay: stagger(60) },
+        '-=450'
       );
-  }, [contentVisible]);
-
-  // Coordinated reveal: wait for 3D scene, then fade in content
-  const handleSceneReady = useCallback(() => {
-    setSceneReady(true);
-    // Small delay after scene ready for smooth transition
-    setTimeout(() => setContentVisible(true), 150);
   }, []);
 
-  // Never hold the hero hostage to the 3D scene: if the lazy chunk or
-  // WebGL is slow, reveal the content anyway after a short grace period
-  useEffect(() => {
-    const failsafe = setTimeout(() => setContentVisible(true), 2000);
-    return () => clearTimeout(failsafe);
+  // The 3D scene fades itself in behind the content once WebGL is ready
+  const handleSceneReady = useCallback(() => {
+    setSceneReady(true);
   }, []);
 
   // Hover only for mouse (not touch)
@@ -213,7 +206,7 @@ const Home: React.FC = () => {
     <div className="relative w-full h-[100dvh] overflow-hidden bg-[#050505]" style={{ minHeight: '-webkit-fill-available' }}>
 
       {/* 3D Background - Full Screen Immersive */}
-      <div className={`absolute inset-0 z-0 transition-opacity duration-700 ${sceneReady ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`absolute inset-0 z-0 transition-opacity duration-500 ease-out-strong ${sceneReady ? 'opacity-100' : 'opacity-0'}`}>
         <Suspense fallback={null}>
           <ImmersiveScene onReady={handleSceneReady} />
         </Suspense>
@@ -229,20 +222,12 @@ const Home: React.FC = () => {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,transparent_50%,#050505_100%)]" />
       </div>
 
-      {/* Subtle grain texture */}
-      <div
-        className="absolute inset-0 z-10 pointer-events-none opacity-[0.03] mix-blend-overlay"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        }}
-      />
+      {/* (grain texture now lives in App's MainLayout so every page shares it) */}
 
-      {/* Content Layer */}
+      {/* Content Layer - never gated on the 3D scene */}
       <div
         ref={contentRef}
-        className={`absolute inset-0 z-20 flex flex-col justify-between transition-opacity duration-1000 ease-out ${
-          contentVisible ? 'opacity-100' : 'opacity-0'
-        }`}
+        className="absolute inset-0 z-20 flex flex-col justify-between"
         onClick={() => setFocusedDiscipline(null)}
       >
         {/* Terminal Hint - Periodic subtle cursor */}
@@ -254,7 +239,7 @@ const Home: React.FC = () => {
           className={`
             fixed top-[100px] sm:top-[110px] md:top-[136px] right-6 md:right-12 lg:right-16 z-30
             font-mono text-[10px] sm:text-xs text-[#2563EB]/60 hover:text-[#2563EB]
-            transition-all duration-500 ease-out pointer-events-auto
+            transition-[opacity,transform,color] duration-300 ease-out-strong pointer-events-auto
             ${showTerminalHint ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}
           `}
           title="Hello, friend."
@@ -282,9 +267,9 @@ const Home: React.FC = () => {
                     setIsEasterEggActive(true);
                   }}
                   className={`
-                    text-[#2563EB]/60 hover:text-[#2563EB] transition-all duration-500 ease-out
+                    text-[#2563EB]/60 hover:text-[#2563EB] transition-[opacity,transform,color] duration-300 ease-out-strong
                     pointer-events-auto cursor-pointer
-                    ${showTimestampHint ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'}
+                    ${showTimestampHint ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'}
                   `}
                   title="Hello, friend."
                 >
@@ -308,9 +293,9 @@ const Home: React.FC = () => {
                       setIsEasterEggActive(true);
                     }}
                     className={`
-                      text-[#2563EB]/60 hover:text-[#2563EB] transition-all duration-500 ease-out
+                      text-[#2563EB]/60 hover:text-[#2563EB] transition-[opacity,transform,color] duration-300 ease-out-strong
                       pointer-events-auto cursor-pointer
-                      ${showTimestampHint ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'}
+                      ${showTimestampHint ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'}
                     `}
                     title="Hello, friend."
                   >
@@ -332,7 +317,7 @@ const Home: React.FC = () => {
               {DISCIPLINES.map(({ lane, label, color }) => (
                 <span
                   key={lane}
-                  className="block transition-all duration-500 ease-out cursor-pointer pointer-events-auto active:scale-[0.98]"
+                  className="block transition-[color,opacity,transform,text-shadow] duration-300 ease-in-out-strong cursor-pointer pointer-events-auto"
                   style={{
                     fontSize: 'clamp(2.25rem, 8vw, 14rem)',
                     color: focusedDiscipline === lane ? color : '#ffffff',
@@ -355,13 +340,13 @@ const Home: React.FC = () => {
 
             {/* Discipline description that appears on hover/tap */}
             <div
-              className="h-5 sm:h-8 2xl:h-10 mt-3 sm:mt-6 2xl:mt-8 3xl:mt-10 overflow-hidden transition-all duration-300"
+              className="h-5 sm:h-8 2xl:h-10 mt-3 sm:mt-6 2xl:mt-8 3xl:mt-10 overflow-hidden transition-opacity duration-300"
               style={{ opacity: focusedDiscipline ? 1 : 0 }}
             >
               {DISCIPLINES.map(({ lane, description, color }) => (
                 <p
                   key={lane}
-                  className="font-mono text-[10px] sm:text-xs 2xl:text-sm 3xl:text-base tracking-widest uppercase transition-all duration-300"
+                  className="font-mono text-[10px] sm:text-xs 2xl:text-sm 3xl:text-base tracking-widest uppercase transition-[opacity,transform] duration-300 ease-out-strong"
                   style={{
                     color: color,
                     opacity: focusedDiscipline === lane ? 1 : 0,
@@ -379,11 +364,18 @@ const Home: React.FC = () => {
         {/* Bottom Section - CTA & Description */}
         <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-32 sm:pb-28 md:pb-24 lg:pb-24 2xl:pb-28 3xl:pb-32 flex-shrink-0">
           <div className="flex flex-col-reverse md:flex-row md:items-end md:justify-between gap-1.5 sm:gap-4 md:gap-8 2xl:gap-12">
-            {/* Description */}
-            <p data-hero-footer className="text-white/40 text-[10px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[260px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-snug sm:leading-relaxed pointer-events-none">
-              A multidisciplinary portfolio exploring the intersection of software engineering,
-              machine learning, and visual storytelling.
-            </p>
+            {/* Identity + description */}
+            <div className="flex flex-col gap-2 sm:gap-3">
+              <p data-hero-footer className="font-mono text-[9px] sm:text-[10px] md:text-[11px] 2xl:text-xs uppercase tracking-[0.2em] text-[#A3A3A3] pointer-events-none">
+                Ebenezer Eshetu <span className="text-[#525252]">·</span>{' '}
+                <span className="text-[#2563EB]">2XEB</span> <span className="text-[#525252]">·</span>{' '}
+                Engineer <span className="text-[#525252]">×</span> Filmmaker
+              </p>
+              <p data-hero-footer className="text-white/40 text-[10px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[260px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-snug sm:leading-relaxed pointer-events-none">
+                A multidisciplinary portfolio exploring the intersection of software engineering,
+                machine learning, and visual storytelling.
+              </p>
+            </div>
 
             {/* CTAs - rendered first on mobile due to flex-col-reverse.
                 Magnetic wrappers pull the buttons toward the cursor on desktop. */}
@@ -391,9 +383,9 @@ const Home: React.FC = () => {
               <div ref={workCtaRef} data-hero-footer>
                 <Link
                   to="/work"
-                  className="group relative px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 bg-[#2563EB] overflow-hidden active:scale-[0.98] flex items-center justify-center h-full"
+                  className="group relative px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 bg-[#2563EB] overflow-hidden pressable flex items-center justify-center h-full"
                 >
-                  <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                  <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out-strong" />
                   <span className="relative font-medium tracking-widest text-[11px] md:text-xs 2xl:text-sm uppercase text-white group-hover:text-black transition-colors z-10 whitespace-nowrap">
                     View Work
                   </span>
@@ -403,7 +395,7 @@ const Home: React.FC = () => {
               <div ref={askCtaRef} data-hero-footer>
                 <button
                   onClick={() => setIsAgentOpen(true)}
-                  className="group px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 border border-white/20 hover:border-[#2563EB] backdrop-blur-sm transition-colors active:scale-[0.98] bg-black/20 flex items-center gap-2 2xl:gap-3 h-full"
+                  className="group px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 border border-white/20 hover:border-[#2563EB] backdrop-blur-sm pressable bg-black/20 flex items-center gap-2 2xl:gap-3 h-full"
                 >
                   <span className="font-medium tracking-widest text-[11px] md:text-xs 2xl:text-sm uppercase text-white">
                     ASK

@@ -127,7 +127,7 @@ const Contact: React.FC = () => {
             <button
               data-sent-detail
               onClick={() => setStatus('idle')}
-              className="mt-8 px-6 py-3 bg-[#22c55e] text-white text-sm font-medium tracking-wide hover:bg-[#16a34a] transition-colors"
+              className="mt-8 px-6 py-3 bg-[#22c55e] text-white text-sm font-medium tracking-wide hover:bg-[#16a34a] pressable"
             >
               SEND ANOTHER
             </button>
@@ -151,9 +151,10 @@ const Contact: React.FC = () => {
         </Suspense>
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 h-full flex flex-col justify-center px-6 md:px-12 lg:px-20 py-20">
-        <div className="max-w-xl">
+      {/* Content: my-auto instead of justify-center so short viewports can
+          scroll to the top of the form instead of clipping it under the nav */}
+      <div className="relative z-10 h-full flex flex-col overflow-y-auto px-6 md:px-12 lg:px-20 pt-28 md:pt-32 pb-16">
+        <div className="max-w-xl my-auto">
           {/* Bold Header - matching home page style */}
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white font-space-grotesk tracking-tight leading-none mb-4">
             <span data-contact-heading className="inline-block">GET IN</span>
@@ -193,7 +194,7 @@ const Contact: React.FC = () => {
                     onBlur={handleBlur}
                     className={`w-full bg-transparent border-b-2 ${
                       focusedField === 'name' ? 'border-[#2563EB]' : 'border-[#222]'
-                    } px-0 py-2 text-white text-sm focus:outline-none placeholder:text-[#444] transition-all duration-300`}
+                    } px-0 py-2 text-white text-sm focus:outline-none placeholder:text-[#444] transition-colors duration-200`}
                     placeholder="Your name"
                   />
                 </div>
@@ -210,7 +211,7 @@ const Contact: React.FC = () => {
                     onBlur={handleBlur}
                     className={`w-full bg-transparent border-b-2 ${
                       focusedField === 'email' ? 'border-[#2563EB]' : 'border-[#222]'
-                    } px-0 py-2 text-white text-sm focus:outline-none placeholder:text-[#444] transition-all duration-300`}
+                    } px-0 py-2 text-white text-sm focus:outline-none placeholder:text-[#444] transition-colors duration-200`}
                     placeholder="you@email.com"
                   />
                 </div>
@@ -227,7 +228,7 @@ const Contact: React.FC = () => {
                   onBlur={handleBlur}
                   className={`w-full bg-transparent border-b-2 ${
                     focusedField === 'reason' ? 'border-[#2563EB]' : 'border-[#222]'
-                  } px-0 py-2 text-white text-sm focus:outline-none appearance-none cursor-pointer transition-all duration-300`}
+                  } px-0 py-2 text-white text-sm focus:outline-none appearance-none cursor-pointer transition-colors duration-200`}
                 >
                   <option value="general" className="bg-[#111]">General Inquiry</option>
                   <option value="swe" className="bg-[#111]">Software Engineering</option>
@@ -250,7 +251,7 @@ const Contact: React.FC = () => {
                   onBlur={handleBlur}
                   className={`w-full bg-transparent border-b-2 ${
                     focusedField === 'message' ? 'border-[#2563EB]' : 'border-[#222]'
-                  } px-0 py-2 text-white text-sm focus:outline-none resize-none placeholder:text-[#444] transition-all duration-300`}
+                  } px-0 py-2 text-white text-sm focus:outline-none resize-none placeholder:text-[#444] transition-colors duration-200`}
                   placeholder="Tell me about your project..."
                 ></textarea>
               </div>
@@ -260,7 +261,7 @@ const Contact: React.FC = () => {
                 <button
                   type="submit"
                   disabled={status === 'submitting'}
-                  className="group px-6 py-3 bg-[#2563EB] text-white text-sm font-medium tracking-wide hover:bg-[#1d4ed8] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="group px-6 py-3 bg-[#2563EB] text-white text-sm font-medium tracking-wide hover:bg-[#1d4ed8] pressable disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {status === 'submitting' ? (
                     <>

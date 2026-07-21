@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Warp } from '@paper-design/shaders-react';
 import { useConsole, TerminalEntry } from '../context/ConsoleContext';
+import { prefersReducedMotion } from '../hooks/useAnimations';
 
 /**
  * MrRobotTerminal - Easter Egg Terminal
@@ -609,6 +610,13 @@ const useTypewriter = (text: string, speed: number = 30, startDelay: number = 0)
     if (!text) {
       setDisplayedText('');
       setIsComplete(false);
+      return;
+    }
+
+    // Reduced motion: render the full text immediately
+    if (prefersReducedMotion()) {
+      setDisplayedText(text);
+      setIsComplete(true);
       return;
     }
 
@@ -1784,7 +1792,7 @@ drwxr-xr-x  ..
                         e.stopPropagation();
                         handleCommand(cmd);
                       }}
-                      className="px-2.5 py-1.5 text-[10px] font-mono rounded border transition-all active:scale-95"
+                      className="px-2.5 py-1.5 text-[10px] font-mono rounded border pressable"
                       style={{
                         color: TERM_COLOR,
                         borderColor: 'rgba(96, 165, 250, 0.3)',
@@ -1869,7 +1877,7 @@ drwxr-xr-x  ..
                       e.stopPropagation();
                       inputRef.current?.blur();
                     }}
-                    className="flex sm:hidden items-center gap-1 px-2 py-1 rounded border transition-all active:scale-95"
+                    className="flex sm:hidden items-center gap-1 px-2 py-1 rounded border pressable"
                     style={{
                       color: TERM_COLOR,
                       borderColor: 'rgba(96, 165, 250, 0.4)',
@@ -1964,7 +1972,7 @@ drwxr-xr-x  ..
         }
 
         .phase-intro-complete {
-          animation: phase-fade-out 400ms ease-in forwards;
+          animation: phase-fade-out 250ms var(--ease-out-strong) forwards;
         }
 
         .phase-terminal {
@@ -2027,7 +2035,9 @@ drwxr-xr-x  ..
           background: rgba(37, 99, 235, 0.14);
           border: 1.5px solid rgba(96, 165, 250, 0.55);
           box-shadow: inset 0 0 60px rgba(37, 99, 235, 0.25);
-          transition: opacity 0.14s ease, left 0.12s ease, top 0.12s ease, width 0.12s ease, height 0.12s ease;
+          /* Opacity only: transitioning left/top/width/height forces layout
+             every frame mid-drag. Zone changes snap; the fade masks them. */
+          transition: opacity 0.14s ease;
         }
 
         @keyframes turn-on {

@@ -11,7 +11,9 @@ import { debug } from './debug';
 const FUNCTIONS_BASE_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-export type LLMProvider = 'groq';
+// 'cerebras' only ever appears in responses: the Edge Function retries via
+// Cerebras when Groq is rate-limited. Requests always target Groq models.
+export type LLMProvider = 'groq' | 'cerebras';
 
 export interface AskPortfolioResponse {
   answer: string;
@@ -170,7 +172,7 @@ export async function askPortfolioStreaming(
   let fullText = '';
   let finalProjectSlugs: string[] = [];
   let finalModel = modelId;
-  let finalProvider = model.provider;
+  let finalProvider: LLMProvider = model.provider;
 
   while (true) {
     const { done, value } = await reader.read();

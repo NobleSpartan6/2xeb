@@ -1,6 +1,7 @@
 import React, { useRef, useMemo, useEffect, Suspense, useState, createContext, useContext } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { prefersReducedMotion } from '../hooks/useAnimations';
 
 // Colors matching design system
 const COLORS = {
@@ -78,9 +79,15 @@ const ContactGrid: React.FC<ContactGridProps> = ({ isMobile }) => {
     return data;
   }, [gridSize, cellSize, gap]);
 
+  // Reduced motion: freeze ambient oscillation (breathing, focus/success
+  // waves) into a static pose. Pulses stay — they're brief, user-triggered
+  // feedback for focus/submit — as does the mouse highlight.
+  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+
   useFrame((state) => {
     if (!meshRef.current) return;
     const time = state.clock.getElapsedTime();
+    const ambientTime = reduceMotion ? 0 : time;
 
     // Add new pulse when triggered
     if (interaction.triggerPulse > lastTriggerRef.current) {
@@ -140,7 +147,7 @@ const ContactGrid: React.FC<ContactGridProps> = ({ isMobile }) => {
       // === FORM FOCUS EFFECT ===
       if (interaction.focusedField) {
         // Create a gentle wave pattern when focused
-        const focusWave = Math.sin(distFromCenter * 0.5 - time * 2) * 0.5 + 0.5;
+        const focusWave = Math.sin(distFromCenter * 0.5 - ambientTime * 2) * 0.5 + 0.5;
         const focusIntensity = Math.max(0, 1 - distFromCenter / 12) * focusWave * 0.3;
 
         targetY += focusIntensity * 0.4;
@@ -151,7 +158,7 @@ const ContactGrid: React.FC<ContactGridProps> = ({ isMobile }) => {
 
       // === SUCCESS CELEBRATION ===
       if (interaction.isSuccess) {
-        const celebrationWave = Math.sin(distFromCenter * 0.8 - time * 3) * 0.5 + 0.5;
+        const celebrationWave = Math.sin(distFromCenter * 0.8 - ambientTime * 3) * 0.5 + 0.5;
         const celebrationIntensity = celebrationWave * 0.25;
 
         targetY += celebrationIntensity * 0.5;
@@ -173,12 +180,12 @@ const ContactGrid: React.FC<ContactGridProps> = ({ isMobile }) => {
 
       // === AMBIENT BREATHING ===
       // Gentle wave that moves across the grid
-      const breatheWave = Math.sin(time * 0.8 + x * 0.3 + z * 0.3) * 0.5 + 0.5;
-      const breathe = breatheWave * 0.12 + Math.sin(time * 0.5) * 0.05;
+      const breatheWave = Math.sin(ambientTime * 0.8 + x * 0.3 + z * 0.3) * 0.5 + 0.5;
+      const breathe = breatheWave * 0.12 + Math.sin(ambientTime * 0.5) * 0.05;
       targetY += breathe;
 
       // Add subtle color breathing
-      const colorBreath = Math.sin(time * 0.6 + distFromCenter * 0.1) * 0.5 + 0.5;
+      const colorBreath = Math.sin(ambientTime * 0.6 + distFromCenter * 0.1) * 0.5 + 0.5;
       r += 0.015 * colorBreath;
       g += 0.015 * colorBreath;
       b += 0.025 * colorBreath;
@@ -214,8 +221,15 @@ const ContactGrid: React.FC<ContactGridProps> = ({ isMobile }) => {
 const CameraRig: React.FC<{ isMobile: boolean }> = ({ isMobile }) => {
   const { camera, mouse } = useThree();
   const targetPos = useRef(new THREE.Vector3());
+  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
 
   useFrame(() => {
+    // Reduced motion: no viewport-wide parallax — hold the framing
+    if (reduceMotion) {
+      camera.lookAt(0, -1, 0);
+      return;
+    }
+
     const baseY = isMobile ? 10 : 12;
     const baseZ = isMobile ? 14 : 16;
 

@@ -76,7 +76,8 @@ const Video: React.FC = () => {
   const [showreelProject, setShowreelProject] = useState<Project | undefined>(initialShowreelProject);
 
   // Entrance animations
-  const revealRef = useScrollReveal<HTMLDivElement>({ y: 24, interval: 70 }, [videoProjects]);
+  const revealRef = useScrollReveal<HTMLDivElement>({ y: 16, interval: 50 }, [videoProjects]);
+  const kickerRef = useTextScramble<HTMLSpanElement>();
   const subtitleRef = useTextScramble<HTMLParagraphElement>();
   const reelRef = useRef<HTMLDivElement>(null);
   const hasShuffledRef = useRef(false);
@@ -109,10 +110,11 @@ const Video: React.FC = () => {
 
   return (
     <div ref={revealRef} className="min-h-screen pt-28 md:pt-32 pb-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto bg-[#050505]">
-      <div className="flex flex-col items-center justify-center text-center mb-20 md:mb-24 px-2">
+      <div className="mb-20 md:mb-24 px-2 border-b border-[#262626] pb-10 md:pb-12">
+        <span ref={kickerRef} data-animate className="text-[#2563EB] font-mono text-[11px] sm:text-xs uppercase tracking-widest block mb-3 sm:mb-4">Showreel</span>
         <h1
           data-animate
-          className="font-bold text-white font-space-grotesk mb-6 md:mb-8 tracking-tighter leading-tight max-w-5xl mx-auto"
+          className="font-bold text-white font-space-grotesk mb-6 md:mb-8 tracking-tighter leading-[0.9]"
           style={{ fontSize: 'clamp(2.6rem, 5vw + 1rem, 9rem)' }}
         >
           VISUAL<span className="text-[#2563EB] px-2">///</span>ARTS
@@ -141,7 +143,7 @@ const Video: React.FC = () => {
              <div className="flex items-center gap-3 sm:gap-4 shrink-0 flex-shrink-0">
                <button
                  onClick={shuffleFeatured}
-                 className="px-3 py-1.5 border border-[#525252] hover:border-white text-[#525252] hover:text-white transition-colors uppercase tracking-widest text-[10px] sm:text-[10px] whitespace-nowrap flex-shrink-0"
+                 className="px-3 py-1.5 border border-[#525252] hover:border-white text-[#525252] hover:text-white pressable uppercase tracking-widest text-[10px] sm:text-[10px] whitespace-nowrap flex-shrink-0"
                  aria-label="Shuffle featured video"
                >
                  Shuffle
@@ -160,9 +162,9 @@ const Video: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {videoProjects.map((project) => (
+          {videoProjects.map((project, i) => (
             <div key={project.id} data-animate className="h-full">
-              <ProjectCard project={project} />
+              <ProjectCard project={project} index={i} />
             </div>
           ))}
         </div>

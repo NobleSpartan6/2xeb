@@ -164,7 +164,8 @@ import { Discipline, ConsoleLane, Project } from '../lib/types';
 - **Regenerate**: Re-send last user message
 - **Clear**: Reset chat history
 - **Markdown**: Lightweight renderer (code, bold, lists) - no external deps
-- **Model Selector**: Switch between Llama 3.1 8B, Llama 3.3 70B, Gemini 2.0 Flash
+- **Model Selector**: Switch between Llama 3.1 8B, Llama 4 Scout (default), Llama 3.3 70B, GPT-OSS 120B (all Groq; keep `src/lib/models.ts` and the Edge Function whitelist in sync)
+- **Rate-limit Fallback**: if Groq returns 429, the Edge Function retries once on Cerebras `gpt-oss-120b` (needs `CEREBRAS_API_KEY` secret); streaming keeps working and the response reports `provider: 'cerebras'`
 
 ### Animations (anime.js)
 - All entrance/scroll animations use [anime.js v4](https://animejs.com/) (`animate`, `createTimeline`, `stagger`, `utils`)
@@ -173,6 +174,14 @@ import { Discipline, ConsoleLane, Project } from '../lib/types';
 - Extra hooks: `useTextScramble` (terminal-style decode on mono labels), `useMagnetic` (cursor-pull CTAs, desktop only)
 - All animation code must respect `prefers-reduced-motion` (use `prefersReducedMotion()` guard — skip animating, leave content visible)
 - Animate `transform`/`opacity` only; avoid targets with Tailwind `transition-all` (inline styles fight CSS transitions), or clear inline styles `onComplete`
+
+### Motion System (CSS transitions)
+Standards live in `.claude/skills/` (emil-design-eng, review-animations). Rules:
+- Never `transition-all` — list explicit properties (`transition-colors`, `transition-[opacity,transform]`)
+- Strong easing tokens (defined in `src/index.css`, exposed via Tailwind): `ease-out-strong`, `ease-in-out-strong`, `ease-drawer` (iOS-style, for drawers/sheets)
+- Pressable elements (buttons, link-buttons) get the `.pressable` class: scale(0.97) on `:active` + owns its full transition list — don't combine with `transition-*` utilities, and never put it on an anime.js target (inline transforms fight CSS transitions)
+- Hover/color transitions: 150-200ms; UI movement: ≤300ms; drawers/modals: 300-500ms
+- `hoverOnlyWhenSupported` is on — `hover:` variants don't fire on touch devices
 
 ### Case Study Explorer
 - Lazy-loaded component (`React.lazy`) for Portfolio Console project
@@ -232,7 +241,7 @@ on contact_messages for insert to public with check (true);
 ```
 
 ### Edge Functions
-- `ask-portfolio`: Multi-model AI (Groq/Gemini), SSE streaming support
+- `ask-portfolio`: Multi-model AI (Groq primary, Cerebras 429 fallback), SSE streaming support
   - Input: `{ question, context, model?, provider?, stream? }`
   - Output: `{ answer, projectSlugs, model, provider }` or SSE stream
 - `submit-contact`: Inserts into `contact_messages`, sends email via Resend

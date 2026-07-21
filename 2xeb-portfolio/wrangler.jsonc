@@ -1,6 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/cloudflare/workers-sdk/main/packages/wrangler/config-schema.json",
   "name": "2xeb",
+  // Pin deploys to the ebenezereshetu@gmail.com account — wrangler otherwise
+  // uses whichever account is OAuth'd on the machine
+  "account_id": "59bb8773eb3abf64dd20c839e1c7b519",
   "compatibility_date": "2025-12-15",
   "assets": {
     "directory": "./dist",

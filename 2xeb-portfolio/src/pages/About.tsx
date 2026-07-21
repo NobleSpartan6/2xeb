@@ -1,23 +1,30 @@
 import React from 'react';
 import { useExperience } from '../hooks/useExperience';
-import { useScrollReveal, useTextScramble } from '../hooks/useAnimations';
+import { useScrollReveal, useTextScramble, hasRouteRevealPlayed } from '../hooks/useAnimations';
 
 const About: React.FC = () => {
   // SWR: static data immediately, DB fetch in background
   const { experience } = useExperience();
 
   // Staggered reveal for header + experience rows as they scroll into view
-  const revealRef = useScrollReveal<HTMLDivElement>({ y: 24, interval: 80 }, [experience]);
+  const revealRef = useScrollReveal<HTMLDivElement>({ y: 16, interval: 55 }, [experience]);
+  const kickerRef = useTextScramble<HTMLSpanElement>();
   const expLabelRef = useTextScramble<HTMLHeadingElement>();
+  // Render-time check happens before the reveal marks the route, so first
+  // visits get the draw-in and revisits get a static line
+  const revealedBefore = hasRouteRevealPlayed();
 
   return (
     <div ref={revealRef} className="min-h-screen bg-[#050505] pt-28 md:pt-36 pb-20 px-4 sm:px-6 lg:px-12">
       {/* Header */}
       <div className="max-w-5xl xl:max-w-6xl mx-auto mb-20 lg:mb-28 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
         <div className="flex flex-col items-start gap-5">
-           <h1 data-animate className="font-bold text-white font-space-grotesk tracking-tighter leading-[0.85]" style={{ fontSize: 'clamp(3rem, 5vw + 1rem, 8rem)' }}>
-            EBENEZER<br/>ESHETU
-          </h1>
+           <div data-animate>
+             <span ref={kickerRef} className="text-[#2563EB] font-mono text-[11px] sm:text-xs uppercase tracking-widest block mb-3 sm:mb-4">Profile</span>
+             <h1 className="font-bold text-white font-space-grotesk tracking-tighter leading-[0.85]" style={{ fontSize: 'clamp(3rem, 5vw + 1rem, 8rem)' }}>
+              EBENEZER<br/>ESHETU
+            </h1>
+           </div>
           <div data-animate className="inline-flex flex-wrap items-center gap-5 mt-2 text-[#a3a3a3]">
             <a
               href="https://www.linkedin.com/in/ebenezer-eshetu/"
@@ -73,7 +80,13 @@ const About: React.FC = () => {
           </div>
         </div>
         <div className="flex items-end">
-           <p data-animate className="text-lg md:text-2xl text-[#D4D4D4] leading-relaxed font-light border-l-2 border-[#2563EB] pl-6 md:pl-8">
+           <p data-animate className="relative text-lg md:text-2xl text-[#D4D4D4] leading-relaxed font-light pl-6 md:pl-8">
+            {/* Accent line draws in top-to-bottom on the page's first visit
+                this session; static on revisits (matches the reveal gating) */}
+            <span
+              aria-hidden
+              className={`absolute left-0 top-0 bottom-0 w-[2px] bg-[#2563EB] ${revealedBefore ? '' : 'accent-draw'}`}
+            />
             Software Engineer based in New York City. <br/>
             Specializing in high-performance financial systems, machine learning applications, and creative visual media.
           </p>

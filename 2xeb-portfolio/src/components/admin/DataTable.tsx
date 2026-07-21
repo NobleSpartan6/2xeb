@@ -228,8 +228,8 @@ function DataTable<T extends Record<string, unknown>>({
 
       {/* Delete confirmation modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-[#0A0A0A] border border-[#262626] p-6 max-w-sm w-full mx-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-[#0A0A0A] border border-[#262626] p-6 max-w-sm w-full mx-4 animate-modal-in">
             <h3 className="text-lg font-space-grotesk font-semibold text-white mb-2">
               Confirm Delete
             </h3>

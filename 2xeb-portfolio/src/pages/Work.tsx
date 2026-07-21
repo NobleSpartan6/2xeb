@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useProjects } from '../hooks/useProjects';
-import { useScrollReveal } from '../hooks/useAnimations';
+import { useScrollReveal, useTextScramble } from '../hooks/useAnimations';
 import { useConsole } from '../context/ConsoleContext';
 import { Discipline } from '../lib/types';
 import ProjectCard from '../components/ProjectCard';
@@ -22,9 +22,10 @@ const Work: React.FC = () => {
   const { projects } = useProjects();
 
   // Entrance animations: header once, grid re-plays on filter change
-  const headerRef = useScrollReveal<HTMLDivElement>({ y: 26, interval: 100 });
+  const headerRef = useScrollReveal<HTMLDivElement>({ y: 18, interval: 70 });
+  const kickerRef = useTextScramble<HTMLSpanElement>();
   const gridWrapRef = useScrollReveal<HTMLDivElement>(
-    { selector: '[data-card]', y: 26, scale: 0.98, duration: 600, interval: 45 },
+    { selector: '[data-card]', y: 18, scale: 0.98, duration: 480, interval: 32 },
     [activeFilter, projects]
   );
 
@@ -96,6 +97,7 @@ const Work: React.FC = () => {
     <div className="min-h-screen bg-[#050505] pt-28 md:pt-36 pb-16 px-4 sm:px-6 lg:px-12">
       <div ref={headerRef} className="max-w-6xl xl:max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-start lg:items-end mb-14 lg:mb-20 gap-10 lg:gap-14 border-b border-[#262626] pb-10 lg:pb-12">
         <div data-animate>
+          <span ref={kickerRef} className="text-[#2563EB] font-mono text-[11px] sm:text-xs uppercase tracking-widest block mb-3 sm:mb-4">Index</span>
           <h1 className="text-[2.7rem] sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white font-space-grotesk mb-6 tracking-tighter leading-[0.9]">
             SELECTED<br /><span className="text-[#2563EB]">WORK</span>
           </h1>
@@ -106,7 +108,7 @@ const Work: React.FC = () => {
             <button
               key={f.value}
               onClick={() => handleFilterChange(f.value)}
-              className={`px-4 sm:px-5 lg:px-6 py-3 text-[11px] font-bold uppercase tracking-[0.16em] transition-all duration-200 border-r border-[#262626] last:border-r-0 ${
+              className={`px-4 sm:px-5 lg:px-6 py-3 text-[11px] font-bold uppercase tracking-[0.16em] pressable border-r border-[#262626] last:border-r-0 ${
                 activeFilter === f.value
                   ? 'bg-[#2563EB] text-white'
                   : 'bg-[#0A0A0A] text-[#A3A3A3] hover:bg-white hover:text-black'
@@ -124,14 +126,14 @@ const Work: React.FC = () => {
           ref={gridRef}
           className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-px bg-[#262626] border border-[#262626] rounded-lg overflow-hidden"
         >
-          {filteredProjects.map((project) => (
+          {filteredProjects.map((project, i) => (
             <div
               key={project.id}
               data-card
               className="bg-[#050505] h-full"
               onClick={handleProjectClick}
             >
-              <ProjectCard project={project} />
+              <ProjectCard project={project} index={i} />
             </div>
           ))}
         </div>
@@ -150,7 +152,7 @@ const Work: React.FC = () => {
             font-mono text-xs text-[#2563EB]/70 hover:text-[#2563EB]
             border border-[#2563EB]/20 hover:border-[#2563EB]/50
             bg-[#2563EB]/5 hover:bg-[#2563EB]/10
-            rounded transition-all duration-500 ease-out
+            rounded transition-[opacity,transform,color,border-color,background-color] duration-300 ease-out-strong
             ${showScrollHint
               ? 'opacity-100 translate-y-0'
               : 'opacity-0 translate-y-4 pointer-events-none'

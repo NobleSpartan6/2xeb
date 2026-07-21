@@ -348,13 +348,13 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
               <div className="grid gap-2 w-full">
                 <button 
                   onClick={() => handleSuggestionClick("What ML projects have you worked on?")} 
-                  className="text-[11px] text-left bg-[#080808] border border-[#1f2937] hover:border-[#2563EB] hover:bg-[#0C0C0C] text-[#888] hover:text-white px-4 py-3 transition-all group"
+                  className="text-[11px] text-left bg-[#080808] border border-[#1f2937] hover:border-[#2563EB] hover:bg-[#0C0C0C] text-[#888] hover:text-white px-4 py-3 pressable group"
                 >
                   What ML projects have you worked on?
                 </button>
                 <button 
                   onClick={() => handleSuggestionClick("Tell me about your tech stack")} 
-                  className="text-[11px] text-left bg-[#080808] border border-[#1f2937] hover:border-[#2563EB] hover:bg-[#0C0C0C] text-[#888] hover:text-white px-4 py-3 transition-all group"
+                  className="text-[11px] text-left bg-[#080808] border border-[#1f2937] hover:border-[#2563EB] hover:bg-[#0C0C0C] text-[#888] hover:text-white px-4 py-3 pressable group"
                 >
                   Tell me about your tech stack
                 </button>
@@ -365,7 +365,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
           <div className="space-y-4">
         {/* Messages */}
         {chatHistory.map((msg, idx) => (
-          <div key={idx} className={`flex flex-col animate-fade-in ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+          <div key={idx} className={`flex flex-col animate-message-in ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
             <span className={`text-[9px] font-mono uppercase tracking-[0.15em] mb-1.5 text-[#525252] ${msg.role === 'user' ? 'mr-1' : 'ml-1'}`}>
               {msg.role === 'user' ? 'You' : 'EB'}
             </span>
@@ -387,7 +387,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
                     <button
                       type="button"
                       onClick={cancelEditing}
-                      className="text-[10px] font-mono uppercase tracking-wider px-3 py-1.5 border border-[#262626] text-[#737373] hover:text-white hover:border-[#404040] transition-colors"
+                      className="text-[10px] font-mono uppercase tracking-wider px-3 py-1.5 border border-[#262626] text-[#737373] hover:text-white hover:border-[#404040] pressable"
                     >
                       Cancel
                     </button>
@@ -395,7 +395,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
                       type="button"
                       onClick={submitEdit}
                       disabled={!editText.trim() || isLoading}
-                      className="text-[10px] font-mono uppercase tracking-wider px-3 py-1.5 bg-[#2563EB] text-white hover:bg-[#1d4ed8] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      className="text-[10px] font-mono uppercase tracking-wider px-3 py-1.5 bg-[#2563EB] text-white hover:bg-[#1d4ed8] disabled:opacity-30 disabled:cursor-not-allowed pressable"
                     >
                       Save & Resend
                     </button>
@@ -471,7 +471,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
 
         {/* Loading state - typing indicator */}
         {(isLoading || isStreaming || streamingText) && (
-          <div className="flex flex-col items-start animate-fade-in">
+          <div className="flex flex-col items-start animate-message-in">
             <span className="text-[9px] font-mono uppercase tracking-[0.15em] mb-1.5 text-[#525252] ml-1">EB</span>
             <div className="bg-[#080808] border border-[#1f2937] px-4 py-3 max-w-[85%]">
               {streamingText ? (
@@ -514,7 +514,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
                   type="button"
                   onClick={() => setSelectedModelId(model.id)}
                   title={model.description}
-                  className={`text-[10px] font-mono tracking-wider px-2 py-1 border transition-colors ${
+                  className={`text-[10px] font-mono tracking-wider px-2 py-1 border pressable ${
                     selectedModelId === model.id
                       ? 'border-[#2563EB] bg-[#2563EB]/10 text-[#2563EB]'
                       : 'border-[#262626] text-[#525252] hover:border-[#404040] hover:text-[#737373]'
@@ -554,7 +554,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
           <button
             type="submit"
             disabled={isLoading || !question.trim() || editingIdx !== null}
-            className="absolute right-2 w-8 h-8 flex items-center justify-center bg-[#2563EB] text-white hover:bg-[#1d4ed8] disabled:opacity-20 disabled:bg-[#262626] transition-all"
+            className="absolute right-2 w-8 h-8 flex items-center justify-center bg-[#2563EB] text-white hover:bg-[#1d4ed8] disabled:opacity-20 disabled:bg-[#262626] pressable"
             aria-label="Send message"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">

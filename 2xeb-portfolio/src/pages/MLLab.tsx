@@ -17,7 +17,7 @@ const MLLab: React.FC = () => {
   const { projects } = useProjects();
 
   // Staggered reveal for header, project cards, and the AI widget panel
-  const revealRef = useScrollReveal<HTMLDivElement>({ y: 24, interval: 75 }, [projects]);
+  const revealRef = useScrollReveal<HTMLDivElement>({ y: 16, interval: 50 }, [projects]);
   const labLabelRef = useTextScramble<HTMLSpanElement>();
 
   // Ensure we land at the top when navigating to this page
@@ -57,9 +57,9 @@ const MLLab: React.FC = () => {
           </div>
 
           <div className="grid gap-6 sm:gap-8">
-              {mlProjects.map(p => (
+              {mlProjects.map((p, i) => (
                 <div key={p.id} data-animate>
-                  <ProjectCard project={p} />
+                  <ProjectCard project={p} index={i} />
                 </div>
               ))}
           </div>
@@ -67,7 +67,7 @@ const MLLab: React.FC = () => {
 
         {/* Right Column: AI Widget sticky */}
         <div data-animate className="lg:col-span-5 lg:sticky lg:top-32 h-fit">
-          <div className="bg-[#0A0A0A] border border-[#1f2937] overflow-hidden shadow-xl relative transition-all duration-500">
+          <div className="bg-[#0A0A0A] border border-[#1f2937] overflow-hidden shadow-xl relative">
             {/* Blue accent line at top */}
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#2563EB] to-transparent" />
 
@@ -98,21 +98,25 @@ const MLLab: React.FC = () => {
               </svg>
             </button>
 
-            {/* Widget Content - collapsible */}
+            {/* Widget Content - collapsible. grid-rows 0fr -> 1fr animates to
+                the content's true height (max-height guesses clip or land the
+                ease early) — same pattern as CaseStudyExplorer */}
             <div
               id="ml-widget-panel"
               className={`
-                transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
-                ${isExpanded ? 'max-h-[calc(100vh-200px)] sm:max-h-[540px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}
+                grid transition-[grid-template-rows,opacity] duration-500 ease-drawer
+                ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}
               `}
             >
-              <div className="h-[calc(100vh-200px)] sm:h-[520px] flex flex-col">
-                <div className="flex-1 min-h-0">
-                  <AskPortfolioWidget compact />
+              <div className="min-h-0 overflow-hidden">
+                <div className="h-[calc(100vh-200px)] sm:h-[520px] flex flex-col">
+                  <div className="flex-1 min-h-0">
+                    <AskPortfolioWidget compact />
+                  </div>
+                  <p className="text-[10px] sm:text-[10px] text-[#404040] text-center font-mono uppercase tracking-widest mt-2 sm:mt-3 pb-3 sm:pb-4 px-2">
+                    Model: {currentModel.name} · Context: Project Metadata
+                  </p>
                 </div>
-                <p className="text-[10px] sm:text-[10px] text-[#404040] text-center font-mono uppercase tracking-widest mt-2 sm:mt-3 pb-3 sm:pb-4 px-2">
-                  Model: {currentModel.name} · Context: Project Metadata
-                </p>
               </div>
             </div>
           </div>
