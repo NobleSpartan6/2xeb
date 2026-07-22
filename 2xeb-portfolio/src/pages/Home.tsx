@@ -130,6 +130,14 @@ const DISCIPLINES = [
 const Home: React.FC = () => {
   const { focusedDiscipline, setFocusedDiscipline, setIsAgentOpen, setIsEasterEggActive } = useConsole();
   const [sceneReady, setSceneReady] = useState(false);
+  // Defer the (large, lazy) 3D chunk fetch one beat so the hero's JS, text
+  // and fonts win the bandwidth race on cold loads — the scene fades in
+  // behind whenever it's ready anyway
+  const [mountScene, setMountScene] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setMountScene(true), 250);
+    return () => window.clearTimeout(id);
+  }, []);
   // Click shockwave signal for the 3D grid (NDC coords + timestamp)
   const [scenePulse, setScenePulse] = useState<{ nx: number; ny: number; t: number } | null>(null);
   const clock = useLiveClock();
@@ -209,9 +217,11 @@ const Home: React.FC = () => {
 
       {/* 3D Background - Full Screen Immersive */}
       <div className={`absolute inset-0 z-0 transition-opacity duration-500 ease-out-strong ${sceneReady ? 'opacity-100' : 'opacity-0'}`}>
-        <Suspense fallback={null}>
-          <ImmersiveScene onReady={handleSceneReady} pulse={scenePulse} />
-        </Suspense>
+        {mountScene && (
+          <Suspense fallback={null}>
+            <ImmersiveScene onReady={handleSceneReady} pulse={scenePulse} />
+          </Suspense>
+        )}
       </div>
 
       {/* Gradient overlays for depth */}

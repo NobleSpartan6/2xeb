@@ -488,7 +488,8 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
   // DPR settings based on screen size
   const getDpr = (): [number, number] => {
     if (isMobile) return [1, 1];
-    if (isLargeScreen) return [1, 2]; // Higher DPR for sharper rendering on 1440p+
+    // Cap at 1.5 everywhere: bloom's mipmap chain at DPR 2 on 1440p+ doubles
+    // GPU work for sharpness the glow aesthetic doesn't need
     return [1, 1.5];
   };
 
@@ -557,9 +558,11 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
           {onReady && <ReadyDetector onReady={onReady} />}
 
           {/* Bloom turns the emissive cells into neon light sources.
-              Desktop only — mobile keeps the flat-lit look for performance */}
+              Desktop only — mobile keeps the flat-lit look for performance.
+              multisampling=0: MSAA on top of bloom is wasted GPU — the glow
+              softens edges perceptually anyway */}
           {!isMobile && (
-            <EffectComposer>
+            <EffectComposer multisampling={0}>
               <Bloom mipmapBlur intensity={0.85} luminanceThreshold={0.3} luminanceSmoothing={0.2} radius={0.75} />
             </EffectComposer>
           )}
