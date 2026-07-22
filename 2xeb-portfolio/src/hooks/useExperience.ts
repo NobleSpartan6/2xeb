@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabaseRest, Tables } from '../lib/supabase';
+import { supabaseRest, Tables } from '../lib/supabaseRest';
 import { EXPERIENCE as STATIC_EXPERIENCE } from '../data/timeline';
 
 type DBExperience = Tables<'experience'>;
