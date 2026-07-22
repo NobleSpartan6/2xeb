@@ -101,10 +101,10 @@ const NavBar: React.FC = memo(() => {
                     key={link.path}
                     to={link.path}
                     data-nav-item
-                    className={`inline-block text-[11px] 2xl:text-xs 3xl:text-sm font-bold uppercase tracking-[0.15em] transition-colors duration-150 font-mono ${
+                    className={`relative inline-block text-[11px] 2xl:text-xs 3xl:text-sm font-bold uppercase tracking-[0.15em] transition-colors duration-150 font-mono after:absolute after:left-0 after:-bottom-1.5 after:h-[2px] after:w-full after:bg-[#2563EB] after:origin-left after:transition-transform after:duration-200 after:ease-out-strong ${
                       isActive(link.path)
-                        ? 'text-[#2563EB]'
-                        : 'text-[#A3A3A3] hover:text-white'
+                        ? 'text-[#2563EB] after:scale-x-100'
+                        : 'text-[#A3A3A3] hover:text-white after:scale-x-0'
                     }`}
                   >
                     {link.label}
