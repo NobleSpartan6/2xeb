@@ -233,15 +233,15 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     // Click splash: press the surface down hard, physics does the rest
     if (pulse && pulse.t > lastPulseRef.current) {
       lastPulseRef.current = pulse.t;
-      inject((pulse.nx * viewport.width) / 2, -(pulse.ny * viewport.height) / 2, -3.2 * pulseAmp, 2);
+      inject((pulse.nx * viewport.width) / 2, -(pulse.ny * viewport.height) / 2, -2.2 * pulseAmp, 2);
     }
 
     // Cursor wake: a moving pointer displaces the surface along its path
     const pm = prevMouseRef.current;
     if (pm.init) {
       const speed = Math.hypot(mouseX - pm.x, mouseZ - pm.z) / Math.max(delta, 0.001);
-      if (speed > 1.5) {
-        inject(mouseX, mouseZ, -Math.min(20, speed) * 0.085 * pulseAmp, 1);
+      if (speed > 2.5) {
+        inject(mouseX, mouseZ, -Math.min(16, speed) * 0.05 * pulseAmp, 1);
       }
     }
     pm.x = mouseX;
@@ -251,7 +251,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     // Damped wave propagation (clamped dt for stability on slow frames)
     const dtw = Math.min(delta, 0.033);
     const c2 = 90;
-    const wDamp = Math.exp(-2.2 * dtw);
+    const wDamp = Math.exp(-4.5 * dtw);
     const N = gridSize;
     for (let i = 0; i < totalCells; i++) {
       const row = (i / N) | 0, col = i % N;
@@ -264,7 +264,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     for (let i = 0; i < totalCells; i++) wh[i] += wv[i] * dtw;
 
     // Frame-rate-independent trail decay (longer streaks: ~1.3s tails)
-    const decay = Math.exp(-4.2 * delta);
+    const decay = Math.exp(-5 * delta);
     const tR = trails.r, tG = trails.g, tB = trails.b, tH = trails.h;
 
     for (let i = 0; i < totalCells; i++) {
@@ -278,7 +278,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
         const dSweX = Math.abs(x - swePos.x);
         const dSweZ = Math.abs(z - swePos.z);
         const crossWidth = 0.3;
-        const crossLength = 4.2;
+        const crossLength = 3.8;
 
         // Manhattan cross pattern
         const inCross = (dSweX < crossWidth && dSweZ < crossLength) ||
@@ -299,7 +299,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       // === ML INFLUENCE: Ripple/Wave Pattern ===
       if (showMl) {
         const dMl = Math.sqrt((x - mlPos.x) ** 2 + (z - mlPos.z) ** 2);
-        const mlRadius = 6.0;
+        const mlRadius = 5.5;
 
         if (dMl < mlRadius) {
           const intensity = 1 - (dMl / mlRadius);
@@ -315,7 +315,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       // === VIDEO INFLUENCE: Scan Line ===
       if (showVideo) {
         const dVid = Math.abs(x - videoPos.x);
-        const scanWidth = 2.2;
+        const scanWidth = 2.0;
 
         if (dVid < scanWidth) {
           const intensity = Math.pow(1 - dVid / scanWidth, 1.5);
@@ -331,14 +331,14 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
 
       // === MOUSE INTERACTION ===
       const dMouse = Math.sqrt((x - mouseX) ** 2 + (z - mouseZ) ** 2);
-      const mouseRadius = 4.5;
+      const mouseRadius = 4;
       if (dMouse < mouseRadius) {
         const intensity = 1 - (dMouse / mouseRadius);
         ih += intensity * 0.6;
         // Swiss Blue accent on mouse hover
-        ir += COLORS.accent.r * intensity * 0.4;
-        ig += COLORS.accent.g * intensity * 0.4;
-        ib += COLORS.accent.b * intensity * 0.4;
+        ir += COLORS.accent.r * intensity * 0.3;
+        ig += COLORS.accent.g * intensity * 0.3;
+        ib += COLORS.accent.b * intensity * 0.3;
       }
 
       // === TRAILS: keep the brighter of "now" and the decaying memory ===
@@ -349,11 +349,11 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
 
       // === WAVE FIELD: ripples lift the surface and glow accent-blue ===
       const wH = wh[idx];
-      const wGlow = Math.min(0.6, Math.abs(wH) * 0.75);
+      const wGlow = Math.min(0.28, Math.abs(wH) * 0.35);
 
       // === SUBTLE BREATHING ===
       const breathe = Math.sin(time * 0.5 + idx * 0.01) * 0.03;
-      const targetY = (hT + wH * 0.9 + breathe) * edgeFade;
+      const targetY = (hT + wH * 0.6 + breathe) * edgeFade;
 
       // Apply position
       _dummy.position.set(x, targetY - 0.5, z);
@@ -364,9 +364,9 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       // Apply color: cool-tinted floor base so the surface always reads,
       // trails + wave glow on top, everything dissolving at the grid edge
       _color.setRGB(
-        Math.min(1, (0.034 + rT + COLORS.accent.r * wGlow) * edgeFade),
-        Math.min(1, (0.04 + gT + COLORS.accent.g * wGlow) * edgeFade),
-        Math.min(1, (0.056 + bT + COLORS.accent.b * wGlow) * edgeFade)
+        Math.min(1, (0.024 + rT + COLORS.accent.r * wGlow) * edgeFade),
+        Math.min(1, (0.028 + gT + COLORS.accent.g * wGlow) * edgeFade),
+        Math.min(1, (0.042 + bT + COLORS.accent.b * wGlow) * edgeFade)
       );
       meshRef.current.setColorAt(i, _color);
     }
@@ -603,7 +603,7 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
               softens edges perceptually anyway */}
           {!isMobile && (
             <EffectComposer multisampling={0}>
-              <Bloom mipmapBlur intensity={0.85} luminanceThreshold={0.3} luminanceSmoothing={0.2} radius={0.75} />
+              <Bloom mipmapBlur intensity={0.7} luminanceThreshold={0.38} luminanceSmoothing={0.22} radius={0.7} />
             </EffectComposer>
           )}
         </ConsoleContext.Provider>
