@@ -1,6 +1,7 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useConsole, ConsoleContext } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
@@ -211,7 +212,8 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
         start: rawTime,
       });
     }
-    pulsesRef.current = pulsesRef.current.filter((p) => rawTime - p.start < 2.4);
+    pulsesRef.current = pulsesRef.current.filter((p) => rawTime - p.start < 1.8);
+    if (pulsesRef.current.length > 3) pulsesRef.current.splice(0, pulsesRef.current.length - 3);
     const pulseAmp = reduceMotion ? 0.4 : 1;
 
     // Frame-rate-independent trail decay (~0.9/frame at 60fps)
@@ -298,19 +300,19 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       const gT = (tG[i] = Math.max(ig, tG[i] * decay));
       const bT = (tB[i] = Math.max(ib, tB[i] * decay));
 
-      // === CLICK SHOCKWAVES: expanding blue-white ring, on top of trails ===
+      // === CLICK SHOCKWAVES: a quiet expanding accent ring, on top of trails ===
       let ph = 0;
       let pr = 0, pg = 0, pb = 0;
       for (const p of pulsesRef.current) {
         const age = rawTime - p.start;
-        const ringDist = Math.abs(Math.hypot(x - p.ox, z - p.oz) - age * 9);
-        const ringWidth = 1.6;
+        const ringDist = Math.abs(Math.hypot(x - p.ox, z - p.oz) - age * 7.5);
+        const ringWidth = 1.25;
         if (ringDist < ringWidth) {
-          const k = Math.pow(1 - ringDist / ringWidth, 2) * Math.max(0, 1 - age / 2.2) * pulseAmp;
-          ph += k * 1.1;
-          pr += (COLORS.accent.r + 0.25) * k;
-          pg += (COLORS.accent.g + 0.25) * k;
-          pb += (COLORS.accent.b + 0.25) * k;
+          const k = Math.pow(1 - ringDist / ringWidth, 2) * Math.max(0, 1 - age / 1.6) * pulseAmp;
+          ph += k * 0.5;
+          pr += COLORS.accent.r * k * 0.7;
+          pg += COLORS.accent.g * k * 0.7;
+          pb += COLORS.accent.b * k * 0.7;
         }
       }
 
@@ -402,13 +404,23 @@ const PillarLights: React.FC = () => {
 
 // --- CAMERA RIG ---
 const CameraRig: React.FC = () => {
-  const { camera, mouse } = useThree();
+  const { camera, mouse, viewport } = useThree();
   const targetPos = useRef(new THREE.Vector3(0, 12, 16));
   const reduceMotion = useMemo(() => prefersReducedMotion(), []);
 
   useFrame((state) => {
-    // Reduced motion: no viewport-wide parallax — hold the framing
+    // Tall/narrow viewports leave empty sky above the grid's horizon with the
+    // wide-screen framing — steepen the pitch so the floor fills the frame.
+    // tall: 0 on wide desktop → 1 on portrait.
+    const tall = THREE.MathUtils.clamp((1.35 - viewport.aspect) / 0.9, 0, 1);
+    const baseY = 12 + tall * 5;
+    const baseZ = 16 - tall * 6.5;
+
+    // Reduced motion: no viewport-wide parallax — hold the (aspect-correct)
+    // framing without drift
     if (reduceMotion) {
+      targetPos.current.set(0, baseY, baseZ);
+      camera.position.lerp(targetPos.current, 0.1);
       camera.lookAt(0, -1, 0);
       return;
     }
@@ -417,8 +429,8 @@ const CameraRig: React.FC = () => {
     // mouse parallax layers on top
     const t = state.clock.getElapsedTime();
     const targetX = mouse.x * 3 + Math.sin(t * 0.08) * 0.9;
-    const targetY = 12 + mouse.y * 1 + Math.sin(t * 0.05) * 0.3;
-    const targetZ = 16 - mouse.y * 2 + Math.cos(t * 0.06) * 0.5;
+    const targetY = baseY + mouse.y * 1 + Math.sin(t * 0.05) * 0.3;
+    const targetZ = baseZ - mouse.y * 2 + Math.cos(t * 0.06) * 0.5;
 
     targetPos.current.set(targetX, targetY, targetZ);
 
@@ -457,6 +469,7 @@ interface ImmersiveSceneProps {
 const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady, pulse = null }) => {
   const consoleCtx = useConsole();
   const [screenSize, setScreenSize] = useState<ScreenSize>('desktop');
+  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
 
   // Detect screen size for responsive 3D rendering
   useEffect(() => {
@@ -515,6 +528,10 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
         <ConsoleContext.Provider value={consoleCtx}>
           <color attach="background" args={['#050505']} />
           <fog attach="fog" args={['#050505', fogSettings[0], fogSettings[1]]} />
+
+          {/* Faint star dust so the sky above the grid's horizon has depth
+              instead of reading as dead black (same vocabulary as the 404) */}
+          <Stars radius={70} depth={40} count={900} factor={2.5} saturation={0} fade speed={reduceMotion ? 0 : 0.6} />
 
           {/* Ambient lighting */}
           <ambientLight intensity={0.15} />
