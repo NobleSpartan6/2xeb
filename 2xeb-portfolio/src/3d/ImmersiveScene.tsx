@@ -146,8 +146,6 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     [totalCells]
   );
 
-  // Active click shockwaves (world-space origins)
-  const pulsesRef = useRef<{ ox: number; oz: number; start: number }[]>([]);
   const lastPulseRef = useRef(0);
 
   // Pillar states
@@ -157,22 +155,33 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     video: { position: new THREE.Vector3(-5, 0, -2), velocity: new THREE.Vector3(), phase: 0 },
   });
 
-  // Pre-compute grid positions
+  // Pre-compute grid positions. edgeFade dissolves the outermost cells into
+  // darkness so the plane reads as infinite — parallax near the viewport
+  // perimeter must never resolve a hard grid boundary.
   const gridData = useMemo(() => {
-    const data: { x: number; z: number; idx: number }[] = [];
+    const data: { x: number; z: number; idx: number; edgeFade: number }[] = [];
     const offset = (gridSize * (cellSize + GAP)) / 2;
 
     for (let i = 0; i < gridSize; i++) {
       for (let j = 0; j < gridSize; j++) {
-        data.push({
-          x: i * (cellSize + GAP) - offset,
-          z: j * (cellSize + GAP) - offset,
-          idx: i * gridSize + j,
-        });
+        const x = i * (cellSize + GAP) - offset;
+        const z = j * (cellSize + GAP) - offset;
+        const edge = Math.max(Math.abs(x), Math.abs(z)) / offset;
+        const edgeFade = Math.pow(Math.min(1, Math.max(0, (1 - edge) / 0.3)), 1.4);
+        data.push({ x, z, idx: i * gridSize + j, edgeFade });
       }
     }
     return data;
   }, [gridSize, cellSize]);
+
+  // Wave field: the grid is a physical surface. Impulses (cursor wake,
+  // click splashes) propagate as damped waves through neighbouring cells,
+  // with momentum and interference — not scripted rings.
+  const wave = useMemo(
+    () => ({ h: new Float32Array(totalCells), v: new Float32Array(totalCells) }),
+    [totalCells]
+  );
+  const prevMouseRef = useRef<{ x: number; z: number; init: boolean }>({ x: 0, z: 0, init: false });
 
   // Reduced motion: freeze the clock so pillars, waves and breathing hold a
   // static (still lit and colored) pose; the mouse highlight stays as direct
@@ -202,26 +211,64 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     const showMl = !focusedDiscipline || focusedDiscipline === ConsoleLane.VISION;
     const showVideo = !focusedDiscipline || focusedDiscipline === ConsoleLane.DESIGN;
 
-    // Register a newly signalled click shockwave. Pulses run on real time
-    // (user-triggered feedback) but at reduced amplitude under reduced motion.
-    if (pulse && pulse.t > lastPulseRef.current) {
-      lastPulseRef.current = pulse.t;
-      pulsesRef.current.push({
-        ox: (pulse.nx * viewport.width) / 2,
-        oz: -(pulse.ny * viewport.height) / 2,
-        start: rawTime,
-      });
-    }
-    pulsesRef.current = pulsesRef.current.filter((p) => rawTime - p.start < 1.8);
-    if (pulsesRef.current.length > 3) pulsesRef.current.splice(0, pulsesRef.current.length - 3);
     const pulseAmp = reduceMotion ? 0.4 : 1;
 
-    // Frame-rate-independent trail decay (~0.9/frame at 60fps)
-    const decay = Math.exp(-6 * delta);
+    // --- WAVE FIELD: inject impulses, then propagate ---
+    const wh = wave.h, wv = wave.v;
+    const step = cellSize + GAP;
+    const half = (gridSize * step) / 2;
+    const inject = (wx: number, wz: number, v: number, rad: number) => {
+      const ci = Math.round((wx + half) / step);
+      const cj = Math.round((wz + half) / step);
+      for (let a = -rad; a <= rad; a++) {
+        for (let b = -rad; b <= rad; b++) {
+          const ii = ci + a, jj = cj + b;
+          if (ii < 0 || jj < 0 || ii >= gridSize || jj >= gridSize) continue;
+          const fall = 1 - Math.hypot(a, b) / (rad + 1);
+          if (fall > 0) wv[ii * gridSize + jj] += v * fall;
+        }
+      }
+    };
+
+    // Click splash: press the surface down hard, physics does the rest
+    if (pulse && pulse.t > lastPulseRef.current) {
+      lastPulseRef.current = pulse.t;
+      inject((pulse.nx * viewport.width) / 2, -(pulse.ny * viewport.height) / 2, -3.2 * pulseAmp, 2);
+    }
+
+    // Cursor wake: a moving pointer displaces the surface along its path
+    const pm = prevMouseRef.current;
+    if (pm.init) {
+      const speed = Math.hypot(mouseX - pm.x, mouseZ - pm.z) / Math.max(delta, 0.001);
+      if (speed > 1.5) {
+        inject(mouseX, mouseZ, -Math.min(20, speed) * 0.085 * pulseAmp, 1);
+      }
+    }
+    pm.x = mouseX;
+    pm.z = mouseZ;
+    pm.init = true;
+
+    // Damped wave propagation (clamped dt for stability on slow frames)
+    const dtw = Math.min(delta, 0.033);
+    const c2 = 90;
+    const wDamp = Math.exp(-2.2 * dtw);
+    const N = gridSize;
+    for (let i = 0; i < totalCells; i++) {
+      const row = (i / N) | 0, col = i % N;
+      const nL = col > 0 ? wh[i - 1] : wh[i];
+      const nR = col < N - 1 ? wh[i + 1] : wh[i];
+      const nU = row > 0 ? wh[i - N] : wh[i];
+      const nD = row < N - 1 ? wh[i + N] : wh[i];
+      wv[i] = (wv[i] + ((nL + nR + nU + nD) / 4 - wh[i]) * c2 * dtw) * wDamp;
+    }
+    for (let i = 0; i < totalCells; i++) wh[i] += wv[i] * dtw;
+
+    // Frame-rate-independent trail decay (longer streaks: ~1.3s tails)
+    const decay = Math.exp(-4.2 * delta);
     const tR = trails.r, tG = trails.g, tB = trails.b, tH = trails.h;
 
     for (let i = 0; i < totalCells; i++) {
-      const { x, z, idx } = gridData[i];
+      const { x, z, idx, edgeFade } = gridData[i];
       // Instantaneous influence for this frame (fed into the trail buffers)
       let ih = 0;
       let ir = 0, ig = 0, ib = 0;
@@ -231,7 +278,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
         const dSweX = Math.abs(x - swePos.x);
         const dSweZ = Math.abs(z - swePos.z);
         const crossWidth = 0.3;
-        const crossLength = 3.5;
+        const crossLength = 4.2;
 
         // Manhattan cross pattern
         const inCross = (dSweX < crossWidth && dSweZ < crossLength) ||
@@ -252,7 +299,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       // === ML INFLUENCE: Ripple/Wave Pattern ===
       if (showMl) {
         const dMl = Math.sqrt((x - mlPos.x) ** 2 + (z - mlPos.z) ** 2);
-        const mlRadius = 5.0;
+        const mlRadius = 6.0;
 
         if (dMl < mlRadius) {
           const intensity = 1 - (dMl / mlRadius);
@@ -268,7 +315,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       // === VIDEO INFLUENCE: Scan Line ===
       if (showVideo) {
         const dVid = Math.abs(x - videoPos.x);
-        const scanWidth = 1.8;
+        const scanWidth = 2.2;
 
         if (dVid < scanWidth) {
           const intensity = Math.pow(1 - dVid / scanWidth, 1.5);
@@ -284,7 +331,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
 
       // === MOUSE INTERACTION ===
       const dMouse = Math.sqrt((x - mouseX) ** 2 + (z - mouseZ) ** 2);
-      const mouseRadius = 4;
+      const mouseRadius = 4.5;
       if (dMouse < mouseRadius) {
         const intensity = 1 - (dMouse / mouseRadius);
         ih += intensity * 0.6;
@@ -300,25 +347,13 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       const gT = (tG[i] = Math.max(ig, tG[i] * decay));
       const bT = (tB[i] = Math.max(ib, tB[i] * decay));
 
-      // === CLICK SHOCKWAVES: a quiet expanding accent ring, on top of trails ===
-      let ph = 0;
-      let pr = 0, pg = 0, pb = 0;
-      for (const p of pulsesRef.current) {
-        const age = rawTime - p.start;
-        const ringDist = Math.abs(Math.hypot(x - p.ox, z - p.oz) - age * 7.5);
-        const ringWidth = 1.25;
-        if (ringDist < ringWidth) {
-          const k = Math.pow(1 - ringDist / ringWidth, 2) * Math.max(0, 1 - age / 1.6) * pulseAmp;
-          ph += k * 0.5;
-          pr += COLORS.accent.r * k * 0.7;
-          pg += COLORS.accent.g * k * 0.7;
-          pb += COLORS.accent.b * k * 0.7;
-        }
-      }
+      // === WAVE FIELD: ripples lift the surface and glow accent-blue ===
+      const wH = wh[idx];
+      const wGlow = Math.min(0.6, Math.abs(wH) * 0.75);
 
       // === SUBTLE BREATHING ===
       const breathe = Math.sin(time * 0.5 + idx * 0.01) * 0.03;
-      const targetY = hT + ph + breathe;
+      const targetY = (hT + wH * 0.9 + breathe) * edgeFade;
 
       // Apply position
       _dummy.position.set(x, targetY - 0.5, z);
@@ -326,11 +361,12 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       _dummy.updateMatrix();
       meshRef.current.setMatrixAt(i, _dummy.matrix);
 
-      // Apply color with smooth clamping (0.03 base dark floor)
+      // Apply color: cool-tinted floor base so the surface always reads,
+      // trails + wave glow on top, everything dissolving at the grid edge
       _color.setRGB(
-        Math.min(1, 0.03 + rT + pr),
-        Math.min(1, 0.03 + gT + pg),
-        Math.min(1, 0.03 + bT + pb)
+        Math.min(1, (0.034 + rT + COLORS.accent.r * wGlow) * edgeFade),
+        Math.min(1, (0.04 + gT + COLORS.accent.g * wGlow) * edgeFade),
+        Math.min(1, (0.056 + bT + COLORS.accent.b * wGlow) * edgeFade)
       );
       meshRef.current.setColorAt(i, _color);
     }
@@ -427,8 +463,10 @@ const CameraRig: React.FC = () => {
 
     // Slow autonomous drift keeps the scene alive without a cursor;
     // mouse parallax layers on top
+    // Parallax travel kept modest so the camera never pans far enough to
+    // resolve the grid's edge
     const t = state.clock.getElapsedTime();
-    const targetX = mouse.x * 3 + Math.sin(t * 0.08) * 0.9;
+    const targetX = mouse.x * 2.2 + Math.sin(t * 0.08) * 0.9;
     const targetY = baseY + mouse.y * 1 + Math.sin(t * 0.05) * 0.3;
     const targetZ = baseZ - mouse.y * 2 + Math.cos(t * 0.06) * 0.5;
 
@@ -501,10 +539,12 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
   };
 
   // Fog settings based on screen size
+  // Far fog pulled in so the grid boundary never resolves — the plane fades
+  // into darkness before its edge, which is what sells "infinite"
   const getFog = (): [number, number] => {
-    if (isMobile) return [10, 30];
-    if (isLargeScreen) return [18, 50]; // More visible depth on large screens
-    return [15, 40];
+    if (isMobile) return [10, 28];
+    if (isLargeScreen) return [16, 42];
+    return [14, 34];
   };
 
   const fogSettings = getFog();
