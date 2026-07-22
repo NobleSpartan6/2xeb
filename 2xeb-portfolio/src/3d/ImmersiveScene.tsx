@@ -574,6 +574,15 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
               instead of reading as dead black (same vocabulary as the 404) */}
           <Stars radius={70} depth={40} count={900} factor={2.5} saturation={0} fade speed={reduceMotion ? 0 : 0.6} />
 
+          {/* Endless floor beneath the grid: the cells read as the lit
+              portion of an infinite dark surface instead of an island in a
+              void. Pillar point lights spill soft color pools onto it past
+              the grid's edge; fog closes it into the horizon. */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.68, 0]}>
+            <planeGeometry args={[300, 300]} />
+            <meshStandardMaterial color="#080a10" metalness={0.3} roughness={0.9} />
+          </mesh>
+
           {/* Ambient lighting */}
           <ambientLight intensity={0.15} />
 

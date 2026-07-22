@@ -1,5 +1,13 @@
 import React, { useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  RouterProvider,
+  Outlet,
+  Route,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import NavBar from './components/NavBar';
 import FooterHUD from './components/FooterHUD';
 import Home from './pages/Home';
@@ -152,36 +160,49 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
+// Layout route: everything that used to live directly under <Router>.
+// A data router (createBrowserRouter) is required for View Transitions —
+// Link viewTransition and useViewTransitionState are data-router features.
+const RootLayout = () => (
+  <>
+    <ScrollToTop />
+    <PageTitle />
+    <EasterEggListener />
+    <EasterEggOverlay />
+    <MainLayout>
+      <Outlet />
+    </MainLayout>
+  </>
+);
+
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<RootLayout />}>
+      <Route path="/" element={<Home />} />
+      <Route path="/work" element={<Work />} />
+      <Route path="/work/:slug" element={<ProjectDetail />} />
+      <Route path="/ml-lab" element={<MLLab />} />
+      <Route path="/video" element={<Video />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/friend" element={<FriendRouteActivator />} />
+      <Route path="*" element={
+        <React.Suspense fallback={
+          <div className="h-screen w-screen bg-[#050505] flex items-center justify-center">
+            <div className="text-[#2563EB] font-mono animate-pulse">Loading...</div>
+          </div>
+        }>
+          <NotFound />
+        </React.Suspense>
+      } />
+    </Route>
+  )
+);
+
 const App: React.FC = () => {
   return (
     <ConsoleProvider>
-      <Router>
-        <ScrollToTop />
-        <PageTitle />
-        <EasterEggListener />
-        <EasterEggOverlay />
-        <MainLayout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/work" element={<Work />} />
-            <Route path="/work/:slug" element={<ProjectDetail />} />
-            <Route path="/ml-lab" element={<MLLab />} />
-            <Route path="/video" element={<Video />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/friend" element={<FriendRouteActivator />} />
-            <Route path="*" element={
-              <React.Suspense fallback={
-                <div className="h-screen w-screen bg-[#050505] flex items-center justify-center">
-                  <div className="text-[#2563EB] font-mono animate-pulse">Loading...</div>
-                </div>
-              }>
-                <NotFound />
-              </React.Suspense>
-            } />
-          </Routes>
-        </MainLayout>
-      </Router>
+      <RouterProvider router={router} />
     </ConsoleProvider>
   );
 };

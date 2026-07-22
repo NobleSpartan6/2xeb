@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useViewTransitionState } from 'react-router-dom';
 import { Project } from '../lib/types';
 import DisciplineChip from './DisciplineChip';
 import { useConsole } from '../context/ConsoleContext';
@@ -13,9 +13,18 @@ interface ProjectCardProps {
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
   const { setHighlightedNodeIds } = useConsole();
 
+  // While navigating to this project, its media box morphs into the detail
+  // page's hero (View Transitions API — no-op without browser support).
+  // Named only during the transition so the name stays unique per document.
+  const detailPath = `/work/${project.slug}`;
+  const isMorphing = useViewTransitionState(detailPath);
+
   const CardContent = () => (
     <>
-      <div className="aspect-video w-full overflow-hidden bg-black relative">
+      <div
+        className="aspect-video w-full overflow-hidden bg-black relative"
+        style={isMorphing ? { viewTransitionName: 'project-media' } : undefined}
+      >
          {project.imageUrl ? (
            <img
               src={project.imageUrl}
@@ -113,8 +122,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
   }
 
   return (
-    <Link 
-      to={`/work/${project.slug}`}
+    <Link
+      to={detailPath}
+      viewTransition
       className={containerClass}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

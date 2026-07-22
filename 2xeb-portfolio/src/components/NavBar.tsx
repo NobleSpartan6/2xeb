@@ -88,7 +88,7 @@ const NavBar: React.FC = memo(() => {
         >
           <div className="relative flex items-center justify-between h-[74px] sm:h-[82px] md:h-[100px] 2xl:h-[110px] 3xl:h-[120px] rounded-2xl px-4 md:px-6 lg:px-8 2xl:px-10 3xl:px-12 bg-black/30 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
             <div data-nav-item className="flex-shrink-0 z-50">
-              <Link to="/" className="text-white font-bold text-xl sm:text-2xl 2xl:text-3xl 3xl:text-4xl tracking-tighter font-space-grotesk hover:text-[#2563EB] transition-colors">
+              <Link to="/" viewTransition className="text-white font-bold text-xl sm:text-2xl 2xl:text-3xl 3xl:text-4xl tracking-tighter font-space-grotesk hover:text-[#2563EB] transition-colors">
                 2XEB
               </Link>
             </div>
@@ -100,6 +100,7 @@ const NavBar: React.FC = memo(() => {
                   <Link
                     key={link.path}
                     to={link.path}
+                    viewTransition
                     data-nav-item
                     className={`relative inline-block text-[11px] 2xl:text-xs 3xl:text-sm font-bold uppercase tracking-[0.15em] transition-colors duration-150 font-mono after:absolute after:left-0 after:-bottom-1.5 after:h-[2px] after:w-full after:bg-[#2563EB] after:origin-left after:transition-transform after:duration-200 after:ease-out-strong ${
                       isActive(link.path)
@@ -177,6 +178,7 @@ const NavBar: React.FC = memo(() => {
               <Link
                 key={link.path}
                 to={link.path}
+                viewTransition
                 data-drawer-item
                 className={`block text-4xl font-bold font-space-grotesk uppercase tracking-tighter transition-colors duration-150 ${
                   isActive(link.path)

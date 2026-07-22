@@ -102,6 +102,26 @@
   }
 }
 
+/* View transitions: quick route crossfade; the project media morph carries
+   the strong curve. Browsers without the API keep instant swaps. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 240ms;
+  animation-timing-function: var(--ease-out-strong);
+}
+::view-transition-group(project-media) {
+  animation-duration: 320ms;
+  animation-timing-function: var(--ease-out-strong);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 /* Keyboard focus: brand-blue ring on interactive elements, invisible to
    pointer users. Form fields are excluded — they carry focus in their
    border-color instead. */

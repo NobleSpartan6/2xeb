@@ -136,7 +136,13 @@ const ProjectDetail: React.FC = () => {
         </p>
       </header>
 
-      <div data-animate className="w-full aspect-video bg-[#0A0A0A] border border-[#262626] mb-16 relative overflow-hidden group">
+      {/* Morph target: the clicked card's media box becomes this hero via the
+          View Transitions API. Not [data-animate] — the reveal would hide it
+          at snapshot time and break the morph. */}
+      <div
+        className="w-full aspect-video bg-[#0A0A0A] border border-[#262626] mb-16 relative overflow-hidden group"
+        style={{ viewTransitionName: 'project-media' }}
+      >
         {gumletEmbed ? (
           <div style={{ position: 'relative', aspectRatio: '16/9' }}>
             <iframe
@@ -296,6 +302,7 @@ const ProjectDetail: React.FC = () => {
           <nav aria-label="Project navigation" className="mt-20 border-t border-[#262626] pt-8 grid grid-cols-2 gap-4">
             <Link
               to={`/work/${prev.slug}`}
+              viewTransition
               className="group flex flex-col gap-2 p-4 -m-4 pressable"
             >
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#525252] group-hover:text-[#2563EB] transition-colors">← Prev</span>
@@ -305,6 +312,7 @@ const ProjectDetail: React.FC = () => {
             </Link>
             <Link
               to={`/work/${next.slug}`}
+              viewTransition
               className="group flex flex-col gap-2 items-end text-right p-4 -m-4 pressable"
             >
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#525252] group-hover:text-[#2563EB] transition-colors">Next →</span>
