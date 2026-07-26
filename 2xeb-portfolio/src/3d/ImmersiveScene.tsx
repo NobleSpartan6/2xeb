@@ -50,10 +50,14 @@ const _dummy = new THREE.Object3D();
 const _color = new THREE.Color();
 
 // --- FIELD SHAPE ---
-// Influence extents, hoisted out of the per-cube loop. The SWE arm is a little
-// over one cell pitch wide so a sliding cross always covers a full row of
-// cells; narrower than the pitch and the arm falls between rows and flickers.
-const SWE_CROSS_WIDTH = 0.5;
+// Influence extents, hoisted out of the per-cube loop.
+//
+// Cells sample the field, so the field has to stay coarser than the cells.
+// Anything thinner than ~2 cell pitches can't be drawn as a shape: it aliases
+// into a chain of individually lit cubes that light and unlight one at a time,
+// which reads as cubes being created and deleted rather than a beam moving.
+// Widths that must survive sampling are therefore expressed in cell pitches.
+const SWE_ARM_PITCHES = 2;
 const SWE_CROSS_LENGTH = 3.8;
 const ML_RADIUS = 5.5;
 const VIDEO_SCAN_WIDTH = 2.0;
@@ -66,6 +70,15 @@ const MOUSE_RADIUS = 4;
  * bloom then amplifies into a visible pop.
  */
 const LIGHT_RISE_HALF_LIFE = 0.045;
+
+/**
+ * How much of the surface's shortest wavelengths to remove each frame. The sim
+ * happily carries ripples down to a single cell, but a one-cell ripple isn't a
+ * wave on screen — it's one cube standing at an unrelated height to its
+ * neighbours, blinking as the ripple passes. Averaging toward the neighbourhood
+ * strips those while leaving broad swells untouched.
+ */
+const WAVE_SMOOTHING = 0.35;
 
 /**
  * Smooth 0..1 falloff: 1 at the centre, 0 at `extent`, with zero slope at both
@@ -211,9 +224,21 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
   // click splashes) propagate as damped waves through neighbouring cells,
   // with momentum and interference — not scripted rings.
   const wave = useMemo(
-    () => ({ h: new Float32Array(totalCells), v: new Float32Array(totalCells) }),
+    () => ({
+      h: new Float32Array(totalCells),
+      v: new Float32Array(totalCells),
+      // Scratch buffer for the band-limiting pass (reused, never reallocated)
+      s: new Float32Array(totalCells),
+    }),
     [totalCells]
   );
+
+  /**
+   * SWE arm width in world units, pinned to whole cell pitches so the beam is
+   * always a few cells thick at every breakpoint (the pitch changes with
+   * `cellSize`). Sub-pitch widths alias into a staircase of single cubes.
+   */
+  const sweCrossWidth = useMemo(() => (cellSize + GAP) * SWE_ARM_PITCHES, [cellSize]);
   const prevMouseRef = useRef<{ x: number; z: number; init: boolean }>({ x: 0, z: 0, init: false });
 
   // Reduced motion: freeze the clock so pillars, waves and breathing hold a
@@ -276,7 +301,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     // Click splash: press the surface down hard, physics does the rest
     if (pulse && pulse.t > lastPulseRef.current) {
       lastPulseRef.current = pulse.t;
-      inject((pulse.nx * viewport.width) / 2, -(pulse.ny * viewport.height) / 2, -2.2 * pulseAmp, 2);
+      inject((pulse.nx * viewport.width) / 2, -(pulse.ny * viewport.height) / 2, -1.5 * pulseAmp, 4);
     }
 
     // Cursor wake: a moving pointer displaces the surface along its path
@@ -284,7 +309,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     if (pm.init) {
       const speed = Math.hypot(mouseX - pm.x, mouseZ - pm.z) / Math.max(delta, 0.001);
       if (speed > 2.5) {
-        inject(mouseX, mouseZ, -Math.min(16, speed) * 0.05 * pulseAmp, 1);
+        inject(mouseX, mouseZ, -Math.min(16, speed) * 0.035 * pulseAmp, 3);
       }
     }
     pm.x = mouseX;
@@ -306,6 +331,20 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     }
     for (let i = 0; i < totalCells; i++) wh[i] += wv[i] * dtw;
 
+    // Band-limit the surface so ripples stay wider than the cells that draw
+    // them. Without this the sim's single-cell wavelengths render as lone cubes
+    // at unrelated heights, popping in and out as a ripple crosses them.
+    const ws = wave.s;
+    for (let i = 0; i < totalCells; i++) {
+      const row = (i / N) | 0, col = i % N;
+      const nL = col > 0 ? wh[i - 1] : wh[i];
+      const nR = col < N - 1 ? wh[i + 1] : wh[i];
+      const nU = row > 0 ? wh[i - N] : wh[i];
+      const nD = row < N - 1 ? wh[i + N] : wh[i];
+      ws[i] = wh[i] + ((nL + nR + nU + nD) / 4 - wh[i]) * WAVE_SMOOTHING;
+    }
+    wh.set(ws);
+
     // Frame-rate-independent trail decay (longer streaks: ~1.3s tails)
     const decay = Math.exp(-5 * delta);
     const tR = trails.r, tG = trails.g, tB = trails.b, tH = trails.h;
@@ -323,8 +362,8 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
 
         // Two smoothly shouldered arms rather than a hard Manhattan test, so
         // the cross keeps its shape but its ends and edges fade as it slides
-        const armH = smoothFalloff(SWE_CROSS_WIDTH, dSweZ) * smoothFalloff(SWE_CROSS_LENGTH, dSweX);
-        const armV = smoothFalloff(SWE_CROSS_WIDTH, dSweX) * smoothFalloff(SWE_CROSS_LENGTH, dSweZ);
+        const armH = smoothFalloff(sweCrossWidth, dSweZ) * smoothFalloff(SWE_CROSS_LENGTH, dSweX);
+        const armV = smoothFalloff(sweCrossWidth, dSweX) * smoothFalloff(SWE_CROSS_LENGTH, dSweZ);
         const swe = Math.max(armH, armV) * sweWeight;
 
         if (swe > 0) {
