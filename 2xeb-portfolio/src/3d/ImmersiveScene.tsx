@@ -49,6 +49,36 @@ const COLORS = {
 const _dummy = new THREE.Object3D();
 const _color = new THREE.Color();
 
+// --- FIELD SHAPE ---
+// Influence extents, hoisted out of the per-cube loop. The SWE arm is a little
+// over one cell pitch wide so a sliding cross always covers a full row of
+// cells; narrower than the pitch and the arm falls between rows and flickers.
+const SWE_CROSS_WIDTH = 0.5;
+const SWE_CROSS_LENGTH = 3.8;
+const ML_RADIUS = 5.5;
+const VIDEO_SCAN_WIDTH = 2.0;
+const MOUSE_RADIUS = 4;
+
+/**
+ * How fast a cell lights up, as a half-life in seconds. Trails already smooth
+ * the way light *leaves* a cell; without a matching ramp on the way in, cells
+ * jump from the near-black floor to full emissive in a single frame, which
+ * bloom then amplifies into a visible pop.
+ */
+const LIGHT_RISE_HALF_LIFE = 0.045;
+
+/**
+ * Smooth 0..1 falloff: 1 at the centre, 0 at `extent`, with zero slope at both
+ * ends. Replaces hard `if (distance < extent)` gates — a gate makes a cell's
+ * contribution appear and vanish between frames as a pillar slides past it,
+ * so cells at an influence boundary blink instead of fading.
+ */
+const smoothFalloff = (extent: number, distance: number): number => {
+  if (distance >= extent) return 0;
+  const t = 1 - distance / extent;
+  return t * t * (3 - 2 * t);
+};
+
 // --- PILLAR BEHAVIORS ---
 // Each pillar represents a discipline with distinct movement patterns
 
@@ -148,6 +178,9 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
 
   const lastPulseRef = useRef(0);
 
+  /** Per-discipline presence, eased so focusing one cross-fades the others. */
+  const focusWeights = useRef({ swe: 1, ml: 1, video: 1 });
+
   // Pillar states
   const pillars = useRef({
     swe: { position: new THREE.Vector3(0, 0, 0), velocity: new THREE.Vector3(), phase: 0 },
@@ -206,10 +239,20 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     const mouseX = (mouse.x * viewport.width) / 2;
     const mouseZ = -(mouse.y * viewport.height) / 2;
 
-    // Determine which discipline influences should be active
-    const showSwe = !focusedDiscipline || focusedDiscipline === ConsoleLane.CODE;
-    const showMl = !focusedDiscipline || focusedDiscipline === ConsoleLane.VISION;
-    const showVideo = !focusedDiscipline || focusedDiscipline === ConsoleLane.DESIGN;
+    // Ease discipline presence toward its target rather than switching it:
+    // flipping a boolean drops two thirds of the field's light in one frame.
+    // Trails soften that on the way out, but the way back in was a hard pop.
+    const kFocus = reduceMotion ? 1 : 1 - Math.exp(-6 * delta);
+    const fw = focusWeights.current;
+    fw.swe += ((!focusedDiscipline || focusedDiscipline === ConsoleLane.CODE ? 1 : 0) - fw.swe) * kFocus;
+    fw.ml += ((!focusedDiscipline || focusedDiscipline === ConsoleLane.VISION ? 1 : 0) - fw.ml) * kFocus;
+    fw.video += ((!focusedDiscipline || focusedDiscipline === ConsoleLane.DESIGN ? 1 : 0) - fw.video) * kFocus;
+    const sweWeight = fw.swe;
+    const mlWeight = fw.ml;
+    const videoWeight = fw.video;
+
+    // How far a cell can climb toward its instantaneous influence this frame
+    const kRise = reduceMotion ? 1 : 1 - Math.pow(2, -Math.min(delta, 1 / 30) / LIGHT_RISE_HALF_LIFE);
 
     const pulseAmp = reduceMotion ? 0.4 : 1;
 
@@ -274,78 +317,77 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       let ir = 0, ig = 0, ib = 0;
 
       // === SWE INFLUENCE: Cross/Grid Pattern ===
-      if (showSwe) {
+      if (sweWeight > 0.002) {
         const dSweX = Math.abs(x - swePos.x);
         const dSweZ = Math.abs(z - swePos.z);
-        const crossWidth = 0.3;
-        const crossLength = 3.8;
 
-        // Manhattan cross pattern
-        const inCross = (dSweX < crossWidth && dSweZ < crossLength) ||
-                        (dSweZ < crossWidth && dSweX < crossLength);
+        // Two smoothly shouldered arms rather than a hard Manhattan test, so
+        // the cross keeps its shape but its ends and edges fade as it slides
+        const armH = smoothFalloff(SWE_CROSS_WIDTH, dSweZ) * smoothFalloff(SWE_CROSS_LENGTH, dSweX);
+        const armV = smoothFalloff(SWE_CROSS_WIDTH, dSweX) * smoothFalloff(SWE_CROSS_LENGTH, dSweZ);
+        const swe = Math.max(armH, armV) * sweWeight;
 
-        if (inCross) {
-          const dist = Math.min(dSweX, dSweZ);
-          const intensity = Math.max(0, 1 - dist / crossWidth);
-          const falloff = 1 - Math.max(dSweX, dSweZ) / crossLength;
-
-          ih += intensity * falloff * 1.2;
-          ir += COLORS.swe.r * intensity * falloff * 0.9;
-          ig += COLORS.swe.g * intensity * falloff * 0.9;
-          ib += COLORS.swe.b * intensity * falloff * 0.9;
+        if (swe > 0) {
+          ih += swe * 1.2;
+          ir += COLORS.swe.r * swe * 0.9;
+          ig += COLORS.swe.g * swe * 0.9;
+          ib += COLORS.swe.b * swe * 0.9;
         }
       }
 
       // === ML INFLUENCE: Ripple/Wave Pattern ===
-      if (showMl) {
+      if (mlWeight > 0.002) {
         const dMl = Math.sqrt((x - mlPos.x) ** 2 + (z - mlPos.z) ** 2);
-        const mlRadius = 5.5;
 
-        if (dMl < mlRadius) {
-          const intensity = 1 - (dMl / mlRadius);
+        if (dMl < ML_RADIUS) {
           const wave = Math.sin(dMl * 2 - time * 4) * 0.5 + 0.5;
+          const ml = smoothFalloff(ML_RADIUS, dMl) * wave * mlWeight;
 
-          ih += wave * intensity * 0.8;
-          ir += COLORS.ml.r * intensity * wave * 0.8;
-          ig += COLORS.ml.g * intensity * wave * 0.8;
-          ib += COLORS.ml.b * intensity * wave * 0.8;
+          ih += ml * 0.8;
+          ir += COLORS.ml.r * ml * 0.8;
+          ig += COLORS.ml.g * ml * 0.8;
+          ib += COLORS.ml.b * ml * 0.8;
         }
       }
 
       // === VIDEO INFLUENCE: Scan Line ===
-      if (showVideo) {
+      if (videoWeight > 0.002) {
         const dVid = Math.abs(x - videoPos.x);
-        const scanWidth = 2.0;
 
-        if (dVid < scanWidth) {
-          const intensity = Math.pow(1 - dVid / scanWidth, 1.5);
+        if (dVid < VIDEO_SCAN_WIDTH) {
           // Vertical gradient based on z
           const zGradient = 0.5 + Math.sin(z * 0.5 + time * 2) * 0.3;
+          const video = smoothFalloff(VIDEO_SCAN_WIDTH, dVid) * zGradient * videoWeight;
 
-          ih += intensity * zGradient * 0.5;
-          ir += COLORS.video.r * intensity * zGradient * 0.9;
-          ig += COLORS.video.g * intensity * zGradient * 0.9;
-          ib += COLORS.video.b * intensity * zGradient * 0.9;
+          ih += video * 0.5;
+          ir += COLORS.video.r * video * 0.9;
+          ig += COLORS.video.g * video * 0.9;
+          ib += COLORS.video.b * video * 0.9;
         }
       }
 
       // === MOUSE INTERACTION ===
       const dMouse = Math.sqrt((x - mouseX) ** 2 + (z - mouseZ) ** 2);
-      const mouseRadius = 4;
-      if (dMouse < mouseRadius) {
-        const intensity = 1 - (dMouse / mouseRadius);
-        ih += intensity * 0.6;
+      if (dMouse < MOUSE_RADIUS) {
+        const hover = smoothFalloff(MOUSE_RADIUS, dMouse);
+        ih += hover * 0.6;
         // Swiss Blue accent on mouse hover
-        ir += COLORS.accent.r * intensity * 0.3;
-        ig += COLORS.accent.g * intensity * 0.3;
-        ib += COLORS.accent.b * intensity * 0.3;
+        ir += COLORS.accent.r * hover * 0.3;
+        ig += COLORS.accent.g * hover * 0.3;
+        ib += COLORS.accent.b * hover * 0.3;
       }
 
-      // === TRAILS: keep the brighter of "now" and the decaying memory ===
-      const hT = (tH[i] = Math.max(ih, tH[i] * decay));
-      const rT = (tR[i] = Math.max(ir, tR[i] * decay));
-      const gT = (tG[i] = Math.max(ig, tG[i] * decay));
-      const bT = (tB[i] = Math.max(ib, tB[i] * decay));
+      // === TRAILS: ramp up toward "now", decay away from it ===
+      // Rising through kRise instead of jumping straight to `ih` keeps cells
+      // from popping on at full emissive; the decay below is the comet tail.
+      const hD = tH[i] * decay;
+      const rD = tR[i] * decay;
+      const gD = tG[i] * decay;
+      const bD = tB[i] * decay;
+      const hT = (tH[i] = ih > hD ? hD + (ih - hD) * kRise : hD);
+      const rT = (tR[i] = ir > rD ? rD + (ir - rD) * kRise : rD);
+      const gT = (tG[i] = ig > gD ? gD + (ig - gD) * kRise : gD);
+      const bT = (tB[i] = ib > bD ? bD + (ib - bD) * kRise : bD);
 
       // === WAVE FIELD: ripples lift the surface and glow accent-blue ===
       const wH = wh[idx];

@@ -26,6 +26,22 @@ Full-screen immersive 3D visualization with three discipline "pillars":
 - Reduced DPR and disabled antialiasing on mobile
 - Pre-computed grid positions in `useMemo`
 
+**Nothing in the field may change in a single frame:**
+Cells are emitters feeding bloom, so any instant change reads as a cube being
+created or deleted rather than lit or dimmed. Both directions must ramp:
+- Trails handle the way light *leaves* a cell (`decay`). The way in ramps
+  through `kRise` (`LIGHT_RISE_HALF_LIFE`) — going straight to the
+  instantaneous influence pops the cell on at full emissive
+- Influence extents use `smoothFalloff()` (zero slope at the outer edge), never
+  a hard `if (distance < extent)` gate, which switches a cell's contribution on
+  and off between frames as a pillar slides past it
+- Keep `SWE_CROSS_WIDTH` above one cell pitch (`cellSize + GAP`); a narrower arm
+  falls between cell rows as the cross slides and flickers
+- Discipline focus ramps `focusWeights` instead of flipping booleans, so
+  hovering CODE cross-fades the other two out
+- All rates are frame-rate independent (`1 - exp(-k·delta)` / half-life form) and
+  collapse to instant under `reduceMotion`, which keeps its static pose
+
 **Responsive Behavior:**
 ```typescript
 const getGridConfig = (isMobile: boolean) => ({
