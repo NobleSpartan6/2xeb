@@ -26,6 +26,15 @@ Full-screen immersive 3D visualization with three discipline "pillars":
 - Reduced DPR and disabled antialiasing on mobile
 - Pre-computed grid positions in `useMemo`
 
+**The floor is permanent (`FLOOR_R/G/B`):**
+An unlit cell must never settle to the background colour. If it does, "lit" and
+"unlit" become "exists" and "doesn't exist", and light crossing the grid reads as
+cubes being created and deleted — no amount of easing fixes that, because the
+endpoint itself is invisible. The resting level sits below the bloom threshold
+(`0.38`) so the floor never glows, and `edgeFade` + fog still dissolve the
+perimeter, so the plane keeps reading as infinite. Don't darken the floor to the
+background to "restore contrast"; dim the *lit* contributions instead.
+
 **Nothing in the field may change in a single frame:**
 Cells are emitters feeding bloom, so any instant change reads as a cube being
 created or deleted rather than lit or dimmed. Both directions must ramp:

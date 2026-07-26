@@ -81,6 +81,24 @@ const LIGHT_RISE_HALF_LIFE = 0.045;
 const WAVE_SMOOTHING = 0.35;
 
 /**
+ * Resting colour of an untouched cell — the permanent lattice.
+ *
+ * This is what stops the field reading as blocks being created and deleted. If
+ * an unlit cell settles to the background colour, then "lit" and "unlit" become
+ * "exists" and "doesn't exist", and light crossing the grid can only look like
+ * cubes blinking in and out no matter how smoothly it's ramped. Holding the
+ * floor visible makes the surface permanent, so light moving over it reads as
+ * illumination instead.
+ *
+ * Cool-tinted to sit with the palette, and well under the bloom threshold
+ * (0.38) so the resting surface never glows. `edgeFade` still dissolves the
+ * perimeter into the fog, so the plane keeps reading as infinite.
+ */
+const FLOOR_R = 0.062;
+const FLOOR_G = 0.07;
+const FLOOR_B = 0.094;
+
+/**
  * Smooth 0..1 falloff: 1 at the centre, 0 at `extent`, with zero slope at both
  * ends. Replaces hard `if (distance < extent)` gates — a gate makes a cell's
  * contribution appear and vanish between frames as a pillar slides past it,
@@ -442,12 +460,12 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       _dummy.updateMatrix();
       meshRef.current.setMatrixAt(i, _dummy.matrix);
 
-      // Apply color: cool-tinted floor base so the surface always reads,
-      // trails + wave glow on top, everything dissolving at the grid edge
+      // Apply color: permanent floor, trails + wave glow on top, everything
+      // dissolving at the grid edge
       _color.setRGB(
-        Math.min(1, (0.024 + rT + COLORS.accent.r * wGlow) * edgeFade),
-        Math.min(1, (0.028 + gT + COLORS.accent.g * wGlow) * edgeFade),
-        Math.min(1, (0.042 + bT + COLORS.accent.b * wGlow) * edgeFade)
+        Math.min(1, (FLOOR_R + rT + COLORS.accent.r * wGlow) * edgeFade),
+        Math.min(1, (FLOOR_G + gT + COLORS.accent.g * wGlow) * edgeFade),
+        Math.min(1, (FLOOR_B + bT + COLORS.accent.b * wGlow) * edgeFade)
       );
       meshRef.current.setColorAt(i, _color);
     }
