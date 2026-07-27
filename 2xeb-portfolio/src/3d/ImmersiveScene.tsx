@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useState, useEffect } from 'react';
+import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Stars } from '@react-three/drei';
@@ -34,6 +34,9 @@ const getScreenSize = (width: number): ScreenSize => {
 
 const CELL_SIZE = 0.5;
 const GAP = 0.08;
+
+/** Widest framebuffer we'll render, in device pixels. See `dpr` below. */
+const MAX_RENDER_WIDTH = 2200;
 
 // Colors matching design system
 const COLORS = {
@@ -545,6 +548,27 @@ const CameraRig: React.FC = () => {
   return null;
 };
 
+// --- CONTEXT LOSS GUARD ---
+// Without preventDefault the browser never offers a restored context, so a
+// canvas that loses one (VRAM pressure, GPU reset, tab backgrounded on some
+// drivers) stays dead for the rest of the session.
+const ContextGuard: React.FC<{ onLost: () => void }> = ({ onLost }) => {
+  const { gl } = useThree();
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const handleLost = (event: Event) => {
+      event.preventDefault();
+      console.warn('[ImmersiveScene] WebGL context lost — remounting the canvas');
+      onLost();
+    };
+    canvas.addEventListener('webglcontextlost', handleLost);
+    return () => canvas.removeEventListener('webglcontextlost', handleLost);
+  }, [gl, onLost]);
+
+  return null;
+};
+
 // --- READY DETECTOR ---
 // Fires callback after first frame renders
 const ReadyDetector: React.FC<{ onReady: () => void }> = ({ onReady }) => {
@@ -571,30 +595,48 @@ interface ImmersiveSceneProps {
 
 const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady, pulse = null }) => {
   const consoleCtx = useConsole();
-  const [screenSize, setScreenSize] = useState<ScreenSize>('desktop');
+  // Rounded to 64px steps so a drag-resize doesn't re-render (and reallocate
+  // the framebuffer) on every pixel. Seeded from the real width so the grid is
+  // built at its final size once, instead of mounting at 40² and rebuilding.
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window === 'undefined' ? 1280 : Math.round(window.innerWidth / 64) * 64
+  );
+  const [canvasKey, setCanvasKey] = useState(0);
   const reduceMotion = useMemo(() => prefersReducedMotion(), []);
 
   // Detect screen size for responsive 3D rendering
   useEffect(() => {
-    const checkScreenSize = () => {
-      setScreenSize(getScreenSize(window.innerWidth));
-    };
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    return () => window.removeEventListener('resize', checkScreenSize);
+    const onResize = () => setViewportWidth(Math.round(window.innerWidth / 64) * 64);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  // A lost context leaves a dead canvas on screen — the hero looks frozen and
+  // never recovers. Remount to acquire a fresh one.
+  const handleContextLost = useCallback(() => {
+    setTimeout(() => setCanvasKey((k) => k + 1), 300);
+  }, []);
+
+  const screenSize = getScreenSize(viewportWidth);
   const config = getGridConfig(screenSize);
   const isMobile = screenSize === 'mobile';
   const isLargeScreen = screenSize === 'large' || screenSize === 'ultrawide';
 
-  // DPR settings based on screen size
-  const getDpr = (): [number, number] => {
-    if (isMobile) return [1, 1];
-    // Cap at 1.5 everywhere: bloom's mipmap chain at DPR 2 on 1440p+ doubles
-    // GPU work for sharpness the glow aesthetic doesn't need
-    return [1, 1.5];
-  };
+  /**
+   * Device pixel ratio, capped by a *rendered width* budget rather than a flat
+   * ratio. Bloom's mipmap chain and every fullscreen pass scale with framebuffer
+   * area, so a 2560px canvas at DPR 1.5 renders 8.3M pixels per frame — enough
+   * to drop an integrated GPU to single-digit FPS, or to exhaust it and lose the
+   * WebGL context, both of which read as the hero being frozen. Budgeting the
+   * width gives every display comparable per-frame cost; on a high-density
+   * panel the glow aesthetic carries the softness anyway.
+   */
+  const dpr = useMemo(() => {
+    const device = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;
+    if (isMobile) return Math.min(device, 1);
+    return Math.max(0.7, Math.min(device, 1.5, MAX_RENDER_WIDTH / viewportWidth));
+  }, [isMobile, viewportWidth]);
 
   // FOV settings - wider on mobile, narrower on large screens for more detail
   const getFov = (): number => {
@@ -617,7 +659,8 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
   return (
     <div className={`w-full h-full ${className}`}>
       <Canvas
-        dpr={getDpr()}
+        key={canvasKey}
+        dpr={dpr}
         camera={{ position: [0, 12, 16], fov: getFov(), near: 0.1, far: 100 }}
         // The hero content overlay sits above the canvas and would swallow
         // pointer events — source them from the app root so mouse parallax
@@ -625,7 +668,10 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
         eventSource={document.getElementById('root') as HTMLElement}
         eventPrefix="client"
         gl={{
-          antialias: !isMobile, // Disable antialiasing on mobile for performance
+          // EffectComposer renders the scene into its own target, so the
+          // canvas's MSAA buffer is allocated but never sampled — pure cost,
+          // and at 1440p+ a large chunk of VRAM. Mobile never had it either.
+          antialias: false,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: isLargeScreen ? 1.3 : 1.2, // Slightly brighter on large screens
           powerPreference: 'high-performance',
@@ -669,6 +715,7 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
           />
           <PillarLights />
           <CameraRig />
+          <ContextGuard onLost={handleContextLost} />
           {onReady && <ReadyDetector onReady={onReady} />}
 
           {/* Bloom turns the emissive cells into neon light sources.
