@@ -52,6 +52,15 @@ Two real rules:
   hovering CODE cross-fades the other two out instead of dropping two thirds
   of the field's light in one frame
 
+**Reduced motion slows the clock, never freezes it (`REDUCED_TIME_SCALE`):**
+Freezing `time` at 0 parks the shapes in a permanent saturated pose — the
+video scan sits at centre burning a blown-out white column, which reads as the
+site being broken (and did, for a user with OS-level Reduce Motion enabled).
+"Reduced motion means fewer and gentler, not zero": the pillars are small,
+slow, local colour drifts, so they run at 0.3× instead. Viewport-scale effects
+stay curbed under reduce-motion — camera parallax off (CameraRig early
+return), shockwave amplitude damped (`pulseAmp`), stars still.
+
 **Responsive Behavior:**
 ```typescript
 const getGridConfig = (isMobile: boolean) => ({

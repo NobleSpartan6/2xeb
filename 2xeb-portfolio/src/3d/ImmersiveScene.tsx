@@ -64,6 +64,16 @@ const VIDEO_SCAN_WIDTH = 2.0;
 const MOUSE_RADIUS = 4;
 
 /**
+ * Clock rate under prefers-reduced-motion. Freezing the clock (0) parks the
+ * three shapes in a permanent saturated pose — the video scan sits at centre
+ * burning a blown-out white column, which looks broken, and "reduced motion
+ * means fewer and gentler, not zero". The pillars are small, slow, local
+ * colour drifts on a dark field, not viewport-scale motion; camera parallax
+ * and click shockwaves stay curbed separately.
+ */
+const REDUCED_TIME_SCALE = 0.3;
+
+/**
  * Resting colour of an untouched cell — the permanent lattice.
  *
  * This is what stops the field reading as blocks being created and deleted. If
@@ -225,15 +235,15 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
   const sweCrossWidth = useMemo(() => (cellSize + GAP) * SWE_ARM_PITCHES, [cellSize]);
   const prevMouseRef = useRef<{ x: number; z: number; init: boolean }>({ x: 0, z: 0, init: false });
 
-  // Reduced motion: freeze the clock so pillars, waves and breathing hold a
-  // static (still lit and colored) pose; the mouse highlight stays as direct
-  // interaction feedback.
+  // Reduced motion: slow the clock (REDUCED_TIME_SCALE) rather than freeze it —
+  // a frozen scan burns a saturated static column that looks broken. Camera
+  // parallax and shockwave amplitude are curbed separately.
   const reduceMotion = useMemo(() => prefersReducedMotion(), []);
 
   useFrame((state, delta) => {
     if (!meshRef.current) return;
     const rawTime = state.clock.getElapsedTime();
-    const time = reduceMotion ? 0 : rawTime;
+    const time = reduceMotion ? rawTime * REDUCED_TIME_SCALE : rawTime;
 
     // Update pillar positions
     updateSWEPillar(pillars.current.swe, time);
@@ -455,7 +465,7 @@ const PillarLights: React.FC = () => {
   const reduceMotion = useMemo(() => prefersReducedMotion(), []);
 
   useFrame((state) => {
-    const time = reduceMotion ? 0 : state.clock.getElapsedTime();
+    const time = state.clock.getElapsedTime() * (reduceMotion ? REDUCED_TIME_SCALE : 1);
 
     updateSWEPillar(pillars.current.swe, time);
     updateMLPillar(pillars.current.ml, time);
