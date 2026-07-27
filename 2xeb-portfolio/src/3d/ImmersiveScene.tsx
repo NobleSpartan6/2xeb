@@ -78,7 +78,7 @@ const LIGHT_RISE_HALF_LIFE = 0.045;
  * neighbours, blinking as the ripple passes. Averaging toward the neighbourhood
  * strips those while leaving broad swells untouched.
  */
-const WAVE_SMOOTHING = 0.35;
+const WAVE_SMOOTHING = 0.12;
 
 /**
  * Resting colour of an untouched cell — the permanent lattice.
@@ -94,9 +94,9 @@ const WAVE_SMOOTHING = 0.35;
  * (0.38) so the resting surface never glows. `edgeFade` still dissolves the
  * perimeter into the fog, so the plane keeps reading as infinite.
  */
-const FLOOR_R = 0.062;
-const FLOOR_G = 0.07;
-const FLOOR_B = 0.094;
+const FLOOR_R = 0.034;
+const FLOOR_G = 0.039;
+const FLOOR_B = 0.055;
 
 /**
  * Smooth 0..1 falloff: 1 at the centre, 0 at `extent`, with zero slope at both
@@ -107,6 +107,20 @@ const FLOOR_B = 0.094;
 const smoothFalloff = (extent: number, distance: number): number => {
   if (distance >= extent) return 0;
   const t = 1 - distance / extent;
+  return t * t * (3 - 2 * t);
+};
+
+/**
+ * Falloff with a flat core: full strength out to `core` of the extent, then a
+ * smooth shoulder to zero. A plain dome spreads a wide feature into a haze —
+ * widening a beam enough to survive sampling shouldn't cost it its edge, so the
+ * width buys a solid core and only the last stretch is the fade.
+ */
+const plateauFalloff = (extent: number, distance: number, core: number): number => {
+  if (distance >= extent) return 0;
+  const inner = extent * core;
+  if (distance <= inner) return 1;
+  const t = 1 - (distance - inner) / (extent - inner);
   return t * t * (3 - 2 * t);
 };
 
@@ -319,7 +333,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     // Click splash: press the surface down hard, physics does the rest
     if (pulse && pulse.t > lastPulseRef.current) {
       lastPulseRef.current = pulse.t;
-      inject((pulse.nx * viewport.width) / 2, -(pulse.ny * viewport.height) / 2, -1.5 * pulseAmp, 4);
+      inject((pulse.nx * viewport.width) / 2, -(pulse.ny * viewport.height) / 2, -2.0 * pulseAmp, 3);
     }
 
     // Cursor wake: a moving pointer displaces the surface along its path
@@ -327,7 +341,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     if (pm.init) {
       const speed = Math.hypot(mouseX - pm.x, mouseZ - pm.z) / Math.max(delta, 0.001);
       if (speed > 2.5) {
-        inject(mouseX, mouseZ, -Math.min(16, speed) * 0.035 * pulseAmp, 3);
+        inject(mouseX, mouseZ, -Math.min(16, speed) * 0.045 * pulseAmp, 2);
       }
     }
     pm.x = mouseX;
@@ -380,8 +394,8 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
 
         // Two smoothly shouldered arms rather than a hard Manhattan test, so
         // the cross keeps its shape but its ends and edges fade as it slides
-        const armH = smoothFalloff(sweCrossWidth, dSweZ) * smoothFalloff(SWE_CROSS_LENGTH, dSweX);
-        const armV = smoothFalloff(sweCrossWidth, dSweX) * smoothFalloff(SWE_CROSS_LENGTH, dSweZ);
+        const armH = plateauFalloff(sweCrossWidth, dSweZ, 0.45) * smoothFalloff(SWE_CROSS_LENGTH, dSweX);
+        const armV = plateauFalloff(sweCrossWidth, dSweX, 0.45) * smoothFalloff(SWE_CROSS_LENGTH, dSweZ);
         const swe = Math.max(armH, armV) * sweWeight;
 
         if (swe > 0) {
@@ -414,7 +428,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
         if (dVid < VIDEO_SCAN_WIDTH) {
           // Vertical gradient based on z
           const zGradient = 0.5 + Math.sin(z * 0.5 + time * 2) * 0.3;
-          const video = smoothFalloff(VIDEO_SCAN_WIDTH, dVid) * zGradient * videoWeight;
+          const video = plateauFalloff(VIDEO_SCAN_WIDTH, dVid, 0.3) * zGradient * videoWeight;
 
           ih += video * 0.5;
           ir += COLORS.video.r * video * 0.9;
