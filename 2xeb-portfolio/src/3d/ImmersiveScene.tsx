@@ -412,7 +412,11 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
 
         if (dMl < ML_RADIUS) {
           const wave = Math.sin(dMl * 2 - time * 4) * 0.5 + 0.5;
-          const ml = smoothFalloff(ML_RADIUS, dMl) * wave * mlWeight;
+          // Linear cone, as originally written: it already reaches zero at the
+          // radius, so it never popped — and its even falloff is what makes the
+          // ripple read as organic rather than as a soft dome.
+          const intensity = 1 - dMl / ML_RADIUS;
+          const ml = intensity * wave * mlWeight;
 
           ih += ml * 0.8;
           ir += COLORS.ml.r * ml * 0.8;
@@ -428,7 +432,11 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
         if (dVid < VIDEO_SCAN_WIDTH) {
           // Vertical gradient based on z
           const zGradient = 0.5 + Math.sin(z * 0.5 + time * 2) * 0.3;
-          const video = plateauFalloff(VIDEO_SCAN_WIDTH, dVid, 0.3) * zGradient * videoWeight;
+          // pow(1.5), as originally written: already zero at the edge, and the
+          // soft leading/trailing gradient is what makes the sweep read as a
+          // scan pass rather than a hard bar
+          const intensity = Math.pow(1 - dVid / VIDEO_SCAN_WIDTH, 1.5);
+          const video = intensity * zGradient * videoWeight;
 
           ih += video * 0.5;
           ir += COLORS.video.r * video * 0.9;
