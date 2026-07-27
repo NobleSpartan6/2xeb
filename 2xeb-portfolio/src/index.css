@@ -5,6 +5,53 @@
 /* Global styles migrated from index.html (formerly served alongside the
    Tailwind Play CDN). Keep in sync with the MVP look — do not redesign. */
 
+/* Self-hosted fonts (were Fontshare CDN — two third-party round trips on the
+   critical path). Only the weights the site actually uses. Note: JetBrains
+   Mono was requested from Fontshare but never served; the mono stack has
+   always rendered via system fallbacks, kept as-is for parity. */
+@font-face {
+  font-family: 'General Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/general-sans-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'General Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/general-sans-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'General Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/general-sans-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'General Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/general-sans-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/space-grotesk-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/space-grotesk-700.woff2') format('woff2');
+}
+
 /* Motion tokens (see .claude/skills/emil-design-eng): built-in CSS easings
    are too weak for UI — these strong curves are the site-wide defaults.
    Mirrored as Tailwind `ease-*` utilities in tailwind.config.js. */
@@ -52,6 +99,26 @@
 @media (prefers-reduced-motion: reduce) {
   .accent-draw {
     animation: none;
+  }
+}
+
+/* View transitions: quick route crossfade; the project media morph carries
+   the strong curve. Browsers without the API keep instant swaps. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 240ms;
+  animation-timing-function: var(--ease-out-strong);
+}
+::view-transition-group(project-media) {
+  animation-duration: 320ms;
+  animation-timing-function: var(--ease-out-strong);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }
 

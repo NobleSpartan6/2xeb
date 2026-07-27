@@ -1,5 +1,7 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useConsole, ConsoleContext } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
@@ -46,6 +48,81 @@ const COLORS = {
 // Reusable objects to avoid GC pressure
 const _dummy = new THREE.Object3D();
 const _color = new THREE.Color();
+
+// --- FIELD SHAPE ---
+// Influence extents, hoisted out of the per-cube loop.
+//
+// Cells sample the field, so the field has to stay coarser than the cells.
+// Anything thinner than ~2 cell pitches can't be drawn as a shape: it aliases
+// into a chain of individually lit cubes that light and unlight one at a time,
+// which reads as cubes being created and deleted rather than a beam moving.
+// Widths that must survive sampling are therefore expressed in cell pitches.
+const SWE_ARM_PITCHES = 2;
+const SWE_CROSS_LENGTH = 3.8;
+const ML_RADIUS = 5.5;
+const VIDEO_SCAN_WIDTH = 2.0;
+const MOUSE_RADIUS = 4;
+
+/**
+ * How fast a cell lights up, as a half-life in seconds. Trails already smooth
+ * the way light *leaves* a cell; without a matching ramp on the way in, cells
+ * jump from the near-black floor to full emissive in a single frame, which
+ * bloom then amplifies into a visible pop.
+ */
+const LIGHT_RISE_HALF_LIFE = 0.045;
+
+/**
+ * How much of the surface's shortest wavelengths to remove each frame. The sim
+ * happily carries ripples down to a single cell, but a one-cell ripple isn't a
+ * wave on screen — it's one cube standing at an unrelated height to its
+ * neighbours, blinking as the ripple passes. Averaging toward the neighbourhood
+ * strips those while leaving broad swells untouched.
+ */
+const WAVE_SMOOTHING = 0.12;
+
+/**
+ * Resting colour of an untouched cell — the permanent lattice.
+ *
+ * This is what stops the field reading as blocks being created and deleted. If
+ * an unlit cell settles to the background colour, then "lit" and "unlit" become
+ * "exists" and "doesn't exist", and light crossing the grid can only look like
+ * cubes blinking in and out no matter how smoothly it's ramped. Holding the
+ * floor visible makes the surface permanent, so light moving over it reads as
+ * illumination instead.
+ *
+ * Cool-tinted to sit with the palette, and well under the bloom threshold
+ * (0.38) so the resting surface never glows. `edgeFade` still dissolves the
+ * perimeter into the fog, so the plane keeps reading as infinite.
+ */
+const FLOOR_R = 0.034;
+const FLOOR_G = 0.039;
+const FLOOR_B = 0.055;
+
+/**
+ * Smooth 0..1 falloff: 1 at the centre, 0 at `extent`, with zero slope at both
+ * ends. Replaces hard `if (distance < extent)` gates — a gate makes a cell's
+ * contribution appear and vanish between frames as a pillar slides past it,
+ * so cells at an influence boundary blink instead of fading.
+ */
+const smoothFalloff = (extent: number, distance: number): number => {
+  if (distance >= extent) return 0;
+  const t = 1 - distance / extent;
+  return t * t * (3 - 2 * t);
+};
+
+/**
+ * Falloff with a flat core: full strength out to `core` of the extent, then a
+ * smooth shoulder to zero. A plain dome spreads a wide feature into a haze —
+ * widening a beam enough to survive sampling shouldn't cost it its edge, so the
+ * width buys a solid core and only the last stretch is the fade.
+ */
+const plateauFalloff = (extent: number, distance: number, core: number): number => {
+  if (distance >= extent) return 0;
+  const inner = extent * core;
+  if (distance <= inner) return 1;
+  const t = 1 - (distance - inner) / (extent - inner);
+  return t * t * (3 - 2 * t);
+};
 
 // --- PILLAR BEHAVIORS ---
 // Each pillar represents a discipline with distinct movement patterns
@@ -94,17 +171,60 @@ const updateVideoPillar = (state: PillarState, time: number): void => {
   state.phase = t;
 };
 
+// Click shockwave signal, in NDC (-1..1) with a timestamp for dedup
+export interface PulseSignal {
+  nx: number;
+  ny: number;
+  t: number;
+}
+
 // --- MAIN GRID COMPONENT ---
 interface InteractiveGridProps {
   focusedDiscipline: ConsoleLane | null;
   gridSize: number;
   cellSize: number;
+  pulse: PulseSignal | null;
 }
 
-const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gridSize, cellSize }) => {
+const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gridSize, cellSize, pulse }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const { mouse, viewport } = useThree();
   const totalCells = gridSize * gridSize;
+
+  // Instance colors double as emitters: bloom picks up vColor² so lit cells
+  // glow like neon while the near-black floor stays dark
+  const gridMaterial = useMemo(() => {
+    const mat = new THREE.MeshStandardMaterial({ metalness: 0.7, roughness: 0.3, envMapIntensity: 0.5 });
+    mat.onBeforeCompile = (shader) => {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <emissivemap_fragment>',
+        [
+          '#include <emissivemap_fragment>',
+          '#if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )',
+          '  totalEmissiveRadiance += vColor * vColor * 1.5;',
+          '#endif',
+        ].join('\n')
+      );
+    };
+    return mat;
+  }, []);
+
+  // Trails: cells remember recent light and let it decay, so the pillars and
+  // the cursor paint fading comet streaks instead of only occupying cells
+  const trails = useMemo(
+    () => ({
+      r: new Float32Array(totalCells),
+      g: new Float32Array(totalCells),
+      b: new Float32Array(totalCells),
+      h: new Float32Array(totalCells),
+    }),
+    [totalCells]
+  );
+
+  const lastPulseRef = useRef(0);
+
+  /** Per-discipline presence, eased so focusing one cross-fades the others. */
+  const focusWeights = useRef({ swe: 1, ml: 1, video: 1 });
 
   // Pillar states
   const pillars = useRef({
@@ -113,31 +233,55 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     video: { position: new THREE.Vector3(-5, 0, -2), velocity: new THREE.Vector3(), phase: 0 },
   });
 
-  // Pre-compute grid positions
+  // Pre-compute grid positions. edgeFade dissolves the outermost cells into
+  // darkness so the plane reads as infinite — parallax near the viewport
+  // perimeter must never resolve a hard grid boundary.
   const gridData = useMemo(() => {
-    const data: { x: number; z: number; idx: number }[] = [];
+    const data: { x: number; z: number; idx: number; edgeFade: number }[] = [];
     const offset = (gridSize * (cellSize + GAP)) / 2;
 
     for (let i = 0; i < gridSize; i++) {
       for (let j = 0; j < gridSize; j++) {
-        data.push({
-          x: i * (cellSize + GAP) - offset,
-          z: j * (cellSize + GAP) - offset,
-          idx: i * gridSize + j,
-        });
+        const x = i * (cellSize + GAP) - offset;
+        const z = j * (cellSize + GAP) - offset;
+        const edge = Math.max(Math.abs(x), Math.abs(z)) / offset;
+        const edgeFade = Math.pow(Math.min(1, Math.max(0, (1 - edge) / 0.3)), 1.4);
+        data.push({ x, z, idx: i * gridSize + j, edgeFade });
       }
     }
     return data;
   }, [gridSize, cellSize]);
+
+  // Wave field: the grid is a physical surface. Impulses (cursor wake,
+  // click splashes) propagate as damped waves through neighbouring cells,
+  // with momentum and interference — not scripted rings.
+  const wave = useMemo(
+    () => ({
+      h: new Float32Array(totalCells),
+      v: new Float32Array(totalCells),
+      // Scratch buffer for the band-limiting pass (reused, never reallocated)
+      s: new Float32Array(totalCells),
+    }),
+    [totalCells]
+  );
+
+  /**
+   * SWE arm width in world units, pinned to whole cell pitches so the beam is
+   * always a few cells thick at every breakpoint (the pitch changes with
+   * `cellSize`). Sub-pitch widths alias into a staircase of single cubes.
+   */
+  const sweCrossWidth = useMemo(() => (cellSize + GAP) * SWE_ARM_PITCHES, [cellSize]);
+  const prevMouseRef = useRef<{ x: number; z: number; init: boolean }>({ x: 0, z: 0, init: false });
 
   // Reduced motion: freeze the clock so pillars, waves and breathing hold a
   // static (still lit and colored) pose; the mouse highlight stays as direct
   // interaction feedback.
   const reduceMotion = useMemo(() => prefersReducedMotion(), []);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!meshRef.current) return;
-    const time = reduceMotion ? 0 : state.clock.getElapsedTime();
+    const rawTime = state.clock.getElapsedTime();
+    const time = reduceMotion ? 0 : rawTime;
 
     // Update pillar positions
     updateSWEPillar(pillars.current.swe, time);
@@ -152,87 +296,185 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     const mouseX = (mouse.x * viewport.width) / 2;
     const mouseZ = -(mouse.y * viewport.height) / 2;
 
-    // Determine which discipline influences should be active
-    const showSwe = !focusedDiscipline || focusedDiscipline === ConsoleLane.CODE;
-    const showMl = !focusedDiscipline || focusedDiscipline === ConsoleLane.VISION;
-    const showVideo = !focusedDiscipline || focusedDiscipline === ConsoleLane.DESIGN;
+    // Ease discipline presence toward its target rather than switching it:
+    // flipping a boolean drops two thirds of the field's light in one frame.
+    // Trails soften that on the way out, but the way back in was a hard pop.
+    const kFocus = reduceMotion ? 1 : 1 - Math.exp(-6 * delta);
+    const fw = focusWeights.current;
+    fw.swe += ((!focusedDiscipline || focusedDiscipline === ConsoleLane.CODE ? 1 : 0) - fw.swe) * kFocus;
+    fw.ml += ((!focusedDiscipline || focusedDiscipline === ConsoleLane.VISION ? 1 : 0) - fw.ml) * kFocus;
+    fw.video += ((!focusedDiscipline || focusedDiscipline === ConsoleLane.DESIGN ? 1 : 0) - fw.video) * kFocus;
+    const sweWeight = fw.swe;
+    const mlWeight = fw.ml;
+    const videoWeight = fw.video;
+
+    // How far a cell can climb toward its instantaneous influence this frame
+    const kRise = reduceMotion ? 1 : 1 - Math.pow(2, -Math.min(delta, 1 / 30) / LIGHT_RISE_HALF_LIFE);
+
+    const pulseAmp = reduceMotion ? 0.4 : 1;
+
+    // --- WAVE FIELD: inject impulses, then propagate ---
+    const wh = wave.h, wv = wave.v;
+    const step = cellSize + GAP;
+    const half = (gridSize * step) / 2;
+    const inject = (wx: number, wz: number, v: number, rad: number) => {
+      const ci = Math.round((wx + half) / step);
+      const cj = Math.round((wz + half) / step);
+      for (let a = -rad; a <= rad; a++) {
+        for (let b = -rad; b <= rad; b++) {
+          const ii = ci + a, jj = cj + b;
+          if (ii < 0 || jj < 0 || ii >= gridSize || jj >= gridSize) continue;
+          const fall = 1 - Math.hypot(a, b) / (rad + 1);
+          if (fall > 0) wv[ii * gridSize + jj] += v * fall;
+        }
+      }
+    };
+
+    // Click splash: press the surface down hard, physics does the rest
+    if (pulse && pulse.t > lastPulseRef.current) {
+      lastPulseRef.current = pulse.t;
+      inject((pulse.nx * viewport.width) / 2, -(pulse.ny * viewport.height) / 2, -2.0 * pulseAmp, 3);
+    }
+
+    // Cursor wake: a moving pointer displaces the surface along its path
+    const pm = prevMouseRef.current;
+    if (pm.init) {
+      const speed = Math.hypot(mouseX - pm.x, mouseZ - pm.z) / Math.max(delta, 0.001);
+      if (speed > 2.5) {
+        inject(mouseX, mouseZ, -Math.min(16, speed) * 0.045 * pulseAmp, 2);
+      }
+    }
+    pm.x = mouseX;
+    pm.z = mouseZ;
+    pm.init = true;
+
+    // Damped wave propagation (clamped dt for stability on slow frames)
+    const dtw = Math.min(delta, 0.033);
+    const c2 = 90;
+    const wDamp = Math.exp(-4.5 * dtw);
+    const N = gridSize;
+    for (let i = 0; i < totalCells; i++) {
+      const row = (i / N) | 0, col = i % N;
+      const nL = col > 0 ? wh[i - 1] : wh[i];
+      const nR = col < N - 1 ? wh[i + 1] : wh[i];
+      const nU = row > 0 ? wh[i - N] : wh[i];
+      const nD = row < N - 1 ? wh[i + N] : wh[i];
+      wv[i] = (wv[i] + ((nL + nR + nU + nD) / 4 - wh[i]) * c2 * dtw) * wDamp;
+    }
+    for (let i = 0; i < totalCells; i++) wh[i] += wv[i] * dtw;
+
+    // Band-limit the surface so ripples stay wider than the cells that draw
+    // them. Without this the sim's single-cell wavelengths render as lone cubes
+    // at unrelated heights, popping in and out as a ripple crosses them.
+    const ws = wave.s;
+    for (let i = 0; i < totalCells; i++) {
+      const row = (i / N) | 0, col = i % N;
+      const nL = col > 0 ? wh[i - 1] : wh[i];
+      const nR = col < N - 1 ? wh[i + 1] : wh[i];
+      const nU = row > 0 ? wh[i - N] : wh[i];
+      const nD = row < N - 1 ? wh[i + N] : wh[i];
+      ws[i] = wh[i] + ((nL + nR + nU + nD) / 4 - wh[i]) * WAVE_SMOOTHING;
+    }
+    wh.set(ws);
+
+    // Frame-rate-independent trail decay (longer streaks: ~1.3s tails)
+    const decay = Math.exp(-5 * delta);
+    const tR = trails.r, tG = trails.g, tB = trails.b, tH = trails.h;
 
     for (let i = 0; i < totalCells; i++) {
-      const { x, z, idx } = gridData[i];
-      let targetY = 0;
-      let r = 0.03, g = 0.03, b = 0.03; // Base dark
+      const { x, z, idx, edgeFade } = gridData[i];
+      // Instantaneous influence for this frame (fed into the trail buffers)
+      let ih = 0;
+      let ir = 0, ig = 0, ib = 0;
 
       // === SWE INFLUENCE: Cross/Grid Pattern ===
-      if (showSwe) {
+      if (sweWeight > 0.002) {
         const dSweX = Math.abs(x - swePos.x);
         const dSweZ = Math.abs(z - swePos.z);
-        const crossWidth = 0.3;
-        const crossLength = 3.5;
 
-        // Manhattan cross pattern
-        const inCross = (dSweX < crossWidth && dSweZ < crossLength) ||
-                        (dSweZ < crossWidth && dSweX < crossLength);
+        // Two smoothly shouldered arms rather than a hard Manhattan test, so
+        // the cross keeps its shape but its ends and edges fade as it slides
+        const armH = plateauFalloff(sweCrossWidth, dSweZ, 0.45) * smoothFalloff(SWE_CROSS_LENGTH, dSweX);
+        const armV = plateauFalloff(sweCrossWidth, dSweX, 0.45) * smoothFalloff(SWE_CROSS_LENGTH, dSweZ);
+        const swe = Math.max(armH, armV) * sweWeight;
 
-        if (inCross) {
-          const dist = Math.min(dSweX, dSweZ);
-          const intensity = Math.max(0, 1 - dist / crossWidth);
-          const falloff = 1 - Math.max(dSweX, dSweZ) / crossLength;
-
-          targetY += intensity * falloff * 1.2;
-          r += COLORS.swe.r * intensity * falloff * 0.9;
-          g += COLORS.swe.g * intensity * falloff * 0.9;
-          b += COLORS.swe.b * intensity * falloff * 0.9;
+        if (swe > 0) {
+          ih += swe * 1.2;
+          ir += COLORS.swe.r * swe * 0.9;
+          ig += COLORS.swe.g * swe * 0.9;
+          ib += COLORS.swe.b * swe * 0.9;
         }
       }
 
       // === ML INFLUENCE: Ripple/Wave Pattern ===
-      if (showMl) {
+      if (mlWeight > 0.002) {
         const dMl = Math.sqrt((x - mlPos.x) ** 2 + (z - mlPos.z) ** 2);
-        const mlRadius = 5.0;
 
-        if (dMl < mlRadius) {
-          const intensity = 1 - (dMl / mlRadius);
+        if (dMl < ML_RADIUS) {
           const wave = Math.sin(dMl * 2 - time * 4) * 0.5 + 0.5;
+          // Linear cone, as originally written: it already reaches zero at the
+          // radius, so it never popped — and its even falloff is what makes the
+          // ripple read as organic rather than as a soft dome.
+          const intensity = 1 - dMl / ML_RADIUS;
+          const ml = intensity * wave * mlWeight;
 
-          targetY += wave * intensity * 0.8;
-          r += COLORS.ml.r * intensity * wave * 0.8;
-          g += COLORS.ml.g * intensity * wave * 0.8;
-          b += COLORS.ml.b * intensity * wave * 0.8;
+          ih += ml * 0.8;
+          ir += COLORS.ml.r * ml * 0.8;
+          ig += COLORS.ml.g * ml * 0.8;
+          ib += COLORS.ml.b * ml * 0.8;
         }
       }
 
       // === VIDEO INFLUENCE: Scan Line ===
-      if (showVideo) {
+      if (videoWeight > 0.002) {
         const dVid = Math.abs(x - videoPos.x);
-        const scanWidth = 1.8;
 
-        if (dVid < scanWidth) {
-          const intensity = Math.pow(1 - dVid / scanWidth, 1.5);
+        if (dVid < VIDEO_SCAN_WIDTH) {
           // Vertical gradient based on z
           const zGradient = 0.5 + Math.sin(z * 0.5 + time * 2) * 0.3;
+          // pow(1.5), as originally written: already zero at the edge, and the
+          // soft leading/trailing gradient is what makes the sweep read as a
+          // scan pass rather than a hard bar
+          const intensity = Math.pow(1 - dVid / VIDEO_SCAN_WIDTH, 1.5);
+          const video = intensity * zGradient * videoWeight;
 
-          targetY += intensity * zGradient * 0.5;
-          r += COLORS.video.r * intensity * zGradient * 0.9;
-          g += COLORS.video.g * intensity * zGradient * 0.9;
-          b += COLORS.video.b * intensity * zGradient * 0.9;
+          ih += video * 0.5;
+          ir += COLORS.video.r * video * 0.9;
+          ig += COLORS.video.g * video * 0.9;
+          ib += COLORS.video.b * video * 0.9;
         }
       }
 
       // === MOUSE INTERACTION ===
       const dMouse = Math.sqrt((x - mouseX) ** 2 + (z - mouseZ) ** 2);
-      const mouseRadius = 4;
-      if (dMouse < mouseRadius) {
-        const intensity = 1 - (dMouse / mouseRadius);
-        targetY += intensity * 0.6;
+      if (dMouse < MOUSE_RADIUS) {
+        const hover = smoothFalloff(MOUSE_RADIUS, dMouse);
+        ih += hover * 0.6;
         // Swiss Blue accent on mouse hover
-        r += COLORS.accent.r * intensity * 0.4;
-        g += COLORS.accent.g * intensity * 0.4;
-        b += COLORS.accent.b * intensity * 0.4;
+        ir += COLORS.accent.r * hover * 0.3;
+        ig += COLORS.accent.g * hover * 0.3;
+        ib += COLORS.accent.b * hover * 0.3;
       }
+
+      // === TRAILS: ramp up toward "now", decay away from it ===
+      // Rising through kRise instead of jumping straight to `ih` keeps cells
+      // from popping on at full emissive; the decay below is the comet tail.
+      const hD = tH[i] * decay;
+      const rD = tR[i] * decay;
+      const gD = tG[i] * decay;
+      const bD = tB[i] * decay;
+      const hT = (tH[i] = ih > hD ? hD + (ih - hD) * kRise : hD);
+      const rT = (tR[i] = ir > rD ? rD + (ir - rD) * kRise : rD);
+      const gT = (tG[i] = ig > gD ? gD + (ig - gD) * kRise : gD);
+      const bT = (tB[i] = ib > bD ? bD + (ib - bD) * kRise : bD);
+
+      // === WAVE FIELD: ripples lift the surface and glow accent-blue ===
+      const wH = wh[idx];
+      const wGlow = Math.min(0.28, Math.abs(wH) * 0.35);
 
       // === SUBTLE BREATHING ===
       const breathe = Math.sin(time * 0.5 + idx * 0.01) * 0.03;
-      targetY += breathe;
+      const targetY = (hT + wH * 0.6 + breathe) * edgeFade;
 
       // Apply position
       _dummy.position.set(x, targetY - 0.5, z);
@@ -240,11 +482,12 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       _dummy.updateMatrix();
       meshRef.current.setMatrixAt(i, _dummy.matrix);
 
-      // Apply color with smooth clamping
+      // Apply color: permanent floor, trails + wave glow on top, everything
+      // dissolving at the grid edge
       _color.setRGB(
-        Math.min(1, r),
-        Math.min(1, g),
-        Math.min(1, b)
+        Math.min(1, (FLOOR_R + rT + COLORS.accent.r * wGlow) * edgeFade),
+        Math.min(1, (FLOOR_G + gT + COLORS.accent.g * wGlow) * edgeFade),
+        Math.min(1, (FLOOR_B + bT + COLORS.accent.b * wGlow) * edgeFade)
       );
       meshRef.current.setColorAt(i, _color);
     }
@@ -258,11 +501,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, totalCells]}>
       <boxGeometry args={[cellSize, 1, cellSize]} />
-      <meshStandardMaterial
-        metalness={0.7}
-        roughness={0.3}
-        envMapIntensity={0.5}
-      />
+      <primitive object={gridMaterial} attach="material" />
     </instancedMesh>
   );
 };
@@ -322,21 +561,35 @@ const PillarLights: React.FC = () => {
 
 // --- CAMERA RIG ---
 const CameraRig: React.FC = () => {
-  const { camera, mouse } = useThree();
+  const { camera, mouse, viewport } = useThree();
   const targetPos = useRef(new THREE.Vector3(0, 12, 16));
   const reduceMotion = useMemo(() => prefersReducedMotion(), []);
 
-  useFrame(() => {
-    // Reduced motion: no viewport-wide parallax — hold the framing
+  useFrame((state) => {
+    // Tall/narrow viewports leave empty sky above the grid's horizon with the
+    // wide-screen framing — steepen the pitch so the floor fills the frame.
+    // tall: 0 on wide desktop → 1 on portrait.
+    const tall = THREE.MathUtils.clamp((1.35 - viewport.aspect) / 0.9, 0, 1);
+    const baseY = 12 + tall * 5;
+    const baseZ = 16 - tall * 6.5;
+
+    // Reduced motion: no viewport-wide parallax — hold the (aspect-correct)
+    // framing without drift
     if (reduceMotion) {
+      targetPos.current.set(0, baseY, baseZ);
+      camera.position.lerp(targetPos.current, 0.1);
       camera.lookAt(0, -1, 0);
       return;
     }
 
-    // Parallax effect based on mouse
-    const targetX = mouse.x * 3;
-    const targetY = 12 + mouse.y * 1;
-    const targetZ = 16 - mouse.y * 2;
+    // Slow autonomous drift keeps the scene alive without a cursor;
+    // mouse parallax layers on top
+    // Parallax travel kept modest so the camera never pans far enough to
+    // resolve the grid's edge
+    const t = state.clock.getElapsedTime();
+    const targetX = mouse.x * 2.2 + Math.sin(t * 0.08) * 0.9;
+    const targetY = baseY + mouse.y * 1 + Math.sin(t * 0.05) * 0.3;
+    const targetZ = baseZ - mouse.y * 2 + Math.cos(t * 0.06) * 0.5;
 
     targetPos.current.set(targetX, targetY, targetZ);
 
@@ -368,11 +621,14 @@ const ReadyDetector: React.FC<{ onReady: () => void }> = ({ onReady }) => {
 interface ImmersiveSceneProps {
   className?: string;
   onReady?: () => void;
+  /** Click shockwave signal from the overlay (NDC coords + timestamp) */
+  pulse?: PulseSignal | null;
 }
 
-const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady }) => {
+const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady, pulse = null }) => {
   const consoleCtx = useConsole();
   const [screenSize, setScreenSize] = useState<ScreenSize>('desktop');
+  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
 
   // Detect screen size for responsive 3D rendering
   useEffect(() => {
@@ -391,7 +647,8 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
   // DPR settings based on screen size
   const getDpr = (): [number, number] => {
     if (isMobile) return [1, 1];
-    if (isLargeScreen) return [1, 2]; // Higher DPR for sharper rendering on 1440p+
+    // Cap at 1.5 everywhere: bloom's mipmap chain at DPR 2 on 1440p+ doubles
+    // GPU work for sharpness the glow aesthetic doesn't need
     return [1, 1.5];
   };
 
@@ -403,10 +660,12 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
   };
 
   // Fog settings based on screen size
+  // Far fog pulled in so the grid boundary never resolves — the plane fades
+  // into darkness before its edge, which is what sells "infinite"
   const getFog = (): [number, number] => {
-    if (isMobile) return [10, 30];
-    if (isLargeScreen) return [18, 50]; // More visible depth on large screens
-    return [15, 40];
+    if (isMobile) return [10, 28];
+    if (isLargeScreen) return [16, 42];
+    return [14, 34];
   };
 
   const fogSettings = getFog();
@@ -416,6 +675,11 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
       <Canvas
         dpr={getDpr()}
         camera={{ position: [0, 12, 16], fov: getFov(), near: 0.1, far: 100 }}
+        // The hero content overlay sits above the canvas and would swallow
+        // pointer events — source them from the app root so mouse parallax
+        // and the cursor highlight work through it
+        eventSource={document.getElementById('root') as HTMLElement}
+        eventPrefix="client"
         gl={{
           antialias: !isMobile, // Disable antialiasing on mobile for performance
           toneMapping: THREE.ACESFilmicToneMapping,
@@ -426,6 +690,19 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
         <ConsoleContext.Provider value={consoleCtx}>
           <color attach="background" args={['#050505']} />
           <fog attach="fog" args={['#050505', fogSettings[0], fogSettings[1]]} />
+
+          {/* Faint star dust so the sky above the grid's horizon has depth
+              instead of reading as dead black (same vocabulary as the 404) */}
+          <Stars radius={70} depth={40} count={900} factor={2.5} saturation={0} fade speed={reduceMotion ? 0 : 0.6} />
+
+          {/* Endless floor beneath the grid: the cells read as the lit
+              portion of an infinite dark surface instead of an island in a
+              void. Pillar point lights spill soft color pools onto it past
+              the grid's edge; fog closes it into the horizon. */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.68, 0]}>
+            <planeGeometry args={[300, 300]} />
+            <meshStandardMaterial color="#080a10" metalness={0.3} roughness={0.9} />
+          </mesh>
 
           {/* Ambient lighting */}
           <ambientLight intensity={0.15} />
@@ -444,10 +721,21 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
             focusedDiscipline={consoleCtx.focusedDiscipline}
             gridSize={config.gridSize}
             cellSize={config.cellSize}
+            pulse={pulse}
           />
           <PillarLights />
           <CameraRig />
           {onReady && <ReadyDetector onReady={onReady} />}
+
+          {/* Bloom turns the emissive cells into neon light sources.
+              Desktop only — mobile keeps the flat-lit look for performance.
+              multisampling=0: MSAA on top of bloom is wasted GPU — the glow
+              softens edges perceptually anyway */}
+          {!isMobile && (
+            <EffectComposer multisampling={0}>
+              <Bloom mipmapBlur intensity={0.7} luminanceThreshold={0.38} luminanceSmoothing={0.22} radius={0.7} />
+            </EffectComposer>
+          )}
         </ConsoleContext.Provider>
       </Canvas>
     </div>

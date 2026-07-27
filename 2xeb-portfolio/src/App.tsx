@@ -1,5 +1,13 @@
 import React, { useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import {
+  createBrowserRouter,
+  createRoutesFromElements,
+  RouterProvider,
+  Outlet,
+  Route,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import NavBar from './components/NavBar';
 import FooterHUD from './components/FooterHUD';
 import Home from './pages/Home';
@@ -138,11 +146,12 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {children}
       <FooterHUD />
       {/* Film grain: one shared texture over every page (nav + footer included)
-          so the whole site reads like one graded piece of footage. Static, so
-          it costs one composite; sits below the mobile drawer and terminal. */}
+          so the whole site reads like one graded piece of footage. Plain alpha,
+          no blend mode — mix-blend over the animated WebGL canvas forced a
+          full-viewport recomposite on every 3D frame. */}
       <div
         aria-hidden
-        className="fixed inset-0 z-[90] pointer-events-none opacity-[0.03] mix-blend-overlay"
+        className="fixed inset-0 z-[90] pointer-events-none opacity-[0.025]"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
         }}
@@ -151,36 +160,49 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
+// Layout route: everything that used to live directly under <Router>.
+// A data router (createBrowserRouter) is required for View Transitions —
+// Link viewTransition and useViewTransitionState are data-router features.
+const RootLayout = () => (
+  <>
+    <ScrollToTop />
+    <PageTitle />
+    <EasterEggListener />
+    <EasterEggOverlay />
+    <MainLayout>
+      <Outlet />
+    </MainLayout>
+  </>
+);
+
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<RootLayout />}>
+      <Route path="/" element={<Home />} />
+      <Route path="/work" element={<Work />} />
+      <Route path="/work/:slug" element={<ProjectDetail />} />
+      <Route path="/ml-lab" element={<MLLab />} />
+      <Route path="/video" element={<Video />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/friend" element={<FriendRouteActivator />} />
+      <Route path="*" element={
+        <React.Suspense fallback={
+          <div className="h-screen w-screen bg-[#050505] flex items-center justify-center">
+            <div className="text-[#2563EB] font-mono animate-pulse">Loading...</div>
+          </div>
+        }>
+          <NotFound />
+        </React.Suspense>
+      } />
+    </Route>
+  )
+);
+
 const App: React.FC = () => {
   return (
     <ConsoleProvider>
-      <Router>
-        <ScrollToTop />
-        <PageTitle />
-        <EasterEggListener />
-        <EasterEggOverlay />
-        <MainLayout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/work" element={<Work />} />
-            <Route path="/work/:slug" element={<ProjectDetail />} />
-            <Route path="/ml-lab" element={<MLLab />} />
-            <Route path="/video" element={<Video />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/friend" element={<FriendRouteActivator />} />
-            <Route path="*" element={
-              <React.Suspense fallback={
-                <div className="h-screen w-screen bg-[#050505] flex items-center justify-center">
-                  <div className="text-[#2563EB] font-mono animate-pulse">Loading...</div>
-                </div>
-              }>
-                <NotFound />
-              </React.Suspense>
-            } />
-          </Routes>
-        </MainLayout>
-      </Router>
+      <RouterProvider router={router} />
     </ConsoleProvider>
   );
 };

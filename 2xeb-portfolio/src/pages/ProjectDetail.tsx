@@ -1,6 +1,7 @@
 import React, { useState, Suspense, lazy } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getCaseStudyBySlug } from '../data';
+import { PROJECTS } from '../data/projects';
 import { useProject } from '../hooks/useProjects';
 import { useScrollReveal } from '../hooks/useAnimations';
 import { useConsole } from '../context/ConsoleContext';
@@ -135,7 +136,13 @@ const ProjectDetail: React.FC = () => {
         </p>
       </header>
 
-      <div data-animate className="w-full aspect-video bg-[#0A0A0A] border border-[#262626] mb-16 relative overflow-hidden group">
+      {/* Morph target: the clicked card's media box becomes this hero via the
+          View Transitions API. Not [data-animate] — the reveal would hide it
+          at snapshot time and break the morph. */}
+      <div
+        className="w-full aspect-video bg-[#0A0A0A] border border-[#262626] mb-16 relative overflow-hidden group"
+        style={{ viewTransitionName: 'project-media' }}
+      >
         {gumletEmbed ? (
           <div style={{ position: 'relative', aspectRatio: '16/9' }}>
             <iframe
@@ -284,6 +291,38 @@ const ProjectDetail: React.FC = () => {
           </Suspense>
         </div>
       )}
+
+      {/* Prev / next project — editorial browse flow, wraps around the index */}
+      {project && (() => {
+        const idx = PROJECTS.findIndex((p) => p.slug === project.slug);
+        if (idx === -1) return null;
+        const prev = PROJECTS[(idx - 1 + PROJECTS.length) % PROJECTS.length];
+        const next = PROJECTS[(idx + 1) % PROJECTS.length];
+        return (
+          <nav aria-label="Project navigation" className="mt-20 border-t border-[#262626] pt-8 grid grid-cols-2 gap-4">
+            <Link
+              to={`/work/${prev.slug}`}
+              viewTransition
+              className="group flex flex-col gap-2 p-4 -m-4 pressable"
+            >
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#525252] group-hover:text-[#2563EB] transition-colors">← Prev</span>
+              <span className="text-lg md:text-xl font-bold font-space-grotesk tracking-tight text-[#A3A3A3] group-hover:text-white transition-colors line-clamp-1">
+                {prev.title}
+              </span>
+            </Link>
+            <Link
+              to={`/work/${next.slug}`}
+              viewTransition
+              className="group flex flex-col gap-2 items-end text-right p-4 -m-4 pressable"
+            >
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#525252] group-hover:text-[#2563EB] transition-colors">Next →</span>
+              <span className="text-lg md:text-xl font-bold font-space-grotesk tracking-tight text-[#A3A3A3] group-hover:text-white transition-colors line-clamp-1">
+                {next.title}
+              </span>
+            </Link>
+          </nav>
+        );
+      })()}
     </article>
   );
 };

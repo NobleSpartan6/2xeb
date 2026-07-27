@@ -127,11 +127,45 @@ const DISCIPLINES = [
   { lane: ConsoleLane.DESIGN, label: 'DESIGN', color: '#F59E0B', description: 'Video Production' },
 ] as const;
 
+// Leaf components so the 1s clock tick / Spotify polling only re-render
+// these spans, not the whole hero tree
+const LiveClock: React.FC = () => {
+  const clock = useLiveClock();
+  return <span className="text-[#A3A3A3] pointer-events-none">{clock || '...'}</span>;
+};
+
+const NowPlayingInline: React.FC = () => {
+  const nowPlaying = useSpotifyNowPlaying();
+  if (!nowPlaying) return null;
+  return (
+    <>
+      <span className="text-[#525252] pointer-events-none">·</span>
+      <span className="text-[#2563EB] pointer-events-none">♪ {nowPlaying}</span>
+    </>
+  );
+};
+
+const NowPlayingStacked: React.FC = () => {
+  const nowPlaying = useSpotifyNowPlaying();
+  if (!nowPlaying) return null;
+  return <span className="text-[#2563EB] truncate pointer-events-none">♪ {nowPlaying}</span>;
+};
+
 const Home: React.FC = () => {
   const { focusedDiscipline, setFocusedDiscipline, setIsAgentOpen, setIsEasterEggActive } = useConsole();
   const [sceneReady, setSceneReady] = useState(false);
-  const clock = useLiveClock();
-  const nowPlaying = useSpotifyNowPlaying();
+  // Defer the (large, lazy) 3D chunk fetch one beat so the hero's JS, text
+  // and fonts win the bandwidth race on cold loads — the scene fades in
+  // behind whenever it's ready anyway
+  const [mountScene, setMountScene] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setMountScene(true), 250);
+    return () => window.clearTimeout(id);
+  }, []);
+  // Click shockwave signal for the 3D grid (NDC coords + timestamp)
+  const [scenePulse, setScenePulse] = useState<{ nx: number; ny: number; t: number } | null>(null);
+  // Clock/Spotify render in leaf components below so their per-second /
+  // polling ticks don't re-render the whole hero tree
   const showTerminalHint = useTerminalHint();
   const showTimestampHint = useTimestampHint();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -207,9 +241,11 @@ const Home: React.FC = () => {
 
       {/* 3D Background - Full Screen Immersive */}
       <div className={`absolute inset-0 z-0 transition-opacity duration-500 ease-out-strong ${sceneReady ? 'opacity-100' : 'opacity-0'}`}>
-        <Suspense fallback={null}>
-          <ImmersiveScene onReady={handleSceneReady} />
-        </Suspense>
+        {mountScene && (
+          <Suspense fallback={null}>
+            <ImmersiveScene onReady={handleSceneReady} pulse={scenePulse} />
+          </Suspense>
+        )}
       </div>
 
       {/* Gradient overlays for depth */}
@@ -228,7 +264,15 @@ const Home: React.FC = () => {
       <div
         ref={contentRef}
         className="absolute inset-0 z-20 flex flex-col justify-between"
-        onClick={() => setFocusedDiscipline(null)}
+        onClick={(e) => {
+          setFocusedDiscipline(null);
+          // Fire a shockwave through the grid from the click point
+          setScenePulse({
+            nx: (e.clientX / window.innerWidth) * 2 - 1,
+            ny: -((e.clientY / window.innerHeight) * 2 - 1),
+            t: Date.now(),
+          });
+        }}
       >
         {/* Terminal Hint - Periodic subtle cursor */}
         <button
@@ -259,7 +303,7 @@ const Home: React.FC = () => {
               <div className="hidden md:flex items-center gap-2">
                 <span className="text-[#A3A3A3] pointer-events-none">NYC</span>
                 <span className="text-[#525252] pointer-events-none">·</span>
-                <span className="text-[#A3A3A3] pointer-events-none">{clock || '...'}</span>
+                <LiveClock />
                 {/* Terminal cursor hint - appears periodically, clickable */}
                 <button
                   onClick={(e) => {
@@ -275,17 +319,12 @@ const Home: React.FC = () => {
                 >
                   <span className="animate-pulse">&gt;_</span>
                 </button>
-                {nowPlaying && (
-                  <>
-                    <span className="text-[#525252] pointer-events-none">·</span>
-                    <span className="text-[#2563EB] pointer-events-none">♪ {nowPlaying}</span>
-                  </>
-                )}
+                <NowPlayingInline />
               </div>
               {/* Mobile/Tablet: compact */}
               <div className="flex md:hidden flex-col gap-0.5 max-w-[260px]">
                 <div className="flex items-center gap-2">
-                  <span className="text-[#A3A3A3] pointer-events-none">{clock || '...'}</span>
+                  <LiveClock />
                   {/* Terminal cursor hint - mobile */}
                   <button
                     onClick={(e) => {
@@ -302,9 +341,7 @@ const Home: React.FC = () => {
                     <span className="animate-pulse">&gt;_</span>
                   </button>
                 </div>
-                {nowPlaying && (
-                  <span className="text-[#2563EB] truncate pointer-events-none">♪ {nowPlaying}</span>
-                )}
+                <NowPlayingStacked />
               </div>
             </div>
           </div>
