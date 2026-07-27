@@ -35,21 +35,22 @@ endpoint itself is invisible. The resting level sits below the bloom threshold
 perimeter, so the plane keeps reading as infinite. Don't darken the floor to the
 background to "restore contrast"; dim the *lit* contributions instead.
 
-**Nothing in the field may change in a single frame:**
-Cells are emitters feeding bloom, so any instant change reads as a cube being
-created or deleted rather than lit or dimmed. Both directions must ramp:
-- Trails handle the way light *leaves* a cell (`decay`). The way in ramps
-  through `kRise` (`LIGHT_RISE_HALF_LIFE`) — going straight to the
-  instantaneous influence pops the cell on at full emissive
-- Influence extents use `smoothFalloff()` (zero slope at the outer edge), never
-  a hard `if (distance < extent)` gate, which switches a cell's contribution on
-  and off between frames as a pillar slides past it
-- Keep `SWE_CROSS_WIDTH` above one cell pitch (`cellSize + GAP`); a narrower arm
-  falls between cell rows as the cross slides and flickers
+**Attack is instant, exit decays — don't smooth the attack:**
+Blocks stepping on crisply as a shape passes is the pixel aesthetic; the
+permanent floor is what keeps that step reading as "lit" rather than "created".
+Trails (`decay`) carry the exit as a comet tail. A rise ramp on the way in was
+tried and it killed the sense of motion — the shapes stopped reading as blocks
+moving. Don't reintroduce one, and don't swap the pillars' falloff curves for a
+shared smooth falloff: the cross is hard-edged, ML is a linear cone, VIDEO is
+pow(1.5), and those distinct characters are the design.
+
+Two real rules:
+- Shapes must be at least one cell pitch wide (`SWE_ARM_PITCHES` keeps the
+  cross arm at 1.1 pitches). A sub-pitch feature falls between cell rows as it
+  slides and whole arms flicker — that DOES read as broken
 - Discipline focus ramps `focusWeights` instead of flipping booleans, so
-  hovering CODE cross-fades the other two out
-- All rates are frame-rate independent (`1 - exp(-k·delta)` / half-life form) and
-  collapse to instant under `reduceMotion`, which keeps its static pose
+  hovering CODE cross-fades the other two out instead of dropping two thirds
+  of the field's light in one frame
 
 **Responsive Behavior:**
 ```typescript

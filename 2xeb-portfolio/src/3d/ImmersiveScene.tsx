@@ -52,33 +52,16 @@ const _color = new THREE.Color();
 // --- FIELD SHAPE ---
 // Influence extents, hoisted out of the per-cube loop.
 //
-// Cells sample the field, so the field has to stay coarser than the cells.
-// Anything thinner than ~2 cell pitches can't be drawn as a shape: it aliases
-// into a chain of individually lit cubes that light and unlight one at a time,
-// which reads as cubes being created and deleted rather than a beam moving.
-// Widths that must survive sampling are therefore expressed in cell pitches.
-const SWE_ARM_PITCHES = 2;
+// Cells stepping on and off IS the aesthetic — the shapes are meant to read as
+// discrete blocks lighting as they pass, pixel-style. The one sizing rule: a
+// shape must be at least one cell pitch wide. The original 0.3 arm was thinner
+// than a cell, so as it slid it kept falling between rows and whole arms
+// flickered. Width is expressed in pitches so it holds at every breakpoint.
+const SWE_ARM_PITCHES = 1.1;
 const SWE_CROSS_LENGTH = 3.8;
 const ML_RADIUS = 5.5;
 const VIDEO_SCAN_WIDTH = 2.0;
 const MOUSE_RADIUS = 4;
-
-/**
- * How fast a cell lights up, as a half-life in seconds. Trails already smooth
- * the way light *leaves* a cell; without a matching ramp on the way in, cells
- * jump from the near-black floor to full emissive in a single frame, which
- * bloom then amplifies into a visible pop.
- */
-const LIGHT_RISE_HALF_LIFE = 0.045;
-
-/**
- * How much of the surface's shortest wavelengths to remove each frame. The sim
- * happily carries ripples down to a single cell, but a one-cell ripple isn't a
- * wave on screen — it's one cube standing at an unrelated height to its
- * neighbours, blinking as the ripple passes. Averaging toward the neighbourhood
- * strips those while leaving broad swells untouched.
- */
-const WAVE_SMOOTHING = 0.12;
 
 /**
  * Resting colour of an untouched cell — the permanent lattice.
@@ -97,32 +80,6 @@ const WAVE_SMOOTHING = 0.12;
 const FLOOR_R = 0.034;
 const FLOOR_G = 0.039;
 const FLOOR_B = 0.055;
-
-/**
- * Smooth 0..1 falloff: 1 at the centre, 0 at `extent`, with zero slope at both
- * ends. Replaces hard `if (distance < extent)` gates — a gate makes a cell's
- * contribution appear and vanish between frames as a pillar slides past it,
- * so cells at an influence boundary blink instead of fading.
- */
-const smoothFalloff = (extent: number, distance: number): number => {
-  if (distance >= extent) return 0;
-  const t = 1 - distance / extent;
-  return t * t * (3 - 2 * t);
-};
-
-/**
- * Falloff with a flat core: full strength out to `core` of the extent, then a
- * smooth shoulder to zero. A plain dome spreads a wide feature into a haze —
- * widening a beam enough to survive sampling shouldn't cost it its edge, so the
- * width buys a solid core and only the last stretch is the fade.
- */
-const plateauFalloff = (extent: number, distance: number, core: number): number => {
-  if (distance >= extent) return 0;
-  const inner = extent * core;
-  if (distance <= inner) return 1;
-  const t = 1 - (distance - inner) / (extent - inner);
-  return t * t * (3 - 2 * t);
-};
 
 // --- PILLAR BEHAVIORS ---
 // Each pillar represents a discipline with distinct movement patterns
@@ -256,19 +213,14 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
   // click splashes) propagate as damped waves through neighbouring cells,
   // with momentum and interference — not scripted rings.
   const wave = useMemo(
-    () => ({
-      h: new Float32Array(totalCells),
-      v: new Float32Array(totalCells),
-      // Scratch buffer for the band-limiting pass (reused, never reallocated)
-      s: new Float32Array(totalCells),
-    }),
+    () => ({ h: new Float32Array(totalCells), v: new Float32Array(totalCells) }),
     [totalCells]
   );
 
   /**
-   * SWE arm width in world units, pinned to whole cell pitches so the beam is
-   * always a few cells thick at every breakpoint (the pitch changes with
-   * `cellSize`). Sub-pitch widths alias into a staircase of single cubes.
+   * SWE arm width in world units, pinned to the cell pitch so the sliding arm
+   * always covers a full row of cells at every breakpoint (the pitch changes
+   * with `cellSize`). Sub-pitch widths fall between rows and flicker.
    */
   const sweCrossWidth = useMemo(() => (cellSize + GAP) * SWE_ARM_PITCHES, [cellSize]);
   const prevMouseRef = useRef<{ x: number; z: number; init: boolean }>({ x: 0, z: 0, init: false });
@@ -307,9 +259,6 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     const sweWeight = fw.swe;
     const mlWeight = fw.ml;
     const videoWeight = fw.video;
-
-    // How far a cell can climb toward its instantaneous influence this frame
-    const kRise = reduceMotion ? 1 : 1 - Math.pow(2, -Math.min(delta, 1 / 30) / LIGHT_RISE_HALF_LIFE);
 
     const pulseAmp = reduceMotion ? 0.4 : 1;
 
@@ -363,20 +312,6 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     }
     for (let i = 0; i < totalCells; i++) wh[i] += wv[i] * dtw;
 
-    // Band-limit the surface so ripples stay wider than the cells that draw
-    // them. Without this the sim's single-cell wavelengths render as lone cubes
-    // at unrelated heights, popping in and out as a ripple crosses them.
-    const ws = wave.s;
-    for (let i = 0; i < totalCells; i++) {
-      const row = (i / N) | 0, col = i % N;
-      const nL = col > 0 ? wh[i - 1] : wh[i];
-      const nR = col < N - 1 ? wh[i + 1] : wh[i];
-      const nU = row > 0 ? wh[i - N] : wh[i];
-      const nD = row < N - 1 ? wh[i + N] : wh[i];
-      ws[i] = wh[i] + ((nL + nR + nU + nD) / 4 - wh[i]) * WAVE_SMOOTHING;
-    }
-    wh.set(ws);
-
     // Frame-rate-independent trail decay (longer streaks: ~1.3s tails)
     const decay = Math.exp(-5 * delta);
     const tR = trails.r, tG = trails.g, tB = trails.b, tH = trails.h;
@@ -392,17 +327,19 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
         const dSweX = Math.abs(x - swePos.x);
         const dSweZ = Math.abs(z - swePos.z);
 
-        // Two smoothly shouldered arms rather than a hard Manhattan test, so
-        // the cross keeps its shape but its ends and edges fade as it slides
-        const armH = plateauFalloff(sweCrossWidth, dSweZ, 0.45) * smoothFalloff(SWE_CROSS_LENGTH, dSweX);
-        const armV = plateauFalloff(sweCrossWidth, dSweX, 0.45) * smoothFalloff(SWE_CROSS_LENGTH, dSweZ);
-        const swe = Math.max(armH, armV) * sweWeight;
+        // Manhattan cross pattern — hard-edged and architectural on purpose
+        const inCross = (dSweX < sweCrossWidth && dSweZ < SWE_CROSS_LENGTH) ||
+                        (dSweZ < sweCrossWidth && dSweX < SWE_CROSS_LENGTH);
 
-        if (swe > 0) {
-          ih += swe * 1.2;
-          ir += COLORS.swe.r * swe * 0.9;
-          ig += COLORS.swe.g * swe * 0.9;
-          ib += COLORS.swe.b * swe * 0.9;
+        if (inCross) {
+          const dist = Math.min(dSweX, dSweZ);
+          const intensity = Math.max(0, 1 - dist / sweCrossWidth) * sweWeight;
+          const falloff = 1 - Math.max(dSweX, dSweZ) / SWE_CROSS_LENGTH;
+
+          ih += intensity * falloff * 1.2;
+          ir += COLORS.swe.r * intensity * falloff * 0.9;
+          ig += COLORS.swe.g * intensity * falloff * 0.9;
+          ib += COLORS.swe.b * intensity * falloff * 0.9;
         }
       }
 
@@ -448,7 +385,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       // === MOUSE INTERACTION ===
       const dMouse = Math.sqrt((x - mouseX) ** 2 + (z - mouseZ) ** 2);
       if (dMouse < MOUSE_RADIUS) {
-        const hover = smoothFalloff(MOUSE_RADIUS, dMouse);
+        const hover = 1 - dMouse / MOUSE_RADIUS;
         ih += hover * 0.6;
         // Swiss Blue accent on mouse hover
         ir += COLORS.accent.r * hover * 0.3;
@@ -456,17 +393,14 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
         ib += COLORS.accent.b * hover * 0.3;
       }
 
-      // === TRAILS: ramp up toward "now", decay away from it ===
-      // Rising through kRise instead of jumping straight to `ih` keeps cells
-      // from popping on at full emissive; the decay below is the comet tail.
-      const hD = tH[i] * decay;
-      const rD = tR[i] * decay;
-      const gD = tG[i] * decay;
-      const bD = tB[i] * decay;
-      const hT = (tH[i] = ih > hD ? hD + (ih - hD) * kRise : hD);
-      const rT = (tR[i] = ir > rD ? rD + (ir - rD) * kRise : rD);
-      const gT = (tG[i] = ig > gD ? gD + (ig - gD) * kRise : gD);
-      const bT = (tB[i] = ib > bD ? bD + (ib - bD) * kRise : bD);
+      // === TRAILS: keep the brighter of "now" and the decaying memory ===
+      // Attack is instant on purpose: blocks stepping on crisply as a shape
+      // arrives is the pixel look, and the permanent floor keeps the step
+      // reading as "lit" rather than "created". The decay is the comet tail.
+      const hT = (tH[i] = Math.max(ih, tH[i] * decay));
+      const rT = (tR[i] = Math.max(ir, tR[i] * decay));
+      const gT = (tG[i] = Math.max(ig, tG[i] * decay));
+      const bT = (tB[i] = Math.max(ib, tB[i] * decay));
 
       // === WAVE FIELD: ripples lift the surface and glow accent-blue ===
       const wH = wh[idx];
