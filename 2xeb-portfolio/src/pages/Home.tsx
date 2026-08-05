@@ -162,6 +162,14 @@ const Home: React.FC = () => {
     const id = window.setTimeout(() => setMountScene(true), 250);
     return () => window.clearTimeout(id);
   }, []);
+  // The ready signal rides the first rendered frame, and Chrome stops rAF
+  // entirely for windows it considers occluded (a real state on multi-monitor
+  // desktops). Without a deadline the hero waits at opacity-0 forever.
+  useEffect(() => {
+    if (!mountScene) return;
+    const id = window.setTimeout(() => setSceneReady(true), 1500);
+    return () => window.clearTimeout(id);
+  }, [mountScene]);
   // Click shockwave signal for the 3D grid (NDC coords + timestamp)
   const [scenePulse, setScenePulse] = useState<{ nx: number; ny: number; t: number } | null>(null);
   // Clock/Spotify render in leaf components below so their per-second /

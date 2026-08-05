@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { animate, stagger, utils } from 'animejs';
 
 /**
@@ -12,6 +12,26 @@ export const prefersReducedMotion = (): boolean =>
   typeof window !== 'undefined' &&
   typeof window.matchMedia === 'function' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * Reactive form of `prefersReducedMotion` for long-lived scenes (the 3D
+ * canvases). The one-shot check freezes a scene with whatever value the OS
+ * had at mount; subscribing to the media query lets a running scene thaw
+ * the moment the user turns "reduce motion" off — no reload needed.
+ */
+export function useReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(prefersReducedMotion);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  return reduced;
+}
 
 const hasFinePointer = (): boolean =>
   typeof window !== 'undefined' &&

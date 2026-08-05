@@ -5,7 +5,7 @@ import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useConsole, ConsoleContext } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
-import { prefersReducedMotion } from '../hooks/useAnimations';
+import { useReducedMotion } from '../hooks/useAnimations';
 
 // --- RESPONSIVE CONFIGURATION ---
 type ScreenSize = 'mobile' | 'desktop' | 'large' | 'ultrawide';
@@ -240,8 +240,9 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
 
   // Reduced motion: slow the clock (REDUCED_TIME_SCALE) rather than freeze it —
   // a frozen scan burns a saturated static column that looks broken. Camera
-  // parallax and shockwave amplitude are curbed separately.
-  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+  // parallax and shockwave amplitude are curbed separately. Reactive so the
+  // scene thaws live when the OS setting flips.
+  const reduceMotion = useReducedMotion();
 
   useFrame((state, delta) => {
     if (!meshRef.current) return;
@@ -465,7 +466,7 @@ const PillarLights: React.FC = () => {
     video: { position: new THREE.Vector3(), velocity: new THREE.Vector3(), phase: 0 },
   });
 
-  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+  const reduceMotion = useReducedMotion();
 
   useFrame((state) => {
     const time = state.clock.getElapsedTime() * (reduceMotion ? REDUCED_TIME_SCALE : 1);
@@ -510,7 +511,7 @@ const PillarLights: React.FC = () => {
 const CameraRig: React.FC = () => {
   const { camera, mouse, viewport } = useThree();
   const targetPos = useRef(new THREE.Vector3(0, 12, 16));
-  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+  const reduceMotion = useReducedMotion();
 
   useFrame((state) => {
     // Tall/narrow viewports leave empty sky above the grid's horizon with the
@@ -602,7 +603,7 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
     typeof window === 'undefined' ? 1280 : Math.round(window.innerWidth / 64) * 64
   );
   const [canvasKey, setCanvasKey] = useState(0);
-  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+  const reduceMotion = useReducedMotion();
 
   // Detect screen size for responsive 3D rendering
   useEffect(() => {
