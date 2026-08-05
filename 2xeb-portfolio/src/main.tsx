@@ -16,6 +16,20 @@ if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
   );
 }
 
+// A deploy landing mid-session strands the open page: its index.html asks
+// for chunk URLs the new deployment no longer serves (or a transient
+// fallback got cached under one). Vite reports those as preload errors —
+// reload once to pick up the fresh manifest instead of surfacing the
+// router's raw error page. Time-gated so a genuinely missing chunk
+// degrades to the error state rather than a reload loop.
+window.addEventListener('vite:preloadError', (event) => {
+  const last = Number(sessionStorage.getItem('chunk-reload-at') ?? 0);
+  if (Date.now() - last < 30_000) return;
+  sessionStorage.setItem('chunk-reload-at', String(Date.now()));
+  event.preventDefault();
+  window.location.reload();
+});
+
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");

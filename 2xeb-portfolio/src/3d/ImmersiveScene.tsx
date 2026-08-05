@@ -35,8 +35,10 @@ const getScreenSize = (width: number): ScreenSize => {
 const CELL_SIZE = 0.5;
 const GAP = 0.08;
 
-/** Widest framebuffer we'll render, in device pixels. See `dpr` below. */
-const MAX_RENDER_WIDTH = 2200;
+/** Widest framebuffer we'll render, in device pixels. See `dpr` below.
+ *  A multiple of the 64px viewport rounding step so the budget and the
+ *  rounded width can't disagree by a fraction of a step. */
+const MAX_RENDER_WIDTH = 2240;
 
 // Colors matching design system
 const COLORS = {
