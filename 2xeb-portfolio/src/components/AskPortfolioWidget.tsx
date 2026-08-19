@@ -17,13 +17,6 @@ const SUGGESTIONS = [
   'How was this site built?',
 ];
 
-// Faint dot-grid texture for the chat surface. An SVG tile rather than a CSS
-// radial-gradient: tiled gradients mis-rasterize inside the FooterHUD's
-// transformed drawer layer in some Chromium builds (whole panel washes out).
-const DOT_GRID = `url("data:image/svg+xml,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"><circle cx="1" cy="1" r="1" fill="rgba(148,163,184,0.1)"/></svg>'
-)}")`;
-
 // Lightweight markdown renderer (~50 lines, no deps)
 function renderMarkdown(text: string): string {
   return text
@@ -348,11 +341,10 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
   return (
     <div className="flex flex-col h-full w-full bg-[#0A0A0A]">
 
-      {/* Chat Area — faint dot grid marks the agent's surface */}
+      {/* Chat Area */}
       <div
         ref={chatContainerRef}
         className={`flex-grow min-h-0 overflow-y-auto custom-scrollbar flex flex-col ${compact ? 'p-4' : 'p-5'}`}
-        style={{ backgroundImage: DOT_GRID }}
         aria-live="polite"
       >
         {chatHistory.length === 0 ? (
@@ -363,47 +355,29 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
               key={autoFocus ? 'open' : 'idle'}
               className="flex flex-col items-center text-center px-4 w-full max-w-[340px]"
             >
-              {/* Identity mark: EB block inside a viewfinder frame */}
-              <div className="relative p-3 animate-rise-in" style={{ animationDelay: '60ms' }}>
-                <span aria-hidden className="absolute top-0 left-0 w-2.5 h-2.5 border-t border-l border-[#2563EB]/60" />
-                <span aria-hidden className="absolute top-0 right-0 w-2.5 h-2.5 border-t border-r border-[#2563EB]/60" />
-                <span aria-hidden className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b border-l border-[#2563EB]/60" />
-                <span aria-hidden className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r border-[#2563EB]/60" />
-                <div className="w-12 h-12 bg-[#080808] border border-[#1f2937] grid place-items-center">
-                  <span className="text-[#2563EB] font-bold text-sm font-space-grotesk tracking-tight">EB</span>
-                </div>
+              {/* Identity mark */}
+              <div className="w-12 h-12 bg-[#080808] border border-[#1f2937] grid place-items-center animate-rise-in" style={{ animationDelay: '60ms' }}>
+                <span className="text-[#2563EB] font-bold text-sm font-space-grotesk tracking-tight">EB</span>
               </div>
 
-              <h3
-                className="mt-4 text-white font-space-grotesk font-bold text-lg tracking-tight animate-rise-in"
+              <p
+                className="mt-4 text-[#737373] text-[13px] leading-relaxed animate-rise-in"
                 style={{ animationDelay: '120ms' }}
               >
-                Portfolio Agent
-              </h3>
-              <p
-                className="mt-1.5 text-[#737373] text-[13px] leading-relaxed animate-rise-in"
-                style={{ animationDelay: '180ms' }}
-              >
-                Ask about Ebenezer's projects, stack, or experience — answers link back to the work.
+                Ask about Ebenezer's projects, stack, or experience.
               </p>
 
               {/* Suggestions — animation lives on the wrapper so .pressable's
                   transform on the button never fights the keyframes */}
               <div className="mt-6 grid gap-2 w-full">
                 {SUGGESTIONS.map((s, i) => (
-                  <div key={s} className="animate-rise-in" style={{ animationDelay: `${240 + i * 60}ms` }}>
+                  <div key={s} className="animate-rise-in" style={{ animationDelay: `${180 + i * 60}ms` }}>
                     <button
                       onClick={() => handleSuggestionClick(s)}
-                      className="group w-full flex items-center gap-2.5 text-left text-[11px] font-mono bg-[#080808] border border-[#1f2937] hover:border-[#2563EB]/70 hover:bg-[#0C0C0C] text-[#8a8a8a] hover:text-white px-3.5 py-3 pressable"
+                      className="w-full flex items-center gap-2.5 text-left text-[11px] font-mono bg-[#080808] border border-[#1f2937] hover:border-[#2563EB]/70 hover:bg-[#0C0C0C] text-[#8a8a8a] hover:text-white px-3.5 py-3 pressable"
                     >
                       <span className="text-[#2563EB]" aria-hidden>&gt;</span>
                       <span className="flex-1">{s}</span>
-                      <span
-                        aria-hidden
-                        className="text-[#2563EB] opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-[opacity,transform] duration-200 ease-out-strong"
-                      >
-                        ↵
-                      </span>
                     </button>
                   </div>
                 ))}
@@ -457,10 +431,10 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
               </div>
             ) : (
               <>
-                <div className={`max-w-[85%] px-4 py-3 text-[13px] leading-relaxed font-mono transition-colors duration-200 ${
+                <div className={`max-w-[85%] px-4 py-3 text-[13px] leading-relaxed font-mono ${
                   isUser
                     ? 'bg-[#2563EB]/[0.08] border-r-2 border-[#2563EB] text-[#c7d9ff]'
-                    : 'bg-[#080808]/70 border-l-2 border-[#1f2937] hover:border-[#2563EB]/50 text-[#d4d4d4]'
+                    : 'bg-[#080808]/70 border-l-2 border-[#1f2937] text-[#d4d4d4]'
                 }`}>
                   {isUser ? (
                     msg.text
@@ -492,7 +466,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
                         <button
                           onClick={() => handleCopy(msg.text, idx)}
                           className={`flex items-center gap-1 text-[9px] font-mono uppercase tracking-widest transition-colors ${
-                            copiedIdx === idx ? 'text-[#34D399]' : 'text-[#3f3f46] hover:text-white'
+                            copiedIdx === idx ? 'text-[#2563EB]' : 'text-[#3f3f46] hover:text-white'
                           }`}
                           title="Copy"
                         >
@@ -534,9 +508,8 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
             caret at its tail so thinking flows into typing */}
         {(isLoading || isStreaming || streamingText) && (
           <div className="flex flex-col items-start animate-message-in">
-            <span className="text-[9px] font-mono uppercase tracking-[0.18em] mb-1.5 ml-0.5">
-              <span className="text-[#2563EB]">EB</span>
-              <span className="text-[#525252]"> · {streamingText ? 'Streaming' : 'Thinking'}</span>
+            <span className="text-[9px] font-mono uppercase tracking-[0.18em] mb-1.5 ml-0.5 text-[#2563EB]">
+              EB
             </span>
             <div className="bg-[#080808]/70 border-l-2 border-[#2563EB]/60 px-4 py-3 max-w-[85%] text-[13px] leading-relaxed font-mono text-[#d4d4d4]">
               {streamingText && (
@@ -562,7 +535,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
                   disabled={isLoading}
                   className="block mt-2 text-[9px] font-mono uppercase tracking-widest text-red-300 hover:text-white transition-colors disabled:opacity-40"
                 >
-                  ↻ Retry
+                  Retry
                 </button>
               )}
             </div>

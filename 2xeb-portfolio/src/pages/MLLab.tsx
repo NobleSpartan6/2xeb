@@ -81,10 +81,6 @@ const MLLab: React.FC = () => {
                 <span className="text-white text-[11px] font-bold font-space-grotesk uppercase tracking-[0.15em]">
                   Portfolio Agent
                 </span>
-                <span className="hidden sm:flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-widest text-[#34D399]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-pulse" aria-hidden />
-                  Online
-                </span>
               </div>
               <svg
                 xmlns="http://www.w3.org/2000/svg"

@@ -112,10 +112,6 @@ const FooterHUD: React.FC = () => {
                   <span className="text-[#2563EB] font-bold text-[10px] font-space-grotesk tracking-tight">EB</span>
                 </div>
                 <span className="text-white text-[11px] font-bold font-space-grotesk uppercase tracking-[0.15em]">Portfolio Agent</span>
-                <span className="hidden sm:flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-widest text-[#34D399]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-pulse" aria-hidden />
-                  Online
-                </span>
               </div>
               <div className="flex items-center gap-3">
                 <kbd className="hidden md:inline text-[9px] font-mono text-[#525252] border border-[#262626] px-1.5 py-0.5 tracking-widest">ESC</kbd>
