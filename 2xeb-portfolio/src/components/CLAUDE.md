@@ -13,17 +13,31 @@ AI-powered chat widget for answering portfolio questions.
   - `meta-llama/llama-4-scout-17b-16e-instruct` (balanced, default)
   - `llama-3.3-70b-versatile` (dense 70B)
   - `openai/gpt-oss-120b` (strongest reasoning)
-- Model selector UI showing actual model names
+- Model selector: segmented control (full names ≥md, `shortName` below)
 - **Shared chat state** via ConsoleContext (synced across all access points)
 - Client-side rate limiting with user-friendly error messages
 - Project reference links from AI responses
 - SSE streaming for real-time responses
 
+**Design (Portfolio Agent):**
+- Strict site palette only: Swiss Blue + grays, flat surfaces. No status
+  dots, badges, decorative frames, textures, or unicode glyph ornaments —
+  the `>` prompt glyph (echoing the footer's `>_` motif) is the one accent
+- Transcript layout: agent messages on a left rail, user messages on a
+  right rail (`border-l-2` / `border-r-2` accents, no full bubbles)
+- Terminal caret (`animate-caret-blink` block) for thinking + streaming —
+  no bouncing dots anywhere
+- Empty state: EB block + one line of copy + staggered `animate-rise-in`
+  suggestions (keyed on `autoFocus` so the entrance replays per open)
+- Composer: `>` prompt glyph, focus carried by container border
+- Message actions (Copy/Retry/Edit) are always-visible muted text rows —
+  hover-reveal never fires on touch
+
 **Props:**
 ```typescript
 interface WidgetProps {
   compact?: boolean;   // Compact layout mode
-  autoFocus?: boolean; // Auto-focus input on mount
+  autoFocus?: boolean; // Auto-focus input on mount (also the open signal for entrance replay)
 }
 ```
 
@@ -45,6 +59,8 @@ Global footer with chat panel and discipline indicators.
 
 **Features:**
 - Expandable chat panel (uses AskPortfolioWidget)
+- Panel header: EB block + "Portfolio Agent" title + ESC hint
+- Drawer motion is transform-only (a drawer slides — no opacity fade), 450ms `ease-drawer`
 - "Ask EB" button with EB block branding
 - Discipline hover states connected to 3D scene
 - Hides Ask EB button on ML Lab page (inline widget there)

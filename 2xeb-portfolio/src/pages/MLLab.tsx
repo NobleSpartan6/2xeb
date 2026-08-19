@@ -4,14 +4,10 @@ import { useProjects } from '../hooks/useProjects';
 import { useScrollReveal, useTextScramble } from '../hooks/useAnimations';
 import ProjectCard from '../components/ProjectCard';
 import { Discipline } from '../lib/types';
-import { useConsole } from '../context/ConsoleContext';
-import { getModelByIdOrDefault } from '../lib/models';
 
 const MLLab: React.FC = () => {
   // Start collapsed on mobile, expanded on desktop
   const [isExpanded, setIsExpanded] = useState(false);
-  const { selectedModelId } = useConsole();
-  const currentModel = getModelByIdOrDefault(selectedModelId);
 
   // SWR: static data immediately, DB fetch in background
   const { projects } = useProjects();
@@ -78,13 +74,13 @@ const MLLab: React.FC = () => {
               aria-expanded={isExpanded}
               aria-controls="ml-widget-panel"
             >
-              <div className="flex items-center gap-2 sm:gap-3">
-                <span className="text-[11px] sm:text-[11px] uppercase tracking-[0.15em] text-[#a3a3a3]">
-                  ASK
-                </span>
+              <div className="flex items-center gap-2.5 sm:gap-3">
                 <div className="w-5 h-5 sm:w-6 sm:h-6 bg-[#0A0A0A] border border-[#1f2937] grid place-items-center">
-                  <span className="text-[#2563EB] font-bold text-[10px] sm:text-[10px] font-space-grotesk tracking-tight">EB</span>
+                  <span className="text-[#2563EB] font-bold text-[9px] sm:text-[10px] font-space-grotesk tracking-tight">EB</span>
                 </div>
+                <span className="text-white text-[11px] font-bold font-space-grotesk uppercase tracking-[0.15em]">
+                  Portfolio Agent
+                </span>
               </div>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -92,7 +88,7 @@ const MLLab: React.FC = () => {
                 viewBox="0 0 24 24"
                 strokeWidth={2}
                 stroke="currentColor"
-                className={`w-4 h-4 sm:w-5 sm:h-5 text-[#a3a3a3] transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                className={`w-4 h-4 sm:w-5 sm:h-5 text-[#a3a3a3] transition-transform duration-200 ease-out-strong ${isExpanded ? 'rotate-180' : ''}`}
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 9.75 12 17.25 19.5 9.75" />
               </svg>
@@ -113,9 +109,6 @@ const MLLab: React.FC = () => {
                   <div className="flex-1 min-h-0">
                     <AskPortfolioWidget compact />
                   </div>
-                  <p className="text-[10px] sm:text-[10px] text-[#404040] text-center font-mono uppercase tracking-widest mt-2 sm:mt-3 pb-3 sm:pb-4 px-2">
-                    Model: {currentModel.name} · Context: Project Metadata
-                  </p>
                 </div>
               </div>
             </div>

@@ -19,6 +19,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
   const detailPath = `/work/${project.slug}`;
   const isMorphing = useViewTransitionState(detailPath);
 
+  // Designed SVG covers (Midimix, Fidel) are authored at final contrast —
+  // dimming them like screenshots/photos muddies the artwork
+  const isDesignedCover = project.imageUrl?.startsWith('data:image/svg') ?? false;
+
   const CardContent = () => (
     <>
       <div
@@ -32,7 +36,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
               loading="lazy"
               width="800"
               height="450"
-              className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-105 transition-[opacity,transform] duration-500 ease-out-strong"
+              className={`w-full h-full object-cover group-hover:opacity-100 group-hover:scale-105 transition-[opacity,transform] duration-500 ease-out-strong ${isDesignedCover ? 'opacity-90' : 'opacity-60'}`}
               onLoad={(e) => {
                 // YouTube serves a 120x90 stub (HTTP 200) when a video has no
                 // maxres thumbnail — fall back to the always-present hqdefault
