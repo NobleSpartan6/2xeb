@@ -13,6 +13,8 @@
 export interface ModelConfig {
   id: string;
   name: string;
+  /** Compact label for the widget's segmented control on narrow viewports */
+  shortName: string;
   provider: 'groq'; // primary provider; Cerebras is a server-side 429 fallback
   description: string;
   contextWindow: number;
@@ -35,6 +37,7 @@ export const MODELS: ModelConfig[] = [
   {
     id: 'llama-3.1-8b-instant',
     name: 'Llama 3.1 8B',
+    shortName: '8B',
     provider: 'groq',
     description: 'Fastest replies, highest daily limits',
     contextWindow: 131072,
@@ -49,6 +52,7 @@ export const MODELS: ModelConfig[] = [
   {
     id: 'meta-llama/llama-4-scout-17b-16e-instruct',
     name: 'Llama 4 Scout',
+    shortName: 'Scout',
     provider: 'groq',
     description: 'Fast MoE model — best speed/quality balance',
     contextWindow: 131072,
@@ -63,6 +67,7 @@ export const MODELS: ModelConfig[] = [
   {
     id: 'llama-3.3-70b-versatile',
     name: 'Llama 3.3 70B',
+    shortName: '70B',
     provider: 'groq',
     description: 'Dense 70B, thorough answers',
     contextWindow: 131072,
@@ -77,6 +82,7 @@ export const MODELS: ModelConfig[] = [
   {
     id: 'openai/gpt-oss-120b',
     name: 'GPT-OSS 120B',
+    shortName: '120B',
     provider: 'groq',
     description: 'Strongest reasoning on the free tier',
     contextWindow: 131072,

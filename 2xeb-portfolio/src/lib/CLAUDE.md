@@ -6,6 +6,8 @@ Utility functions, API helpers, and TypeScript types.
 
 ### models.ts
 Centralized LLM model configuration with rate limiting. **Groq only** (no Gemini).
+Each model also carries a `shortName` (e.g. `8B`, `Scout`) used by the chat
+widget's segmented model control on narrow viewports.
 
 **Available Models:**
 | Model ID | Name | Provider | Daily Limit | RPM | Category |

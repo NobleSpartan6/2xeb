@@ -88,15 +88,16 @@ const FooterHUD: React.FC = () => {
       <div className="fixed bottom-0 left-0 right-0 z-[75]">
 
         {/* Expandable Chat Panel: fixed height, slides up from behind the
-            footer bar. Transform/opacity only — animating height reflows the
-            panel (and its blurred backdrop) on every frame. */}
+            footer bar. Transform only — a drawer slides, it doesn't fade
+            (fading weakens the "from behind the bar" spatial read), and
+            animating height would reflow the panel on every frame. */}
         <div className="absolute inset-x-0 bottom-full overflow-hidden pointer-events-none">
         <div
           className={`
             relative bg-[#0A0A0A] border-t border-[#1f2937] overflow-hidden
             h-[70vh] sm:h-[60vh] md:h-[55vh] lg:h-[50vh] 2xl:h-[45vh] 3xl:h-[40vh]
-            transition-[transform,opacity,visibility] duration-500 ease-drawer
-            ${isAgentOpen ? 'translate-y-0 opacity-100 visible pointer-events-auto' : 'translate-y-full opacity-0 invisible'}
+            transition-[transform,visibility] duration-[450ms] ease-drawer motion-reduce:transition-none
+            ${isAgentOpen ? 'translate-y-0 visible pointer-events-auto' : 'translate-y-full invisible'}
           `}
         >
           {/* Blue accent line */}
@@ -104,24 +105,30 @@ const FooterHUD: React.FC = () => {
 
           {/* Panel body */}
           <div className="h-full flex flex-col">
-            {/* Chat header with close */}
+            {/* Agent console header */}
             <div className="h-12 bg-[#0B0B0B] border-b border-[#1f2937] flex items-center justify-between px-4">
-              <div className="flex items-center gap-2 text-[#a3a3a3] text-[11px] uppercase tracking-[0.15em]">
-                <span>ASK</span>
+              <div className="flex items-center gap-3">
                 <div className="w-6 h-6 bg-[#0A0A0A] border border-[#1f2937] grid place-items-center">
                   <span className="text-[#2563EB] font-bold text-[10px] font-space-grotesk tracking-tight">EB</span>
                 </div>
+                <span className="text-white text-[11px] font-bold font-space-grotesk uppercase tracking-[0.15em]">Portfolio Agent</span>
+                <span className="hidden sm:flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-widest text-[#34D399]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-pulse" aria-hidden />
+                  Online
+                </span>
               </div>
-              <button
-                onClick={() => setIsAgentOpen(false)}
-                className="text-[#a3a3a3] hover:text-white transition-colors flex items-center gap-1 text-[11px] uppercase tracking-[0.15em]"
-                aria-label="Close chat"
-              >
-                Close
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-3">
+                <kbd className="hidden md:inline text-[9px] font-mono text-[#525252] border border-[#262626] px-1.5 py-0.5 tracking-widest">ESC</kbd>
+                <button
+                  onClick={() => setIsAgentOpen(false)}
+                  className="w-7 h-7 grid place-items-center border border-[#262626] text-[#a3a3a3] hover:text-white hover:border-[#404040] pressable"
+                  aria-label="Close chat"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {/* Chat content */}
@@ -204,7 +211,7 @@ const FooterHUD: React.FC = () => {
                     <div className={`w-5 h-5 2xl:w-6 2xl:h-6 border grid place-items-center transition-colors ${isAgentOpen ? 'bg-white/10 border-white/30' : 'bg-[#0A0A0A] border-[#333]'}`}>
                       <span className={`font-bold text-[8px] 2xl:text-[9px] font-space-grotesk tracking-tight ${isAgentOpen ? 'text-white' : 'text-[#2563EB]'}`}>EB</span>
                     </div>
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-3 h-3 2xl:w-3.5 2xl:h-3.5 transition-transform duration-300 ${isAgentOpen ? 'rotate-180' : ''}`}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-3 h-3 2xl:w-3.5 2xl:h-3.5 transition-transform duration-200 ease-out-strong ${isAgentOpen ? 'rotate-180' : ''}`}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
                     </button>
                   )}
                 </div>
@@ -256,7 +263,7 @@ const FooterHUD: React.FC = () => {
                     <div className={`w-4 h-4 border grid place-items-center ${isAgentOpen ? 'bg-white/10 border-white/30' : 'bg-[#0A0A0A] border-[#333]'}`}>
                       <span className={`font-bold text-[7px] font-space-grotesk tracking-tight ${isAgentOpen ? 'text-white' : 'text-[#2563EB]'}`}>EB</span>
                     </div>
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-2.5 h-2.5 transition-transform duration-300 ${isAgentOpen ? 'rotate-180' : ''}`}>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-2.5 h-2.5 transition-transform duration-200 ease-out-strong ${isAgentOpen ? 'rotate-180' : ''}`}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
                       </svg>
                     </button>

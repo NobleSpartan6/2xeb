@@ -11,6 +11,19 @@ interface WidgetProps {
   autoFocus?: boolean;
 }
 
+const SUGGESTIONS = [
+  'What ML projects have you worked on?',
+  'Tell me about your tech stack',
+  'How was this site built?',
+];
+
+// Faint dot-grid texture for the chat surface. An SVG tile rather than a CSS
+// radial-gradient: tiled gradients mis-rasterize inside the FooterHUD's
+// transformed drawer layer in some Chromium builds (whole panel washes out).
+const DOT_GRID = `url("data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"><circle cx="1" cy="1" r="1" fill="rgba(148,163,184,0.1)"/></svg>'
+)}")`;
+
 // Lightweight markdown renderer (~50 lines, no deps)
 function renderMarkdown(text: string): string {
   return text
@@ -51,6 +64,14 @@ async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
+/** Blinking block caret — the agent's "cursor" while thinking/streaming */
+const Caret: React.FC = () => (
+  <span
+    aria-hidden
+    className="inline-block w-[7px] h-[14px] translate-y-[2px] bg-[#2563EB] animate-caret-blink"
+  />
+);
+
 const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus = false }) => {
   const [question, setQuestion] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +82,6 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editText, setEditText] = useState('');
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
   const lastUserMessageRef = useRef<string>('');
@@ -142,7 +162,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
           }
         }
       );
-      
+
       if (answer && answer.trim()) {
         setHighlightedNodeIds(projectSlugs);
         addChatMessage({
@@ -204,7 +224,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
     if (isLoading || editingIdx !== null) return;
     // Can only edit user messages
     if (chatHistory[idx]?.role !== 'user') return;
-    
+
     setEditingIdx(idx);
     setEditText(currentText);
   }, [isLoading, editingIdx, chatHistory]);
@@ -219,7 +239,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
     if (editingIdx === null || isLoading) return;
     const trimmedText = editText.trim();
     if (!trimmedText) return;
-    
+
     // If text unchanged, just cancel
     if (trimmedText === chatHistory[editingIdx]?.text) {
       cancelEditing();
@@ -249,7 +269,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
           }
         }
       );
-      
+
       if (answer && answer.trim()) {
         setHighlightedNodeIds(projectSlugs);
         addChatMessage({
@@ -301,8 +321,8 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
         <div className="flex flex-wrap gap-1.5">
           {refs.map(p => (
             p.isExternal ? (
-              <a 
-                key={p.id} 
+              <a
+                key={p.id}
                 href={p.externalUrl}
                 target="_blank"
                 rel="noreferrer"
@@ -311,8 +331,8 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
                 {p.title} ↗
               </a>
             ) : (
-              <Link 
-                key={p.id} 
+              <Link
+                key={p.id}
                 to={`/work/${p.slug}`}
                 className="text-[10px] border border-[#262626] bg-[#0C0C0C] text-[#a3a3a3] px-2 py-1 hover:border-[#2563EB] hover:text-white transition-colors uppercase tracking-wider font-mono"
               >
@@ -327,53 +347,86 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
 
   return (
     <div className="flex flex-col h-full w-full bg-[#0A0A0A]">
-      
-      {/* Chat Area */}
+
+      {/* Chat Area — faint dot grid marks the agent's surface */}
       <div
         ref={chatContainerRef}
         className={`flex-grow min-h-0 overflow-y-auto custom-scrollbar flex flex-col ${compact ? 'p-4' : 'p-5'}`}
+        style={{ backgroundImage: DOT_GRID }}
         aria-live="polite"
       >
         {chatHistory.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
-            <div className="flex flex-col items-center text-center px-4 gap-4 max-w-[320px] animate-fade-in">
-              {/* EB Block */}
-              <div className="w-12 h-12 bg-[#080808] border border-[#1f2937] grid place-items-center">
-                <span className="text-[#2563EB] font-bold text-sm font-space-grotesk tracking-tight">EB</span>
+            {/* Keyed on the open signal so the entrance replays each time the
+                panel opens (the widget stays mounted while hidden) */}
+            <div
+              key={autoFocus ? 'open' : 'idle'}
+              className="flex flex-col items-center text-center px-4 w-full max-w-[340px]"
+            >
+              {/* Identity mark: EB block inside a viewfinder frame */}
+              <div className="relative p-3 animate-rise-in" style={{ animationDelay: '60ms' }}>
+                <span aria-hidden className="absolute top-0 left-0 w-2.5 h-2.5 border-t border-l border-[#2563EB]/60" />
+                <span aria-hidden className="absolute top-0 right-0 w-2.5 h-2.5 border-t border-r border-[#2563EB]/60" />
+                <span aria-hidden className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b border-l border-[#2563EB]/60" />
+                <span aria-hidden className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r border-[#2563EB]/60" />
+                <div className="w-12 h-12 bg-[#080808] border border-[#1f2937] grid place-items-center">
+                  <span className="text-[#2563EB] font-bold text-sm font-space-grotesk tracking-tight">EB</span>
+                </div>
               </div>
-              <p className="text-[#737373] text-sm leading-relaxed">
-                Hi! I can answer questions about Ebenezer's work, skills, and experience.
+
+              <h3
+                className="mt-4 text-white font-space-grotesk font-bold text-lg tracking-tight animate-rise-in"
+                style={{ animationDelay: '120ms' }}
+              >
+                Portfolio Agent
+              </h3>
+              <p
+                className="mt-1.5 text-[#737373] text-[13px] leading-relaxed animate-rise-in"
+                style={{ animationDelay: '180ms' }}
+              >
+                Ask about Ebenezer's projects, stack, or experience — answers link back to the work.
               </p>
-              {/* Suggestion buttons */}
-              <div className="grid gap-2 w-full">
-                <button 
-                  onClick={() => handleSuggestionClick("What ML projects have you worked on?")} 
-                  className="text-[11px] text-left bg-[#080808] border border-[#1f2937] hover:border-[#2563EB] hover:bg-[#0C0C0C] text-[#888] hover:text-white px-4 py-3 pressable group"
-                >
-                  What ML projects have you worked on?
-                </button>
-                <button 
-                  onClick={() => handleSuggestionClick("Tell me about your tech stack")} 
-                  className="text-[11px] text-left bg-[#080808] border border-[#1f2937] hover:border-[#2563EB] hover:bg-[#0C0C0C] text-[#888] hover:text-white px-4 py-3 pressable group"
-                >
-                  Tell me about your tech stack
-                </button>
+
+              {/* Suggestions — animation lives on the wrapper so .pressable's
+                  transform on the button never fights the keyframes */}
+              <div className="mt-6 grid gap-2 w-full">
+                {SUGGESTIONS.map((s, i) => (
+                  <div key={s} className="animate-rise-in" style={{ animationDelay: `${240 + i * 60}ms` }}>
+                    <button
+                      onClick={() => handleSuggestionClick(s)}
+                      className="group w-full flex items-center gap-2.5 text-left text-[11px] font-mono bg-[#080808] border border-[#1f2937] hover:border-[#2563EB]/70 hover:bg-[#0C0C0C] text-[#8a8a8a] hover:text-white px-3.5 py-3 pressable"
+                    >
+                      <span className="text-[#2563EB]" aria-hidden>&gt;</span>
+                      <span className="flex-1">{s}</span>
+                      <span
+                        aria-hidden
+                        className="text-[#2563EB] opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-[opacity,transform] duration-200 ease-out-strong"
+                      >
+                        ↵
+                      </span>
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-        {/* Messages */}
-        {chatHistory.map((msg, idx) => (
-          <div key={idx} className={`flex flex-col animate-message-in ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-            <span className={`text-[9px] font-mono uppercase tracking-[0.15em] mb-1.5 text-[#525252] ${msg.role === 'user' ? 'mr-1' : 'ml-1'}`}>
-              {msg.role === 'user' ? 'You' : 'EB'}
+          <div className="space-y-5">
+        {/* Messages — transcript style: agent output on a left rail, user
+            input on a right rail */}
+        {chatHistory.map((msg, idx) => {
+          const isUser = msg.role === 'user';
+          const isLastMessage = idx === chatHistory.length - 1;
+          return (
+          <div key={idx} className={`flex flex-col animate-message-in ${isUser ? 'items-end' : 'items-start'}`}>
+            <span className={`text-[9px] font-mono uppercase tracking-[0.18em] mb-1.5 ${isUser ? 'mr-0.5 text-[#525252]' : 'ml-0.5 text-[#2563EB]'}`}>
+              {isUser ? 'You' : 'EB'}
             </span>
-            
+
             {/* User message - with edit mode */}
-            {msg.role === 'user' && editingIdx === idx ? (
+            {isUser && editingIdx === idx ? (
               <div className="max-w-[85%] w-full">
-                <div className="flex flex-col gap-2 bg-[#2563EB]/10 border border-[#2563EB]/50 p-3">
+                <div className="flex flex-col gap-2 bg-[#2563EB]/[0.08] border border-[#2563EB]/40 p-3">
                   <input
                     ref={editInputRef}
                     type="text"
@@ -403,124 +456,144 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
                 </div>
               </div>
             ) : (
-              <div className={`group relative max-w-[85%] px-4 py-3 text-[13px] leading-relaxed font-mono border ${
-                msg.role === 'user' 
-                  ? 'bg-[#2563EB]/10 border-[#2563EB]/30 text-[#c7d9ff]' 
-                  : 'bg-[#080808] border-[#1f2937] text-[#d4d4d4]'
-              }`}>
-                {msg.role === 'user' ? (
-                  msg.text
-                ) : (
-                  <div 
-                    className="prose-sm prose-invert"
-                    dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }} 
-                  />
-                )}
-                {msg.role === 'model' && renderReferencedProjects(msg.referencedSlugs)}
-                
-                {/* Edit button for user messages */}
-                {msg.role === 'user' && !isLoading && editingIdx === null && (
-                  <div className="absolute -bottom-3 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => startEditing(idx, msg.text)}
-                      className="p-1.5 bg-[#0a0a0a] border border-[#262626] hover:border-[#2563EB] transition-colors"
-                      title="Edit message"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 text-[#525252] hover:text-white">
-                        <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
-                      </svg>
-                    </button>
+              <>
+                <div className={`max-w-[85%] px-4 py-3 text-[13px] leading-relaxed font-mono transition-colors duration-200 ${
+                  isUser
+                    ? 'bg-[#2563EB]/[0.08] border-r-2 border-[#2563EB] text-[#c7d9ff]'
+                    : 'bg-[#080808]/70 border-l-2 border-[#1f2937] hover:border-[#2563EB]/50 text-[#d4d4d4]'
+                }`}>
+                  {isUser ? (
+                    msg.text
+                  ) : (
+                    <div
+                      className="prose-sm prose-invert"
+                      dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }}
+                    />
+                  )}
+                  {!isUser && renderReferencedProjects(msg.referencedSlugs)}
+                </div>
+
+                {/* Action row — always visible but quiet, so it works on touch */}
+                {!isLoading && editingIdx === null && (
+                  <div className={`flex items-center gap-3 mt-1.5 ${isUser ? 'mr-0.5' : 'ml-0.5'}`}>
+                    {isUser ? (
+                      <button
+                        onClick={() => startEditing(idx, msg.text)}
+                        className="flex items-center gap-1 text-[9px] font-mono uppercase tracking-widest text-[#3f3f46] hover:text-white transition-colors"
+                        title="Edit message"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-2.5 h-2.5">
+                          <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+                        </svg>
+                        Edit
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleCopy(msg.text, idx)}
+                          className={`flex items-center gap-1 text-[9px] font-mono uppercase tracking-widest transition-colors ${
+                            copiedIdx === idx ? 'text-[#34D399]' : 'text-[#3f3f46] hover:text-white'
+                          }`}
+                          title="Copy"
+                        >
+                          {copiedIdx === idx ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-2.5 h-2.5">
+                              <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-2.5 h-2.5">
+                              <path d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z" />
+                              <path d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a1.5 1.5 0 00-.44-1.06L9.44 6.439A1.5 1.5 0 008.378 6H4.5z" />
+                            </svg>
+                          )}
+                          {copiedIdx === idx ? 'Copied' : 'Copy'}
+                        </button>
+                        {isLastMessage && (
+                          <button
+                            onClick={handleRegenerate}
+                            className="flex items-center gap-1 text-[9px] font-mono uppercase tracking-widest text-[#3f3f46] hover:text-white transition-colors"
+                            title="Regenerate"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-2.5 h-2.5">
+                              <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0v2.43l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
+                            </svg>
+                            Retry
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
-                
-                {/* Action buttons for AI messages */}
-                {msg.role === 'model' && !isLoading && editingIdx === null && (
-                  <div className="absolute -bottom-3 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => handleCopy(msg.text, idx)}
-                      className="p-1.5 bg-[#0a0a0a] border border-[#262626] hover:border-[#2563EB] transition-colors"
-                      title="Copy"
-                    >
-                      {copiedIdx === idx ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 text-green-500">
-                          <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-                        </svg>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 text-[#525252] hover:text-white">
-                          <path d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z" />
-                          <path d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a1.5 1.5 0 00-.44-1.06L9.44 6.439A1.5 1.5 0 008.378 6H4.5z" />
-                        </svg>
-                      )}
-                    </button>
-                    <button
-                      onClick={handleRegenerate}
-                      disabled={isLoading}
-                      className="p-1.5 bg-[#0a0a0a] border border-[#262626] hover:border-[#2563EB] transition-colors disabled:opacity-30"
-                      title="Regenerate"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 text-[#525252] hover:text-white">
-                        <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 01-9.201 2.466l-.312-.311h2.433a.75.75 0 000-1.5H3.989a.75.75 0 00-.75.75v4.242a.75.75 0 001.5 0v-2.43l.31.31a7 7 0 0011.712-3.138.75.75 0 00-1.449-.39zm1.23-3.723a.75.75 0 00.219-.53V2.929a.75.75 0 00-1.5 0v2.43l-.31-.31A7 7 0 003.239 8.188a.75.75 0 101.448.389A5.5 5.5 0 0113.89 6.11l.311.31h-2.432a.75.75 0 000 1.5h4.243a.75.75 0 00.53-.219z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
-              </div>
+              </>
             )}
           </div>
-        ))}
+          );
+        })}
 
-        {/* Loading state - typing indicator */}
+        {/* Loading state — blinking terminal caret; streamed text keeps the
+            caret at its tail so thinking flows into typing */}
         {(isLoading || isStreaming || streamingText) && (
           <div className="flex flex-col items-start animate-message-in">
-            <span className="text-[9px] font-mono uppercase tracking-[0.15em] mb-1.5 text-[#525252] ml-1">EB</span>
-            <div className="bg-[#080808] border border-[#1f2937] px-4 py-3 max-w-[85%]">
-              {streamingText ? (
+            <span className="text-[9px] font-mono uppercase tracking-[0.18em] mb-1.5 ml-0.5">
+              <span className="text-[#2563EB]">EB</span>
+              <span className="text-[#525252]"> · {streamingText ? 'Streaming' : 'Thinking'}</span>
+            </span>
+            <div className="bg-[#080808]/70 border-l-2 border-[#2563EB]/60 px-4 py-3 max-w-[85%] text-[13px] leading-relaxed font-mono text-[#d4d4d4]">
+              {streamingText && (
                 <div
-                  className="prose-sm prose-invert"
+                  className="prose-sm prose-invert inline"
                   dangerouslySetInnerHTML={{ __html: renderMarkdown(streamingText) }}
                 />
-              ) : (
-                <div className="flex gap-1.5 items-center">
-                  <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-bounce" style={{ animationDuration: '0.6s' }}></span>
-                  <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-bounce" style={{ animationDuration: '0.6s', animationDelay: '0.15s' }}></span>
-                  <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-bounce" style={{ animationDuration: '0.6s', animationDelay: '0.3s' }}></span>
-                </div>
               )}
+              {streamingText ? <span className="ml-1"><Caret /></span> : <Caret />}
             </div>
           </div>
         )}
 
         {/* Error state */}
         {error && (
-          <div className="text-[11px] text-red-400 font-mono bg-red-500/5 border border-red-500/20 px-4 py-3">
-            {error}
+          <div className="flex flex-col items-start animate-message-in">
+            <span className="text-[9px] font-mono uppercase tracking-[0.18em] mb-1.5 ml-0.5 text-red-400/80">System</span>
+            <div className="max-w-[85%] px-4 py-3 bg-red-500/[0.04] border-l-2 border-red-500/60 text-[11px] font-mono text-red-300/90 leading-relaxed">
+              {error}
+              {lastUserMessageRef.current && (
+                <button
+                  onClick={handleRegenerate}
+                  disabled={isLoading}
+                  className="block mt-2 text-[9px] font-mono uppercase tracking-widest text-red-300 hover:text-white transition-colors disabled:opacity-40"
+                >
+                  ↻ Retry
+                </button>
+              )}
+            </div>
           </div>
         )}
-        <div ref={chatEndRef} />
           </div>
         )}
       </div>
 
-      {/* Input Area */}
-      <form onSubmit={handleSubmit} className="border-t border-[#1f2937] bg-[#080808] p-4">
-        {/* Model Selector + Clear Chat */}
-        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[9px] text-[#525252] font-mono uppercase tracking-widest">Model:</span>
-            <div className="flex gap-1 flex-wrap">
+      {/* Composer */}
+      <form onSubmit={handleSubmit} className="border-t border-[#1f2937] bg-[#080808] p-3 sm:p-4">
+        {/* Model segmented control + Clear */}
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[9px] text-[#525252] font-mono uppercase tracking-widest shrink-0">Model</span>
+            <div className="flex border border-[#262626] divide-x divide-[#262626] overflow-x-auto max-w-full">
               {MODELS.map((model) => (
                 <button
                   key={model.id}
                   type="button"
                   onClick={() => setSelectedModelId(model.id)}
                   title={model.description}
-                  className={`text-[10px] font-mono tracking-wider px-2 py-1 border pressable ${
+                  aria-pressed={selectedModelId === model.id}
+                  className={`px-2 sm:px-2.5 py-1 text-[9px] font-mono uppercase tracking-wider whitespace-nowrap transition-colors ${
                     selectedModelId === model.id
-                      ? 'border-[#2563EB] bg-[#2563EB]/10 text-[#2563EB]'
-                      : 'border-[#262626] text-[#525252] hover:border-[#404040] hover:text-[#737373]'
+                      ? 'bg-[#2563EB]/15 text-[#2563EB]'
+                      : 'text-[#525252] hover:text-[#a3a3a3] hover:bg-white/[0.03]'
                   }`}
                 >
-                  {model.name}
+                  <span className="hidden md:inline">{model.name}</span>
+                  <span className="md:hidden">{model.shortName}</span>
                 </button>
               ))}
             </div>
@@ -530,7 +603,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
             <button
               type="button"
               onClick={handleClearChat}
-              className="text-[9px] font-mono uppercase tracking-widest text-[#525252] hover:text-red-400 transition-colors flex items-center gap-1"
+              className="shrink-0 text-[9px] font-mono uppercase tracking-widest text-[#525252] hover:text-red-400 transition-colors flex items-center gap-1"
               title="Clear chat"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
@@ -540,21 +613,24 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
             </button>
           )}
         </div>
-        <div className="relative flex items-center">
+
+        {/* Prompt line: > glyph + input + send */}
+        <div className="flex items-center bg-[#0A0A0A] border border-[#1f2937] focus-within:border-[#2563EB] transition-colors">
+          <span className="pl-3.5 pr-1 text-[#2563EB] font-mono text-[13px] select-none" aria-hidden>&gt;</span>
           <input
             ref={inputRef}
             type="text"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder={editingIdx !== null ? "Finish editing above..." : "Ask me anything..."}
+            placeholder={editingIdx !== null ? "Finish editing above..." : "Ask about the work..."}
             disabled={editingIdx !== null}
-            className="w-full bg-[#0A0A0A] border border-[#1f2937] pl-4 pr-12 py-3 text-white focus:outline-none focus:border-[#2563EB] transition-colors text-[16px] sm:text-[13px] placeholder-[#525252] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 min-w-0 bg-transparent px-2 py-3 text-white focus:outline-none text-[16px] sm:text-[13px] font-mono placeholder-[#404040] disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Ask EB about this portfolio"
           />
           <button
             type="submit"
             disabled={isLoading || !question.trim() || editingIdx !== null}
-            className="absolute right-2 w-8 h-8 flex items-center justify-center bg-[#2563EB] text-white hover:bg-[#1d4ed8] disabled:opacity-20 disabled:bg-[#262626] pressable"
+            className="m-1.5 w-8 h-8 shrink-0 flex items-center justify-center bg-[#2563EB] text-white hover:bg-[#1d4ed8] disabled:opacity-20 disabled:bg-[#262626] pressable"
             aria-label="Send message"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">

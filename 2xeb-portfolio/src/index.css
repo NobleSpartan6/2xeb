@@ -134,9 +134,6 @@
    feedback, drop movement. (anime.js timelines check prefersReducedMotion()
    in JS; spinners and pulse are opacity-only and stay.) */
 @media (prefers-reduced-motion: reduce) {
-  .animate-bounce {
-    animation: none;
-  }
   .animate-message-in {
     /* keep the fade, drop the 6px rise */
     animation-name: fadeIn;
@@ -145,6 +142,11 @@
     /* keep the fade, drop the scale */
     animation-name: fadeIn;
   }
+  .animate-rise-in {
+    /* keep the fade, drop the 10px rise */
+    animation-name: fadeIn;
+  }
+  /* caret-blink stays: opacity-only, matches native text-caret behavior */
 }
 
 /* Ensure proper viewport handling on mobile */
