@@ -6,18 +6,17 @@ Utility functions, API helpers, and TypeScript types.
 
 ### models.ts
 Centralized LLM model configuration with rate limiting. **Groq only** (no Gemini).
-Each model also carries a `shortName` (e.g. `8B`, `Scout`) used by the chat
+Each model also carries a `shortName` (e.g. `20B`, `Qwen`) used by the chat
 widget's segmented model control on narrow viewports.
 
-**Available Models:**
+**Available Models** (Groq retired its Llama lineup mid-2026):
 | Model ID | Name | Provider | Daily Limit | RPM | Category |
 |----------|------|----------|-------------|-----|----------|
-| `llama-3.1-8b-instant` | Llama 3.1 8B | Groq | 14,400 | 30 | fast |
-| `meta-llama/llama-4-scout-17b-16e-instruct` | Llama 4 Scout | Groq | 1,000 | 30 | balanced (default) |
-| `llama-3.3-70b-versatile` | Llama 3.3 70B | Groq | 1,000 | 30 | balanced |
-| `openai/gpt-oss-120b` | GPT-OSS 120B | Groq | 1,000 | 30 | powerful |
+| `openai/gpt-oss-20b` | GPT-OSS 20B | Groq | 1,000 | 30 | fast |
+| `qwen/qwen3.6-27b` | Qwen 3.6 27B | Groq | 1,000 | 30 | balanced |
+| `openai/gpt-oss-120b` | GPT-OSS 120B | Groq | 1,000 | 30 | powerful (default) |
 
-**Default Model:** `meta-llama/llama-4-scout-17b-16e-instruct`
+**Default Model:** `openai/gpt-oss-120b`
 
 Keep this list in sync with `ALLOWED_GROQ_MODELS` in `supabase/functions/ask-portfolio/index.ts`.
 
@@ -52,7 +51,7 @@ Supabase Edge Function API helpers.
 askPortfolio(
   question: string,
   context: string,
-  modelId?: string  // Defaults to 'llama-3.1-8b-instant'
+  modelId?: string  // Defaults to DEFAULT_MODEL_ID ('openai/gpt-oss-120b')
 ): Promise<AskPortfolioResponse>
 ```
 
@@ -87,4 +86,3 @@ Debug utilities for development. Contains logging helpers and conditional debug 
 
 3. **Free tier limits** respected
    - Uses 80-90% of limits as buffer
-   - Defaults to high-limit model (8B)

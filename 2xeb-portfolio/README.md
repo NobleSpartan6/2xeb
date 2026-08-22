@@ -64,7 +64,7 @@ key, and the optional `VITE_DEBUG` flag).
 | Frontend | React 19 + TypeScript |
 | Routing | React Router v7 (HashRouter) |
 | 3D | Three.js + React Three Fiber + Drei |
-| AI | Groq (Llama) + Gemini via Edge Functions |
+| AI | Groq (GPT-OSS, Qwen) via Edge Functions |
 | Styling | Tailwind CDN (inline utility classes) |
 | State | React Context (`ConsoleContext`, `AuthContext`) |
 | Auth | Supabase Auth (magic link + password) |
@@ -180,7 +180,7 @@ key, and the optional `VITE_DEBUG` flag).
 - [x] Performance optimization (bundle reduced from 1.56MB to 1.17MB)
 - [x] New immersive 3D visualization with three discipline pillars
 - [x] SSE streaming for AI responses (Groq)
-- [x] Multi-model support (Llama 3.1 8B, Llama 3.3 70B, Gemini 2.0 Flash)
+- [x] Multi-model support (GPT-OSS 20B, Qwen 3.6 27B, GPT-OSS 120B)
 - [x] Client-side rate limiting
 - [x] Live Spotify now-playing integration
 - [x] Live clock (EST timezone)
@@ -202,7 +202,7 @@ Set these in Supabase Dashboard > Project Settings > Edge Functions:
 | Secret | Description |
 |--------|-------------|
 | `GROQ_API_KEY` | Groq API key (primary AI provider) |
-| `GEMINI_API_KEY` | Google Gemini API key (fallback) |
+| `CEREBRAS_API_KEY` | Cerebras API key (optional 429 fallback) |
 | `RESEND_API_KEY` | Resend API key for email notifications |
 | `SPOTIFY_CLIENT_ID` | Spotify app client ID |
 | `SPOTIFY_CLIENT_SECRET` | Spotify app client secret |
@@ -489,9 +489,9 @@ The `public/_headers` file adds security headers:
 
 | Model | Provider | Best For | Daily Limit |
 |-------|----------|----------|-------------|
-| Llama 3.1 8B | Groq | Fast Q&A (default) | 14,400 |
-| Llama 3.3 70B | Groq | Complex reasoning | 1,000 |
-| Gemini 2.0 Flash | Google | Multimodal | 1,500 |
+| GPT-OSS 20B | Groq | Fast Q&A | 1,000 |
+| Qwen 3.6 27B | Groq | Balanced speed/quality | 1,000 |
+| GPT-OSS 120B | Groq | Complex reasoning (default) | 1,000 |
 
 ### SSE Streaming
 
@@ -501,7 +501,7 @@ The AI widget uses Server-Sent Events for real-time streaming:
 // Client receives chunks like:
 data: {"chunk": "Hello"}
 data: {"chunk": " there!"}
-data: {"done": true, "projectSlugs": ["project-1"], "model": "llama-3.1-8b-instant"}
+data: {"done": true, "projectSlugs": ["project-1"], "model": "openai/gpt-oss-120b"}
 ```
 
 ### Rate Limiting

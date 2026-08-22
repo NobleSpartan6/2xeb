@@ -34,48 +34,35 @@ export interface ModelConfig {
  * Using models with higher free tier limits to avoid billing
  */
 export const MODELS: ModelConfig[] = [
+  // Groq retired its Llama lineup in mid-2026 (Llama 4 Scout on 2026-07-17,
+  // Llama 3.1 8B / 3.3 70B on 2026-08-16) — only list models Groq still serves.
   {
-    id: 'llama-3.1-8b-instant',
-    name: 'Llama 3.1 8B',
-    shortName: '8B',
+    id: 'openai/gpt-oss-20b',
+    name: 'GPT-OSS 20B',
+    shortName: '20B',
     provider: 'groq',
-    description: 'Fastest replies, highest daily limits',
+    description: 'Fastest replies, lightweight reasoning',
     contextWindow: 131072,
     limits: {
       requestsPerMinute: 30,
-      requestsPerDay: 14400,
-      tokensPerMinute: 6000,
-      tokensPerDay: 500000,
+      requestsPerDay: 1000,
+      tokensPerMinute: 8000,
+      tokensPerDay: 200000,
     },
     category: 'fast',
   },
   {
-    id: 'meta-llama/llama-4-scout-17b-16e-instruct',
-    name: 'Llama 4 Scout',
-    shortName: 'Scout',
+    id: 'qwen/qwen3.6-27b',
+    name: 'Qwen 3.6 27B',
+    shortName: 'Qwen',
     provider: 'groq',
-    description: 'Fast MoE model — best speed/quality balance',
+    description: 'Best speed/quality balance (Groq preview model)',
     contextWindow: 131072,
     limits: {
       requestsPerMinute: 30,
       requestsPerDay: 1000,
-      tokensPerMinute: 30000,
-      tokensPerDay: 500000,
-    },
-    category: 'balanced',
-  },
-  {
-    id: 'llama-3.3-70b-versatile',
-    name: 'Llama 3.3 70B',
-    shortName: '70B',
-    provider: 'groq',
-    description: 'Dense 70B, thorough answers',
-    contextWindow: 131072,
-    limits: {
-      requestsPerMinute: 30,
-      requestsPerDay: 1000,
-      tokensPerMinute: 12000,
-      tokensPerDay: 100000,
+      tokensPerMinute: 8000,
+      tokensPerDay: 200000,
     },
     category: 'balanced',
   },
@@ -96,7 +83,7 @@ export const MODELS: ModelConfig[] = [
   },
 ];
 
-export const DEFAULT_MODEL_ID = 'meta-llama/llama-4-scout-17b-16e-instruct';
+export const DEFAULT_MODEL_ID = 'openai/gpt-oss-120b';
 
 // Server-side 429 fallback (Cerebras hosts the same open-weights GPT-OSS 120B
 // that Groq serves as openai/gpt-oss-120b). Not user-selectable.

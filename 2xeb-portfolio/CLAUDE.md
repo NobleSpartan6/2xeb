@@ -128,7 +128,7 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 └── /supabase               # Edge Functions
     ├── CLAUDE.md
     └── /functions
-        ├── ask-portfolio/       # AI (Groq/Gemini, SSE streaming)
+        ├── ask-portfolio/       # AI (Groq, Cerebras 429 fallback, SSE streaming)
         ├── submit-contact/      # Contact form + email
         └── spotify-now-playing/ # Real-time Spotify status
 ```
@@ -155,7 +155,7 @@ import { Discipline, ConsoleLane, Project } from '../lib/types';
 1. SPA builds context from `buildProjectContext()` combining `PROJECTS` + `SITE_INDEX`
 2. Sends `{ question, context, model, stream }` to Supabase Edge Function (`/ask-portfolio`)
 3. Streaming (Groq): plain-text SSE chunks → final metadata event `{ done: true, projectSlugs, model, provider }`
-4. Non-stream (Groq/Gemini): JSON response `{ answer, projectSlugs, model, provider }`
+4. Non-stream (Groq): JSON response `{ answer, projectSlugs, model, provider }`
 5. `projectSlugs` update `ConsoleContext.highlightedNodeIds` so 3D nodes glow; navigation answers can include markdown links
 
 ### Chat Widget Features
@@ -164,7 +164,7 @@ import { Discipline, ConsoleLane, Project } from '../lib/types';
 - **Regenerate**: Re-send last user message
 - **Clear**: Reset chat history
 - **Markdown**: Lightweight renderer (code, bold, lists) - no external deps
-- **Model Selector**: Switch between Llama 3.1 8B, Llama 4 Scout (default), Llama 3.3 70B, GPT-OSS 120B (all Groq; keep `src/lib/models.ts` and the Edge Function whitelist in sync)
+- **Model Selector**: Switch between GPT-OSS 20B, Qwen 3.6 27B, GPT-OSS 120B (default) (all Groq; keep `src/lib/models.ts` and the Edge Function whitelist in sync)
 - **Rate-limit Fallback**: if Groq returns 429, the Edge Function retries once on Cerebras `gpt-oss-120b` (needs `CEREBRAS_API_KEY` secret); streaming keeps working and the response reports `provider: 'cerebras'`
 
 ### Animations (anime.js)
