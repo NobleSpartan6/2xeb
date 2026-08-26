@@ -9,10 +9,9 @@ AI-powered chat widget for answering portfolio questions.
 
 **Features:**
 - Multi-model support via Groq:
-  - `llama-3.1-8b-instant` (fast, high daily limit)
-  - `meta-llama/llama-4-scout-17b-16e-instruct` (balanced, default)
-  - `llama-3.3-70b-versatile` (dense 70B)
-  - `openai/gpt-oss-120b` (strongest reasoning)
+  - `openai/gpt-oss-20b` (fast)
+  - `qwen/qwen3.6-27b` (balanced)
+  - `openai/gpt-oss-120b` (strongest reasoning, default)
 - Model selector: segmented control (full names ≥md, `shortName` below)
 - **Shared chat state** via ConsoleContext (synced across all access points)
 - Client-side rate limiting with user-friendly error messages
