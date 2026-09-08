@@ -52,6 +52,24 @@
   src: url('/fonts/space-grotesk-700.woff2') format('woff2');
 }
 
+/* Newsreader: the Log's reading face. Variable weight file covers 400–500;
+   loaded only where the serif is used (log + desk routes), so the rest of
+   the site pays nothing for it. */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url('/fonts/newsreader-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Newsreader';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/newsreader-400-italic.woff2') format('woff2');
+}
+
 /* Motion tokens (see .claude/skills/emil-design-eng): built-in CSS easings
    are too weak for UI — these strong curves are the site-wide defaults.
    Mirrored as Tailwind `ease-*` utilities in tailwind.config.js. */
@@ -201,4 +219,141 @@ body {
     height: 100vh;
     height: -webkit-fill-available;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   The Log — rendered markdown. One reading column, the site's palette, and a
+   serif so writing reads as writing. Square corners throughout: the site has
+   none. Font sizes are set on .prose-log by the page (rem-relative here).
+   --------------------------------------------------------------------------- */
+.prose-log {
+  font-family: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  color: #d4d4d4;
+  line-height: 1.7;
+  font-variant-numeric: oldstyle-nums;
+  overflow-wrap: anywhere;
+}
+.prose-log > * + * {
+  margin-top: 1.15em;
+}
+.prose-log p {
+  margin: 0;
+}
+.prose-log h1,
+.prose-log h2,
+.prose-log h3,
+.prose-log h4 {
+  font-family: 'Space Grotesk', sans-serif;
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-top: 2em;
+}
+.prose-log h1 { font-size: 1.6em; }
+.prose-log h2 { font-size: 1.35em; }
+.prose-log h3 { font-size: 1.15em; }
+.prose-log h4 { font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.08em; }
+.prose-log em { font-style: italic; }
+.prose-log strong { color: #ffffff; font-weight: 500; }
+.prose-log a {
+  color: #2563eb;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(37, 99, 235, 0.5);
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.prose-log a:hover { color: #ffffff; border-color: #ffffff; }
+.prose-log blockquote {
+  margin: 1.4em 0;
+  padding: 0.1em 0 0.1em 1.1em;
+  border-left: 2px solid #2563eb;
+  color: #a3a3a3;
+}
+.prose-log ul,
+.prose-log ol {
+  padding-left: 1.4em;
+}
+.prose-log li + li { margin-top: 0.35em; }
+.prose-log li::marker { color: #737373; }
+.prose-log hr {
+  border: 0;
+  height: 1px;
+  background: #262626;
+  margin: 2.2em 0;
+}
+.prose-log code {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78em;
+  background: #0a0a0a;
+  border: 1px solid #262626;
+  padding: 0.1em 0.4em;
+  color: #e5e5e5;
+}
+.prose-log pre {
+  background: #0a0a0a;
+  border: 1px solid #262626;
+  padding: 1em 1.1em;
+  overflow-x: auto;
+  font-size: 0.8em;
+  line-height: 1.55;
+}
+.prose-log pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+}
+.prose-log img,
+.prose-log video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #262626;
+  background: #0a0a0a;
+}
+.prose-log table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9em;
+  display: block;
+  overflow-x: auto;
+}
+.prose-log th,
+.prose-log td {
+  text-align: left;
+  padding: 0.45em 0.8em 0.45em 0;
+  border-bottom: 1px solid #262626;
+  vertical-align: top;
+}
+.prose-log th {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.7em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #737373;
+  font-weight: 600;
+}
+
+/* Index rows show a piece's opening lines with their breaks intact. */
+.log-opening {
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+/* Desk composer: the textarea reads like the page will. iOS zooms any input
+   under 16px on focus, so nothing in the desk goes below it. */
+.desk-input {
+  font-size: 16px;
+}
+.desk-body {
+  font-family: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  font-size: 1.15rem;
+  line-height: 1.7;
+  caret-color: #2563eb;
+}
+@media (min-width: 640px) {
+  .desk-body { font-size: 1.2rem; }
 }

@@ -2,6 +2,40 @@
 
 This document explains how to use the admin panel to manage portfolio content.
 
+## The Desk (writing the Log)
+
+The Log at `/log` is written from **the Desk** at `/desk`. It is built for a phone.
+
+**Getting in**
+1. Open `https://2xeb.me/desk` and sign in with your admin email and password (the account must be in `admin_users`). You stay signed in; tokens refresh quietly.
+2. Or, on any page, open the terminal easter egg (type `friend`, or long-press the 2XEB. logo in the footer), then type `login`. It asks for email, then password (masked). Then `desk`.
+
+Add `/desk` to your phone's home screen.
+
+**Writing**
+- Tap **New piece**. Title is optional; the body is markdown and single newlines are kept, so verse works.
+- Drafts save themselves about 1.5 seconds after you stop typing. The status line at the bottom says *Saved 12:41*, *Saving…*, or *Offline · kept on this phone*. Your text is also mirrored on the phone until it is saved; if a save never landed, the next time you open the piece you can restore it.
+- **Note / Work** sets the kind; Work pieces carry a discipline chip on the site.
+- **Preview** shows the piece as it will read.
+- **Details** hides the address (slug), the date, and an excerpt override for link previews. Untitled pieces are named by date.
+
+**Publishing**
+- The segmented control in the bottom bar: **Draft** (private), **Link only** (readable by anyone with the link, never listed), **Published** (on `/log`). Changing it saves everything at once.
+- Once a piece is public, edits wait for the **Save** button so a half-finished sentence never goes live.
+- The link appears at the top with **Copy** and **Share** (native share sheet on phones). Shared links unfurl with the piece's title and opening lines.
+
+**Deleting**: Details → *Delete this piece* → confirm. Every change is recorded in the audit log.
+
+**From the terminal** (after `login`): `log ls`, `log new`, `log edit <slug>`, `log open <slug>`, `log pub <slug>`, `log hide <slug>`, `log draft <slug>`, `log rm <slug>`, `whoami`, `logout`.
+
+**One-time setup**: run `supabase/sql/2026-09-08_posts.sql` in the Supabase SQL editor; set the Worker secret with `npx wrangler secret put SUPABASE_ANON_KEY` (paste the public anon key); then deploy with `npm run deploy`.
+
+---
+
+## Legacy admin panel
+
+> The sections below describe the original CMS pages under `src/pages/admin/`. They are not currently routed in `App.tsx`; the Desk above is the live writing surface.
+
 ## Accessing the Admin Panel
 
 1. Navigate to `https://2xeb.com/#/admin` (or `http://localhost:3000/#/admin` locally)

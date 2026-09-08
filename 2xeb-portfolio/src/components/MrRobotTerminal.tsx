@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Warp } from '@paper-design/shaders-react';
+import { useNavigate } from 'react-router-dom';
 import { useConsole, TerminalEntry } from '../context/ConsoleContext';
 import { prefersReducedMotion } from '../hooks/useAnimations';
+import { getSession, signIn, signOut, SessionError } from '../lib/session';
+import { fetchAllPosts, deletePost, updatePost, postTitle, LogError, PostStatus } from '../lib/log';
 
 /**
  * MrRobotTerminal - Easter Egg Terminal
@@ -44,6 +47,14 @@ import { prefersReducedMotion } from '../hooks/useAnimations';
  *
  * === SYSTEM ===
  * df, free, sudo, su, :q, :q!, :wq
+ *
+ * === THE DESK (admin only; never listed in help) ===
+ * login            - email + password prompt; admin accounts only (Supabase Auth)
+ * logout           - ends the desk session (closes the terminal when not signed in)
+ * whoami           - reveals the signed-in email instead of a philosophy line
+ * desk             - opens /desk (the Log's writing surface)
+ * log              - usage; log ls | new | edit <slug> | open <slug> | pub <slug> | hide <slug> | draft <slug> | rm <slug>
+ * cat .desk        - the hint (ls -a shows .desk)
  *
  * === PHILOSOPHY EASTER EGGS ===
  * hack, robot, hierarchies, leap, crowd, meaning
@@ -434,6 +445,14 @@ So start.
 
 The path reveals itself as you walk.`,
 
+  'cat .desk': `> .desk
+
+A desk is where the writing happens.
+Nothing here is for reading yet.
+
+If it is yours: login
+Then: desk`,
+
   // Directory navigation (cd, ls, pwd, cat) is handled dynamically in handleCommand
 
   // Standard Unix commands
@@ -656,7 +675,34 @@ const StatusClock: React.FC = () => {
   return <span className="tabular-nums">{`${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`}</span>;
 };
 
+/**
+ * Interactive prompts. While one is active, Enter feeds the raw line to the
+ * prompt instead of the shell, arrows/tab are inert, and ^C cancels.
+ * Password input is masked on screen and never enters command history.
+ */
+type Prompt =
+  | { kind: 'email' }
+  | { kind: 'password'; email: string }
+  | { kind: 'confirm'; question: string; onYes: () => void };
+
+const promptLabelOf = (p: Prompt): string =>
+  p.kind === 'email' ? 'email:' : p.kind === 'password' ? 'password:' : p.question;
+
+const LOG_USAGE = `log — the desk, from the shell
+
+  log ls              what's on the desk (drafts too)
+  log new             open a blank page
+  log edit <slug>     open a piece on the desk
+  log open <slug>     read it on the site
+  log pub <slug>      publish
+  log hide <slug>     link only
+  log draft <slug>    take it back to draft
+  log rm <slug>       delete (asks first)
+  desk                the writing surface itself`;
+
 const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
+  const navigate = useNavigate();
+  const [prompt, setPrompt] = useState<Prompt | null>(null);
   // Get persisted terminal state from context
   const {
     terminalHistory,
@@ -1041,6 +1087,156 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
   }, [phase]);
 
 
+  /**
+   * Print a placeholder line now, replace it with the result later. Keeps the
+   * shell responsive while the desk talks to Supabase.
+   */
+  const runAsync = useCallback((placeholder: string, work: () => Promise<string>) => {
+    const marker = `${placeholder}\u200b`; // zero-width tail: unique enough to find again
+    addTerminalEntry({ type: 'output', content: marker });
+    const replace = (content: string) =>
+      setTerminalHistory((prev: TerminalEntry[]) => {
+        const next = [...prev];
+        for (let i = next.length - 1; i >= 0; i--) {
+          if (next[i].content === marker) {
+            next[i] = { type: 'output', content };
+            break;
+          }
+        }
+        return next;
+      });
+    work().then(replace, (err: unknown) => {
+      if (err instanceof SessionError || err instanceof LogError) {
+        replace(err.kind === 'auth' ? 'the desk is locked. try: login' : err.message);
+      } else {
+        replace(err instanceof Error ? err.message : 'something went wrong.');
+      }
+    });
+  }, [addTerminalEntry, setTerminalHistory]);
+
+  const handleLogCommand = useCallback((args: string[]) => {
+    const [sub = 'help', slug] = args.map((a) => a.toLowerCase());
+
+    if (sub === 'help' || sub === '') {
+      addTerminalEntry({ type: 'output', content: LOG_USAGE });
+      return;
+    }
+    if (sub === 'open') {
+      if (!slug) { addTerminalEntry({ type: 'output', content: 'log open <slug>' }); return; }
+      navigate(`/log/${slug}`);
+      onClose();
+      return;
+    }
+    if (!getSession()) {
+      addTerminalEntry({ type: 'output', content: 'the desk is locked. try: login' });
+      return;
+    }
+    if (sub === 'new') {
+      navigate('/desk/new');
+      onClose();
+      return;
+    }
+    if (sub === 'ls') {
+      runAsync('reading the desk…', async () => {
+        const posts = await fetchAllPosts();
+        if (posts.length === 0) return 'nothing on the desk yet. try: log new';
+        const rows = posts.map((p) => {
+          const when = new Date(p.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          return `${p.status.padEnd(10)} ${when.padEnd(7)} ${p.slug.padEnd(28)} ${postTitle(p)}`;
+        });
+        return [`${'STATUS'.padEnd(10)} ${'EDITED'.padEnd(7)} ${'SLUG'.padEnd(28)} TITLE`, ...rows].join('\n');
+      });
+      return;
+    }
+
+    const needsSlug = ['edit', 'pub', 'hide', 'draft', 'rm'];
+    if (!needsSlug.includes(sub)) {
+      addTerminalEntry({ type: 'output', content: `log: '${sub}' is not a thing. try: log` });
+      return;
+    }
+    if (!slug) {
+      addTerminalEntry({ type: 'output', content: `log ${sub} <slug>` });
+      return;
+    }
+
+    const find = async () => {
+      const posts = await fetchAllPosts();
+      const post = posts.find((p) => p.slug === slug);
+      if (!post) throw new LogError('notfound', `no piece at /log/${slug}. try: log ls`);
+      return post;
+    };
+
+    if (sub === 'edit') {
+      runAsync('finding it…', async () => {
+        const post = await find();
+        navigate(`/desk/${post.id}`);
+        onClose();
+        return 'opening.';
+      });
+      return;
+    }
+
+    if (sub === 'pub' || sub === 'hide' || sub === 'draft') {
+      const status: PostStatus = sub === 'pub' ? 'published' : sub === 'hide' ? 'unlisted' : 'draft';
+      runAsync('working…', async () => {
+        const post = await find();
+        if (status !== 'draft' && !post.body.trim()) return 'it is empty. write something first.';
+        const row = await updatePost(post.id, { status });
+        if (status === 'published') return `published. https://2xeb.me/log/${row.slug}`;
+        if (status === 'unlisted') return `link only. https://2xeb.me/log/${row.slug}`;
+        return 'back to draft.';
+      });
+      return;
+    }
+
+    // rm: ask first
+    runAsync('finding it…', async () => {
+      const post = await find();
+      setPrompt({
+        kind: 'confirm',
+        question: `delete "${postTitle(post)}"? [y/N]`,
+        onYes: () =>
+          runAsync('deleting…', async () => {
+            await deletePost(post.id);
+            return 'gone.';
+          }),
+      });
+      return `found /log/${post.slug}`;
+    });
+  }, [addTerminalEntry, navigate, onClose, runAsync]);
+
+  /** Feed a line to the active prompt (email / password / confirm). */
+  const handlePromptInput = useCallback((raw: string) => {
+    if (!prompt) return;
+    const label = promptLabelOf(prompt);
+
+    if (prompt.kind === 'email') {
+      const email = raw.trim();
+      addTerminalEntry({ type: 'input', content: `${label} ${email}` });
+      if (!email) { setPrompt(null); return; }
+      setPrompt({ kind: 'password', email });
+      return;
+    }
+
+    if (prompt.kind === 'password') {
+      addTerminalEntry({ type: 'input', content: `${label} ${'•'.repeat(Math.min(raw.length, 12))}` });
+      setPrompt(null);
+      if (!raw) return;
+      const { email } = prompt;
+      runAsync('checking…', async () => {
+        const s = await signIn(email, raw);
+        return `welcome back, ${s.user.email}.\ntype: desk`;
+      });
+      return;
+    }
+
+    // confirm
+    addTerminalEntry({ type: 'input', content: `${label} ${raw}` });
+    setPrompt(null);
+    if (/^y(es)?$/i.test(raw.trim())) prompt.onYes();
+    else addTerminalEntry({ type: 'output', content: 'kept.' });
+  }, [prompt, addTerminalEntry, runAsync]);
+
   const handleCommand = useCallback((cmd: string) => {
     const trimmedCmd = cmd.trim().toLowerCase();
 
@@ -1061,8 +1257,54 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
       return;
     }
 
-    if (trimmedCmd === 'exit' || trimmedCmd === 'quit' || trimmedCmd === 'logout') {
+    if (trimmedCmd === 'exit' || trimmedCmd === 'quit') {
       onClose();
+      return;
+    }
+
+    // === THE DESK ===
+    // Signed in, "logout" ends the desk session; otherwise it keeps its old
+    // meaning and just closes the terminal.
+    if (trimmedCmd === 'logout') {
+      if (getSession()) {
+        runAsync('signing out…', async () => {
+          await signOut();
+          return 'signed out. the desk is locked.';
+        });
+      } else {
+        onClose();
+      }
+      return;
+    }
+
+    if (trimmedCmd === 'login') {
+      const s = getSession();
+      if (s) {
+        addTerminalEntry({ type: 'output', content: `already in as ${s.user.email}. try: desk` });
+      } else {
+        setPrompt({ kind: 'email' });
+      }
+      return;
+    }
+
+    if (trimmedCmd === 'whoami' && getSession()) {
+      addTerminalEntry({ type: 'output', content: getSession()!.user.email });
+      return;
+    }
+
+    if (trimmedCmd === 'desk') {
+      if (!getSession()) {
+        addTerminalEntry({ type: 'output', content: 'the desk is locked. try: login' });
+        return;
+      }
+      addTerminalEntry({ type: 'output', content: 'sitting down.' });
+      navigate('/desk');
+      onClose();
+      return;
+    }
+
+    if (trimmedCmd === 'log' || trimmedCmd.startsWith('log ')) {
+      handleLogCommand(cmd.trim().split(/\s+/).slice(1));
       return;
     }
 
@@ -1202,10 +1444,11 @@ const MrRobotTerminal: React.FC<MrRobotTerminalProps> = ({ onClose }) => {
       // Generate listing based on target directory
       if (targetDir === '/home/friend') {
         if (showHidden && showLong) {
-          response = `total 5
+          response = `total 6
 drwxr-xr-x  .
 drwxr-xr-x  ..
 drwxr-xr-x  .fsociety/
+-rw-------  .desk
 -rw-------  .truth
 drwxr-xr-x  projects/
 -rw-r--r--  readme.txt
@@ -1214,6 +1457,7 @@ drwxr-xr-x  projects/
           response = `drwxr-xr-x  .
 drwxr-xr-x  ..
 drwxr-xr-x  .fsociety/
+-rw-------  .desk
 -rw-------  .truth
 drwxr-xr-x  projects/
 -rw-r--r--  readme.txt
@@ -1372,7 +1616,10 @@ drwxr-xr-x  ..
     }
 
     addTerminalEntry({ type: 'output', content: response });
-  }, [onClose, terminalCurrentDir, terminalCommandHistory.length, terminalHistory, addTerminalCommand, addTerminalEntry, clearTerminalHistory, setTerminalCurrentDir, setTerminalHistory]);
+  }, [onClose, navigate, runAsync, handleLogCommand, terminalCurrentDir, terminalCommandHistory.length, terminalHistory, addTerminalCommand, addTerminalEntry, clearTerminalHistory, setTerminalCurrentDir, setTerminalHistory]);
+
+  // What the input line shows: dots while a password is being typed.
+  const shownInput = prompt?.kind === 'password' ? '•'.repeat(currentInput.length) : currentInput;
 
   // Available commands for tab completion (common Unix + easter eggs)
   const availableCommands = [
@@ -1413,6 +1660,12 @@ drwxr-xr-x  ..
       }
       if (k === 'c') { // cancel the current line
         e.preventDefault();
+        if (prompt) {
+          addTerminalEntry({ type: 'input', content: `${promptLabelOf(prompt)} ^C` });
+          setPrompt(null);
+          setCaret('', 0);
+          return;
+        }
         addTerminalEntry({ type: 'input', content: `${promptString(terminalCurrentDir)} ${currentInput}^C` });
         setCaret('', 0);
         setHistoryIndex(terminalCommandHistory.length);
@@ -1445,6 +1698,17 @@ drwxr-xr-x  ..
         setCaret(before + after, before.length);
         return;
       }
+    }
+
+    if (prompt) {
+      if (e.key === 'Enter') {
+        handlePromptInput(currentInput);
+        setCurrentInput('');
+        setCursorPosition(0);
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Tab') {
+        e.preventDefault();
+      }
+      return;
     }
 
     if (e.key === 'Enter') {
@@ -1813,10 +2077,16 @@ drwxr-xr-x  ..
                 onClick={() => inputRef.current?.focus()}
               >
                 <span className="text-[13px] sm:text-sm whitespace-pre flex-shrink-0 select-none">
-                  <span className="hidden sm:inline" style={{ color: PROMPT_USER }}>{PROMPT_HOST}</span>
-                  <span className="hidden sm:inline" style={{ color: TERM_COLOR_DIM }}>:</span>
-                  <span style={{ color: PROMPT_PATH }}>{shortenDir(terminalCurrentDir)}</span>
-                  <span style={{ color: TERM_COLOR_DIM }}>$ </span>
+                  {prompt ? (
+                    <span style={{ color: PROMPT_PATH }}>{promptLabelOf(prompt)} </span>
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline" style={{ color: PROMPT_USER }}>{PROMPT_HOST}</span>
+                      <span className="hidden sm:inline" style={{ color: TERM_COLOR_DIM }}>:</span>
+                      <span style={{ color: PROMPT_PATH }}>{shortenDir(terminalCurrentDir)}</span>
+                      <span style={{ color: TERM_COLOR_DIM }}>$ </span>
+                    </>
+                  )}
                 </span>
                 <div className="flex-1 relative font-mono min-h-[44px] sm:min-h-0 flex items-center">
                   {/* Visual representation of input with cursor */}
@@ -1824,16 +2094,16 @@ drwxr-xr-x  ..
                     className="relative text-[13px] sm:text-sm pointer-events-none select-none whitespace-pre flex-1"
                     style={{ color: TERM_COLOR, minHeight: '1.5em' }}
                   >
-                    {/* Text before cursor */}
-                    <span>{currentInput.slice(0, cursorPosition)}</span>
+                    {/* Text before cursor (masked while a password is being typed) */}
+                    <span>{shownInput.slice(0, cursorPosition)}</span>
                     {/* Block cursor - solid while typing, blinks when idle */}
                     <span className={`terminal-cursor${cursorSteady ? ' cursor-steady' : ''}`}>
-                      {currentInput[cursorPosition] || '\u00A0'}
+                      {shownInput[cursorPosition] || '\u00A0'}
                     </span>
                     {/* Text after cursor */}
-                    <span>{currentInput.slice(cursorPosition + 1)}</span>
+                    <span>{shownInput.slice(cursorPosition + 1)}</span>
                     {/* Placeholder when empty */}
-                    {!currentInput && (
+                    {!currentInput && !prompt && (
                       <span className="absolute inset-0 pl-[1ch] opacity-30 pointer-events-none flex items-center gap-2">
                         <span className="hidden sm:inline">Type a command...</span>
                         <span className="sm:hidden flex items-center gap-1.5">
@@ -1848,7 +2118,7 @@ drwxr-xr-x  ..
                   {/* Hidden actual input - made taller for better mobile touch */}
                   <input
                     ref={inputRef}
-                    type="text"
+                    type={prompt?.kind === 'password' ? 'password' : 'text'}
                     value={currentInput}
                     onChange={(e) => {
                       setCurrentInput(e.target.value);

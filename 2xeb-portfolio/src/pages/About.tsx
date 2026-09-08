@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useExperience } from '../hooks/useExperience';
 import { useScrollReveal, useTextScramble, hasRouteRevealPlayed } from '../hooks/useAnimations';
 
@@ -89,6 +90,13 @@ const About: React.FC = () => {
             />
             Software Engineer based in New York City. <br/>
             Specializing in high-performance financial systems, machine learning applications, and creative visual media.
+            <Link
+              to="/log"
+              viewTransition
+              className="block mt-5 w-max font-mono text-[11px] uppercase tracking-widest text-[#737373] hover:text-[#2563EB] transition-colors"
+            >
+              Read the log →
+            </Link>
           </p>
         </div>
       </div>

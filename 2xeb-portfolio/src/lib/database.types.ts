@@ -330,6 +330,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      posts: {
+        Row: {
+          id: number;
+          slug: string;
+          title: string | null;
+          body: string;
+          excerpt: string | null;
+          kind: 'note' | 'work';
+          discipline: 'SWE' | 'ML' | 'VIDEO' | 'HYBRID' | null;
+          status: 'draft' | 'unlisted' | 'published';
+          published_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          slug?: string;
+          title?: string | null;
+          body?: string;
+          excerpt?: string | null;
+          kind?: 'note' | 'work';
+          discipline?: 'SWE' | 'ML' | 'VIDEO' | 'HYBRID' | null;
+          status?: 'draft' | 'unlisted' | 'published';
+          published_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: number;
+          slug?: string;
+          title?: string | null;
+          body?: string;
+          excerpt?: string | null;
+          kind?: 'note' | 'work';
+          discipline?: 'SWE' | 'ML' | 'VIDEO' | 'HYBRID' | null;
+          status?: 'draft' | 'unlisted' | 'published';
+          published_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       contact_messages: {
         Row: {
           id: string;
@@ -368,6 +410,10 @@ export type Database = {
       is_admin: {
         Args: Record<string, never>;
         Returns: boolean;
+      };
+      get_post: {
+        Args: { p_slug: string };
+        Returns: Database['public']['Tables']['posts']['Row'][];
       };
     };
     Enums: {

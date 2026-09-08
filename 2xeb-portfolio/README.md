@@ -329,8 +329,20 @@ The home page features an immersive 3D visualization with three discipline "pill
 | `/video` | `Video` | Video showreel + projects |
 | `/about` | `About` | Bio + experience timeline |
 | `/contact` | `Contact` | Contact form |
+| `/log` | `Log` | Short writing, newest first (reads `posts` from Supabase) |
+| `/log/:slug` | `LogPost` | One piece; unlisted pieces open by link only |
+| `/log/feed.xml` | Worker | RSS of published pieces (served at the edge) |
 
-### Admin Routes (Protected)
+### The Desk (admin only)
+
+| Path | Component | Description |
+|------|-----------|-------------|
+| `/desk` | `Desk` → `DeskList` | Pieces grouped Drafts / Link only / Published |
+| `/desk/new`, `/desk/:id` | `DeskEditor` | Phone-first composer: autosave, local mirror, visibility, share |
+
+> Sign in on `/desk` itself, or type `login` in the terminal easter egg (then `desk`). Password sign-in via Supabase Auth; the account must be in `admin_users`. See `src/pages/desk/CLAUDE.md` and `docs/ADMIN.md`.
+
+### Admin Routes (legacy CMS, currently unrouted)
 
 | Path | Component | Description |
 |------|-----------|-------------|
@@ -397,6 +409,9 @@ highlightedNodeIds.includes(id);  // O(n)
 ---
 
 ## Supabase Schema (Deployed)
+
+### posts (the Log)
+See `supabase/sql/2026-09-08_posts.sql` — table, `posts_before_write` trigger (updated_at, first-publish date, date-based slug fallback), audit trigger, RLS (anon reads `published`; admins write), and the `get_post(slug)` function that serves `unlisted` pieces by exact slug without making them listable.
 
 ### contact_messages
 ```sql
