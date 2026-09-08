@@ -69,6 +69,20 @@ export const PROJECTS: Project[] = [
 
   // --- VIDEO / CREATIVE WORK ---
   {
+    id: 25,
+    slug: 'nolanberollin',
+    title: 'Nolanberollin — Official Video [Dir. EB]',
+    shortDesc: 'Video for Nolanberollin. Shot and directed by EB.',
+    longDesc: 'Video for Nolanberollin — shot and directed by EB.',
+    primaryDiscipline: Discipline.VIDEO,
+    tags: ['Direction', 'Cinematography', 'Music Video'],
+    createdAt: '2026-09-08',
+    imageUrl: 'https://img.youtube.com/vi/Z_7z0XMN0E4/maxresdefault.jpg',
+    status: 'live',
+    videoUrl: 'https://youtu.be/Z_7z0XMN0E4',
+    role: 'dir / shot'
+  },
+  {
     id: 24,
     slug: 'to-water-love',
     title: 'To Water Love - Yuzeren',
