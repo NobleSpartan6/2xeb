@@ -21,6 +21,8 @@ export default {
       fontFamily: {
         sans: ['General Sans', 'sans-serif'],
         'space-grotesk': ['Space Grotesk', 'sans-serif'],
+        // Reading face for the Log (self-hosted Newsreader); everything else stays sans.
+        serif: ['Newsreader', 'Iowan Old Style', 'Palatino Linotype', 'Georgia', 'serif'],
         mono: [
           'JetBrains Mono',
           'ui-monospace',

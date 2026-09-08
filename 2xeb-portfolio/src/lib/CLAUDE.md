@@ -86,3 +86,29 @@ Debug utilities for development. Contains logging helpers and conditional debug 
 
 3. **Free tier limits** respected
    - Uses 80-90% of limits as buffer
+
+### supabaseRest.ts
+Plain-fetch PostgREST helper (`supabaseRest(table, options)`) plus `supabaseRpc(fn, args)`.
+Returns `{ data, count, error, status }` — `status` is null when the request never reached
+the server (offline). Options include `accessToken`, `returning` (Prefer: return=representation),
+`keepalive` (final autosave on pagehide), and `signal`. Used by public pages, the Log, and the
+Desk so `@supabase/supabase-js` stays out of those bundles.
+
+### session.ts
+The desk session. Password sign-in against Supabase Auth (GoTrue REST), `admin_users` check,
+lazy single-flight refresh (`getAccessToken()` refreshes when <90s remain), cross-tab sync via
+`storage` events, `signOut()` revokes server-side. Network failures never sign anyone out.
+Stored under `2xeb.desk.session` in localStorage. Errors are `SessionError` with a `kind`
+(`credentials | unauthorized | offline | server`) and a message fit to show.
+
+### log.ts
+Data layer for `posts`: `fetchPublished`, `fetchPublicPost(slug)` (via `get_post` RPC),
+and authenticated `fetchAllPosts`, `fetchPost`, `createPost`, `updatePost`, `deletePost`
+(one forced refresh + retry on 401). Errors are `LogError` with `kind`
+(`offline | auth | notfound | server`). Also the derived-text helpers the pages share:
+`slugify`, `stripMarkdown`, `postTitle` (title or date), `postExcerpt`, `openingLines`, `wordCount`.
+`worker/index.ts` mirrors `stripMarkdown`/`excerpt` — keep them in sync.
+
+### markdown.ts
+`renderPost(markdown)`: marked (`gfm`, `breaks: true`) → DOMPurify. External links get
+`target=_blank rel=noopener`. Only imported by log/desk routes.

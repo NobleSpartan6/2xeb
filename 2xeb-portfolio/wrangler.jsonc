@@ -5,8 +5,21 @@
   // uses whichever account is OAuth'd on the machine
   "account_id": "59bb8773eb3abf64dd20c839e1c7b519",
   "compatibility_date": "2025-12-15",
+  // Edge script for the Log only (share previews + RSS); see worker/CLAUDE.md
+  "main": "worker/index.ts",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Only these paths hit the Worker; everything else is served as static assets
+    "run_worker_first": ["/log/*"]
+  },
+  "vars": {
+    "SITE_ORIGIN": "https://2xeb.me",
+    "SUPABASE_URL": "https://zrawfgpjfkohjaqcfgrd.supabase.co"
+    // SUPABASE_ANON_KEY is a Worker secret, not a var — secret scanners flag
+    // any JWT in the repo even though the anon key is public by design.
+    // One-time: `npx wrangler secret put SUPABASE_ANON_KEY` (paste the anon key).
+    // Without it the Worker serves the plain app shell and no feed.
   }
 }

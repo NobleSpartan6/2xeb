@@ -21,6 +21,7 @@ A 3D, AI-assisted portfolio SPA for 2xeb (Ebenezer Eshetu) showcasing Software E
 - Portfolio content (projects, timeline, media metadata) lives as **static TypeScript files** in `/src/data/`
 - Supabase used for: contact form, AI Edge Functions, auth, optional admin CMS
 - Admin CMS available but optional — can deploy without database content
+- **The Log is the exception**: posts live in Supabase (`posts` table) and are fetched at runtime, so pieces can be written, published, and deleted from a phone with no deploy. See "The Log" below.
 
 ## Development Commands
 
@@ -29,7 +30,8 @@ npm install      # Install dependencies
 npm run dev      # Start dev server on port 3000
 npm run build    # Build for production (outputs to dist/)
 npm run preview  # Preview production build
-npm run typecheck # tsc --noEmit (runs in CI; build must stay type-clean)
+npm run typecheck # tsc --noEmit for app + worker (runs in CI; build must stay type-clean)
+npm run deploy   # build + wrangler deploy (Cloudflare account pinned in wrangler.jsonc)
 npm run lint     # ESLint
 npm run format   # Prettier --write
 ```
@@ -80,7 +82,10 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 │   │   ├── Video.tsx
 │   │   ├── About.tsx
 │   │   ├── Contact.tsx
-│   │   └── /admin              # Protected CMS pages
+│   │   ├── Log.tsx             # The Log: short writing (Supabase posts, runtime fetch)
+│   │   ├── LogPost.tsx         # One piece (markdown → HTML, share row, prev/next)
+│   │   ├── /desk               # The Desk: phone-first composer for the Log (see CLAUDE.md there)
+│   │   └── /admin              # Legacy CMS pages (not routed)
 │   │       ├── AdminLogin.tsx
 │   │       ├── AdminDashboard.tsx
 │   │       ├── ProjectsEditor.tsx
@@ -118,14 +123,23 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 │   │   ├── types.ts
 │   │   ├── api.ts              # Edge Function helpers
 │   │   ├── models.ts           # LLM model config + rate limiting
-│   │   ├── supabase.ts         # Supabase client
+│   │   ├── supabase.ts         # Supabase client (legacy admin only)
+│   │   ├── supabaseRest.ts     # Plain-fetch REST + RPC helper (public pages, Log, Desk)
+│   │   ├── session.ts          # Desk session: password sign-in, lazy refresh, admin check
+│   │   ├── log.ts              # posts data layer + derived text helpers
+│   │   ├── markdown.ts         # marked + DOMPurify (log/desk chunks only)
 │   │   └── database.types.ts   # Generated types
 │   │
 │   └── /hooks
 │       ├── useProjects.ts
-│       └── useExperience.ts
+│       ├── useExperience.ts
+│       ├── usePosts.ts         # Log reads (sessionStorage-backed index)
+│       ├── useSession.ts       # Desk session as React state
+│       └── useAutosave.ts      # Debounced single-flight autosave with retry
 │
-└── /supabase               # Edge Functions
+├── /worker                 # Cloudflare Worker: /log/* share previews + RSS (see CLAUDE.md there)
+│
+└── /supabase               # Edge Functions + sql/ (posts schema)
     ├── CLAUDE.md
     └── /functions
         ├── ask-portfolio/       # AI (Groq, Cerebras 429 fallback, SSE streaming)
@@ -182,6 +196,14 @@ Standards live in `.claude/skills/` (emil-design-eng, review-animations). Rules:
 - Pressable elements (buttons, link-buttons) get the `.pressable` class: scale(0.97) on `:active` + owns its full transition list — don't combine with `transition-*` utilities, and never put it on an anime.js target (inline transforms fight CSS transitions)
 - Hover/color transitions: 150-200ms; UI movement: ≤300ms; drawers/modals: 300-500ms
 - `hoverOnlyWhenSupported` is on — `hover:` variants don't fire on touch devices
+
+### The Log (short writing) and the Desk
+- Public: `/log` (index of openings) and `/log/:slug` (one piece). Data via `usePosts` → `lib/log.ts` → plain fetch. Unlisted pieces come from the `get_post` RPC and never appear in lists.
+- Writing: `/desk` (`src/pages/desk/`). Needs a desk session (`lib/session.ts`): password sign-in, admin_users check, lazy token refresh, no supabase-js. Enter via the `/desk` form or the terminal easter egg (`login`, then `desk`; `log ls|new|edit|pub|hide|draft|rm`).
+- Drafts autosave (`useAutosave`); public pieces save on explicit Save; visibility changes save everything. Title/body mirror to localStorage until saved.
+- Markdown: `lib/markdown.ts` (marked with `breaks: true` + DOMPurify), styled by `.prose-log` in `index.css`; the reading face is self-hosted Newsreader (`font-serif`). Keep marked/DOMPurify/session out of the main bundle (log/desk routes are `React.lazy`).
+- Share previews: `worker/index.ts` rewrites `<head>` meta for `/log/*` at the edge and serves `/log/feed.xml`. Deploy with `npm run deploy`.
+- Schema: `supabase/sql/2026-09-08_posts.sql`.
 
 ### Case Study Explorer
 - Lazy-loaded component (`React.lazy`) for Portfolio Console project

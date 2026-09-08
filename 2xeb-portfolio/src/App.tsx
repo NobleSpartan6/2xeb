@@ -23,6 +23,12 @@ import { useEasterEgg } from './hooks/useEasterEgg';
 // Lazy load 404 page (has heavy 3D components)
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 
+// The Log (short writing) and its writing surface, the Desk. Lazy so the
+// markdown renderer and the session module never enter the main bundle.
+const Log = React.lazy(() => import('./pages/Log'));
+const LogPost = React.lazy(() => import('./pages/LogPost'));
+const Desk = React.lazy(() => import('./pages/desk/Desk'));
+
 // Lazy load the easter egg terminal (pulls in the shader library) —
 // it should never weigh down normal page loads
 const MrRobotTerminal = React.lazy(() => import('./components/MrRobotTerminal'));
@@ -47,12 +53,18 @@ const usePageTitle = () => {
       '/video': 'Video',
       '/about': 'About',
       '/contact': 'Contact',
+      '/log': 'Log',
+      '/desk': 'Desk',
     };
 
     let title = 'Home';
 
     if (pathname.startsWith('/work/')) {
       title = 'Project';
+    } else if (pathname.startsWith('/log/')) {
+      title = 'Log';
+    } else if (pathname.startsWith('/desk/')) {
+      title = 'Desk';
     } else if (pageTitles[pathname]) {
       title = pageTitles[pathname];
     }
@@ -121,18 +133,28 @@ const EasterEggOverlay = () => {
 // Check if current route is 404
 const useIs404Route = () => {
   const { pathname } = useLocation();
-  const validPaths = ['/', '/work', '/ml-lab', '/video', '/about', '/contact', '/friend'];
-  return !validPaths.includes(pathname) && !pathname.startsWith('/work/');
+  const validPaths = ['/', '/work', '/ml-lab', '/video', '/about', '/contact', '/friend', '/log', '/desk'];
+  return (
+    !validPaths.includes(pathname) &&
+    !pathname.startsWith('/work/') &&
+    !pathname.startsWith('/log/') &&
+    !pathname.startsWith('/desk/')
+  );
 };
+
+// Quiet placeholder while a lazy route's chunk arrives (the page paints its own header).
+const RouteFallback = () => <div className="min-h-screen bg-[#050505]" aria-hidden />;
 
 // Main layout wrapper
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { pathname } = useLocation();
   const isHome = pathname === '/';
   const is404 = useIs404Route();
+  // The Desk is a writing surface, not a page of the portfolio: no nav, no HUD.
+  const isDesk = pathname.startsWith('/desk');
 
   // 404 page has its own full-screen layout
-  if (is404) {
+  if (is404 || isDesk) {
     return <>{children}</>;
   }
 
@@ -186,6 +208,9 @@ const router = createBrowserRouter(
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/friend" element={<FriendRouteActivator />} />
+      <Route path="/log" element={<React.Suspense fallback={<RouteFallback />}><Log /></React.Suspense>} />
+      <Route path="/log/:slug" element={<React.Suspense fallback={<RouteFallback />}><LogPost /></React.Suspense>} />
+      <Route path="/desk/*" element={<React.Suspense fallback={<RouteFallback />}><Desk /></React.Suspense>} />
       <Route path="*" element={
         <React.Suspense fallback={
           <div className="h-screen w-screen bg-[#050505] flex items-center justify-center">

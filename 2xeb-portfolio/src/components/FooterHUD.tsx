@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useConsole } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
 import AskPortfolioWidget from './AskPortfolioWidget';
@@ -173,6 +173,7 @@ const FooterHUD: React.FC = () => {
                     <a href="https://youtube.com/@2xeb" target="_blank" rel="noreferrer" className="text-[#a3a3a3] hover:text-white transition-colors" aria-label="YouTube">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 2xl:w-5 2xl:h-5"><path d="M21.6 7.2a2.5 2.5 0 0 0-1.76-1.77C18.08 5 12 5 12 5s-6.08 0-7.84.43A2.5 2.5 0 0 0 2.4 7.2 26.6 26.6 0 0 0 2 12a26.6 26.6 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.76 1.77C5.92 19 12 19 12 19s6.08 0 7.84-.43A2.5 2.5 0 0 0 21.6 16.8 26.6 26.6 0 0 0 22 12a26.6 26.6 0 0 0-.4-4.8ZM10 15.06V8.94L15 12Z"/></svg>
                     </a>
+                    <Link to="/log" viewTransition className="text-[#737373] hover:text-white transition-colors">Log</Link>
                   </div>
                 </div>
 
@@ -242,6 +243,7 @@ const FooterHUD: React.FC = () => {
                       <a href="https://youtube.com/@2xeb" target="_blank" rel="noreferrer" className="text-[#a3a3a3] hover:text-white transition-colors" aria-label="YouTube">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M21.6 7.2a2.5 2.5 0 0 0-1.76-1.77C18.08 5 12 5 12 5s-6.08 0-7.84.43A2.5 2.5 0 0 0 2.4 7.2 26.6 26.6 0 0 0 2 12a26.6 26.6 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.76 1.77C5.92 19 12 19 12 19s6.08 0 7.84-.43A2.5 2.5 0 0 0 21.6 16.8 26.6 26.6 0 0 0 22 12a26.6 26.6 0 0 0-.4-4.8ZM10 15.06V8.94L15 12Z"/></svg>
                       </a>
+                      <Link to="/log" viewTransition className="text-[#737373] hover:text-white transition-colors">Log</Link>
                     </div>
                   </div>
                   {!isMLLabPage && !isHomePage && (

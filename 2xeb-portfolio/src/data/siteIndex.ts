@@ -43,6 +43,12 @@ export const SITE_INDEX: SitePage[] = [
     keywords: ['contact', 'email', 'reach out', 'hire'],
   },
   {
+    path: '/log',
+    title: 'Log',
+    description: 'Short writing: notes, fragments, and working thoughts',
+    keywords: ['log', 'blog', 'writing', 'notes', 'essays', 'thoughts', 'journal'],
+  },
+  {
     path: '/work/portfolio-console',
     title: 'Case Study: Portfolio Console',
     description: 'Deep dive into how this site was built',
