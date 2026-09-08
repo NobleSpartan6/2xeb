@@ -15,9 +15,9 @@ const About: React.FC = () => {
   const revealedBefore = hasRouteRevealPlayed();
 
   return (
-    <div ref={revealRef} className="min-h-screen bg-[#050505] pt-28 md:pt-36 pb-20 px-4 sm:px-6 lg:px-12">
+    <div ref={revealRef} className="min-h-screen bg-[#050505] pt-28 md:pt-36 pb-20 px-4 sm:px-6 lg:px-12 3xl:px-16">
       {/* Header */}
-      <div className="max-w-5xl xl:max-w-6xl mx-auto mb-20 lg:mb-28 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
+      <div className="max-w-5xl xl:max-w-6xl 3xl:max-w-8xl 4xl:max-w-10xl mx-auto mb-20 lg:mb-28 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 3xl:gap-24">
         <div className="flex flex-col items-start gap-5">
            <div data-animate>
              <span ref={kickerRef} className="text-[#2563EB] font-mono text-[11px] sm:text-xs uppercase tracking-widest block mb-3 sm:mb-4">Profile</span>
@@ -95,7 +95,7 @@ const About: React.FC = () => {
 
       {/* Experience Section */}
       <div className="border-t border-[#262626]">
-        <div className="max-w-5xl xl:max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12">
+        <div className="max-w-5xl xl:max-w-6xl 3xl:max-w-8xl 4xl:max-w-10xl mx-auto grid grid-cols-1 lg:grid-cols-12">
           
           {/* Section Label */}
           <div className="lg:col-span-3 py-10 md:py-12 border-b lg:border-b-0 lg:border-r border-[#262626] border-opacity-50 pr-0 lg:pr-8">
@@ -129,7 +129,7 @@ const About: React.FC = () => {
                     </span>
                   </div>
                   
-                  <p className="text-[#D4D4D4] leading-relaxed mb-6 max-w-3xl font-light text-sm md:text-base">
+                  <p className="text-[#D4D4D4] leading-relaxed mb-6 max-w-3xl 3xl:max-w-4xl font-light text-sm md:text-base">
                     {item.desc}
                   </p>
                   
