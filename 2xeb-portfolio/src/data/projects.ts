@@ -70,13 +70,13 @@ export const PROJECTS: Project[] = [
   // --- VIDEO / CREATIVE WORK ---
   {
     id: 25,
-    slug: 'nolanberollin',
-    title: 'Nolanberollin — Official Video [Dir. EB]',
-    shortDesc: 'Video for Nolanberollin. Shot and directed by EB.',
-    longDesc: 'Video for Nolanberollin — shot and directed by EB.',
+    slug: 'summer-wars',
+    title: 'nbr* - SUMMER WARS (official music video)',
+    shortDesc: 'Official music video for "SUMMER WARS" by nbr* (nolanberollin). Directed and shot by EB.',
+    longDesc: 'Official music video for "SUMMER WARS" by nbr* (nolanberollin) — directed and shot by EB. Edit by digi_pirate.',
     primaryDiscipline: Discipline.VIDEO,
     tags: ['Direction', 'Cinematography', 'Music Video'],
-    createdAt: '2026-09-08',
+    createdAt: '2026-09-05',
     imageUrl: 'https://img.youtube.com/vi/Z_7z0XMN0E4/maxresdefault.jpg',
     status: 'live',
     videoUrl: 'https://youtu.be/Z_7z0XMN0E4',
