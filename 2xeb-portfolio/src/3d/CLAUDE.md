@@ -85,6 +85,14 @@ beat step down one notch (85% → 70% resolution → no bloom) for the rest of t
 visit. Down only, so it can't oscillate. The hero also stops drawing
 (`frameloop="never"`) while the terminal easter egg covers it.
 
+**The wave surface returns to rest (`WAVE_REST`, `MAX_DIP`):**
+Impulses push the surface down and the neighbour (Laplacian) term only spreads
+a push, never undoes it, so without a rest spring every click left a lasting
+trough and a few quick clicks sank patches of cells under the floor plane.
+The spring heals troughs in ~1.5s; `MAX_DIP` soft-limits how far a cell can
+drop so its top always clears the floor. Same doctrine as the permanent
+floor: light and waves move over the surface, cells never disappear.
+
 **Instance buffers are written directly:**
 Cells never rotate and only move in y, so the x/z translation is seeded once per
 layout and each frame writes two matrix floats and three colour floats per cell

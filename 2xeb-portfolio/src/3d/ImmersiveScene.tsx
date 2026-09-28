@@ -54,6 +54,25 @@ const CAMERA_SETTLE_RATE = rateFromLerp60(0.1);
 /** Wave sim substep ceiling. Holds the 60 fps behaviour at any frame rate. */
 const WAVE_STEP = 1 / 60;
 
+/**
+ * Pull of the wave surface back to its rest height, per second².
+ *
+ * Clicks and the cursor wake push the surface *down*, and the neighbour term
+ * only spreads a push, it never undoes one. So every splash left its net
+ * depression in the floor for seconds, and a few quick clicks sank whole
+ * patches of cells under the floor plane: cubes vanishing, the one thing the
+ * permanent floor exists to prevent. This heals a trough in ~1.5s while the
+ * ripples (c² = 90, far stiffer) still travel as before.
+ */
+const WAVE_REST = 12;
+
+/**
+ * Deepest a cell may dip, in lift units. Soft-limited (tanh) rather than
+ * clipped, so a trough rounds off instead of flattening; at this depth a
+ * cell's top still clears the floor plane.
+ */
+const MAX_DIP = 0.2;
+
 // --- FIELD SHAPE ---
 // Influence extents, hoisted out of the per-cube loop.
 //
@@ -362,7 +381,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
         const nR = col < N - 1 ? wh[i + 1] : wh[i];
         const nU = row > 0 ? wh[i - N] : wh[i];
         const nD = row < N - 1 ? wh[i + N] : wh[i];
-        wv[i] = (wv[i] + ((nL + nR + nU + nD) / 4 - wh[i]) * c2 * dtw) * wDamp;
+        wv[i] = (wv[i] + (((nL + nR + nU + nD) / 4 - wh[i]) * c2 - wh[i] * WAVE_REST) * dtw) * wDamp;
       }
       for (let i = 0; i < totalCells; i++) wh[i] += wv[i] * dtw;
     }
@@ -464,7 +483,8 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
 
       // === SUBTLE BREATHING ===
       const breathe = Math.sin(time * 0.5 + idx * 0.01) * 0.03;
-      const targetY = (hT + wH * 0.6 + breathe) * edgeFade;
+      const lift = wH >= 0 ? wH * 0.6 : -MAX_DIP * Math.tanh((-wH * 0.6) / MAX_DIP);
+      const targetY = (hT + lift + breathe) * edgeFade;
 
       // Apply position: y scale and y offset (see the seeding above)
       const o = i * 16;
