@@ -4,10 +4,15 @@ import { createTimeline, stagger, utils } from 'animejs';
 import { useConsole } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
 import { prefersReducedMotion, useMagnetic, hasRouteRevealPlayed, markRouteRevealPlayed } from '../hooks/useAnimations';
+import { canDevelop, type TakeDirector } from '../components/take/types';
+import { useTakeRecorder } from '../components/take/useTakeRecorder';
+import TakeControl from '../components/take/TakeControl';
 
 // Lazy load the 3D scene so three.js/R3F stay out of the main bundle —
 // the UI shell paints immediately while the scene streams in
 const ImmersiveScene = lazy(() => import('../3d/ImmersiveScene'));
+// The encoder (mediabunny) only loads once someone actually shoots a take
+const TakeOverlay = lazy(() => import('../components/take/TakeOverlay'));
 
 // Hook for periodic terminal hint - shows a subtle cursor periodically
 const useTerminalHint = () => {
@@ -177,6 +182,25 @@ const Home: React.FC = () => {
   const showTerminalHint = useTerminalHint();
   const showTimestampHint = useTimestampHint();
   const contentRef = useRef<HTMLDivElement>(null);
+  // Take: record the visitor's input on the grid, develop it into a clip
+  const director = useRef<TakeDirector | null>(null);
+  const recorder = useTakeRecorder(director);
+  const [takeSupported] = useState(canDevelop);
+  const { recordFocus } = recorder;
+  useEffect(() => {
+    recordFocus(focusedDiscipline);
+  }, [focusedDiscipline, recordFocus]);
+  const takeControl = takeSupported && sceneReady && (
+    <>
+      <span className="text-[#525252] pointer-events-none">·</span>
+      <TakeControl
+        recording={recorder.recording}
+        startedAt={recorder.startedAt}
+        onStart={(e) => recorder.start(e.clientX, e.clientY, focusedDiscipline)}
+        onStop={recorder.stop}
+      />
+    </>
+  );
   const workCtaRef = useMagnetic<HTMLDivElement>();
   const askCtaRef = useMagnetic<HTMLDivElement>();
 
@@ -251,7 +275,7 @@ const Home: React.FC = () => {
       <div className={`absolute inset-0 z-0 transition-opacity duration-500 ease-out-strong ${sceneReady ? 'opacity-100' : 'opacity-0'}`}>
         {mountScene && (
           <Suspense fallback={null}>
-            <ImmersiveScene onReady={handleSceneReady} pulse={scenePulse} />
+            <ImmersiveScene onReady={handleSceneReady} pulse={scenePulse} director={director} />
           </Suspense>
         )}
       </div>
@@ -275,11 +299,10 @@ const Home: React.FC = () => {
         onClick={(e) => {
           setFocusedDiscipline(null);
           // Fire a shockwave through the grid from the click point
-          setScenePulse({
-            nx: (e.clientX / window.innerWidth) * 2 - 1,
-            ny: -((e.clientY / window.innerHeight) * 2 - 1),
-            t: Date.now(),
-          });
+          const nx = (e.clientX / window.innerWidth) * 2 - 1;
+          const ny = -((e.clientY / window.innerHeight) * 2 - 1);
+          setScenePulse({ nx, ny, t: Date.now() });
+          recorder.recordPulse(nx, ny);
         }}
       >
         {/* Terminal Hint - Periodic subtle cursor */}
@@ -327,6 +350,7 @@ const Home: React.FC = () => {
                 >
                   <span className="animate-pulse">&gt;_</span>
                 </button>
+                {takeControl}
                 <NowPlayingInline />
               </div>
               {/* Mobile/Tablet: compact */}
@@ -348,6 +372,7 @@ const Home: React.FC = () => {
                   >
                     <span className="animate-pulse">&gt;_</span>
                   </button>
+                  {takeControl}
                 </div>
                 <NowPlayingStacked />
               </div>
@@ -457,6 +482,11 @@ const Home: React.FC = () => {
         </div>
       </div>
 
+      {recorder.take && (
+        <Suspense fallback={null}>
+          <TakeOverlay take={recorder.take} director={director} onClose={recorder.clear} />
+        </Suspense>
+      )}
     </div>
   );
 };
