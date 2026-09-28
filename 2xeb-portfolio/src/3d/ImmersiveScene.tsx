@@ -645,95 +645,109 @@ const CameraRig: React.FC<{ motion: SceneMotion }> = ({ motion }) => {
 /** Seconds simulated before frame 0, so trails and ripples have settled. */
 const TAKE_PREROLL = 1;
 
+/** The frame a developing take renders at, in CSS px at DPR 1. */
+interface ExportFrame {
+  width: number;
+  height: number;
+}
+
 /**
  * Develops a recorded take: the live loop stops, the renderer takes the export
  * frame's size, and each frame is stepped by hand at a locked rate with the
  * recorded pointer, clicks and focus fed in. Then the scene gets its size,
  * pointer and clock back and resumes exactly where the visitor left it.
  *
- * The frameloop itself flips through `setDeveloping`, not `setFrameloop`:
- * the Canvas re-applies its `frameloop` prop on every render, so the prop has
- * to say "never" for as long as the take develops.
+ * Size, DPR and frameloop all change through `setExportFrame`, i.e. through
+ * the Canvas's own props and its measured container, never through
+ * `state.setSize` / `setDpr` / `setFrameloop`: the Canvas re-applies its
+ * props and container size on every render, so anything set on the store
+ * directly is reverted by the next re-render of the page.
  */
 const DirectorBridge: React.FC<{
   motion: SceneMotion;
   director: React.MutableRefObject<TakeDirector | null>;
-  setDeveloping: (developing: boolean) => void;
-}> = ({ motion, director, setDeveloping }) => {
+  setExportFrame: (frame: ExportFrame | null) => void;
+}> = ({ motion, director, setExportFrame }) => {
   const get = useThree((s) => s.get);
 
   useEffect(() => {
+    // Flipped when this canvas goes away (context loss remount, route
+    // change), so an in-flight develop stops instead of stepping a dead root
+    let alive = true;
+
     director.current = {
       now: () => motion.time,
       async develop(take, { width, height, fps, onFrame, cancelled }) {
         const state = get();
-        const saved = {
-          size: { ...state.size },
-          dpr: state.viewport.dpr,
-          time: motion.time,
-          pointer: state.pointer.clone(),
-        };
+        const saved = { time: motion.time, pointer: state.pointer.clone() };
         state.setEvents({ enabled: false });
-        setDeveloping(true);
-        state.setDpr(1);
-        state.setSize(width, height);
-        // Let React commit: the frameloop prop and the bloom composer's size
-        // both land in the next render
-        await new Promise((r) => setTimeout(r, 80));
-
-        // R3F's 'never' mode feeds `advance(t)` timestamps into the clock, but
-        // an auto-starting stopped clock restarts itself on the first
-        // getDelta() and then mixes its ms reads into those seconds. Hold it
-        // stopped so every step is exactly dt.
-        const clockObj = get().clock;
-        clockObj.autoStart = false;
-
-        const dt = 1 / fps;
-        const preroll = Math.round(TAKE_PREROLL * fps);
-        const total = Math.max(1, Math.round(take.duration * fps));
-        const pulseBase = Date.now();
-        let p = 0;
-        let k = 0;
-        let clock = clockObj.elapsedTime;
-        motion.time = take.sceneStart - TAKE_PREROLL;
+        setExportFrame({ width, height });
 
         try {
-          for (let i = -preroll; i < total; i++) {
-            if (cancelled?.()) break;
-            const t = Math.max(0, i * dt);
-            while (p + 1 < take.pointer.length && take.pointer[p + 1].t <= t) p++;
-            const at = take.pointer[p];
-            if (at) state.pointer.set(at.x, at.y);
-            const focus = sampleFocus(take, t);
-            motion.focusOverride = focus;
-            while (i >= 0 && k < take.pulses.length && take.pulses[k].t <= t) {
-              const hit = take.pulses[k++];
-              motion.pulseOverride = { nx: hit.nx, ny: hit.ny, t: pulseBase + k };
+          // Wait for the container resize to be measured and the new props
+          // (dpr 1, frameloop 'never', bloom on phones) to be applied
+          for (let tries = 0; ; tries++) {
+            const now = get();
+            if (now.size.width === width && now.size.height === height && now.viewport.dpr === 1 && now.frameloop === 'never') break;
+            if (!alive || tries > 60) throw new Error('The scene could not take the export frame');
+            await new Promise((r) => setTimeout(r, 16));
+          }
+
+          // R3F's 'never' mode feeds `advance(t)` timestamps into the clock,
+          // but an auto-starting stopped clock restarts itself on the first
+          // getDelta() and then mixes its ms reads into those seconds. Hold
+          // it stopped so every step is exactly dt.
+          const clockObj = get().clock;
+          clockObj.autoStart = false;
+
+          const dt = 1 / fps;
+          const preroll = Math.round(TAKE_PREROLL * fps);
+          const total = Math.max(1, Math.round(take.duration * fps));
+          const pulseBase = Date.now();
+          let p = 0;
+          let k = 0;
+          let clock = clockObj.elapsedTime;
+          motion.time = take.sceneStart - TAKE_PREROLL;
+
+          try {
+            for (let i = -preroll; i < total; i++) {
+              if (cancelled?.()) break;
+              if (!alive) throw new Error('The scene was lost while developing');
+              const t = Math.max(0, i * dt);
+              while (p + 1 < take.pointer.length && take.pointer[p + 1].t <= t) p++;
+              const at = take.pointer[p];
+              if (at) state.pointer.set(at.x, at.y);
+              const focus = sampleFocus(take, t);
+              motion.focusOverride = focus;
+              while (i >= 0 && k < take.pulses.length && take.pulses[k].t <= t) {
+                const hit = take.pulses[k++];
+                motion.pulseOverride = { nx: hit.nx, ny: hit.ny, t: pulseBase + k };
+              }
+
+              clock += dt;
+              get().advance(clock);
+
+              if (i >= 0) await onFrame(state.gl.domElement, { index: i, total, focus });
+              else if (i % 15 === 0) await new Promise((r) => setTimeout(r));
             }
-
-            clock += dt;
-            get().advance(clock);
-
-            if (i >= 0) await onFrame(state.gl.domElement, { index: i, total, focus });
-            else if (i % 15 === 0) await new Promise((r) => setTimeout(r));
+          } finally {
+            clockObj.autoStart = true;
           }
         } finally {
           motion.focusOverride = undefined;
           motion.pulseOverride = null;
           motion.time = saved.time;
           state.pointer.copy(saved.pointer);
-          state.setDpr(saved.dpr);
-          state.setSize(saved.size.width, saved.size.height, saved.size.top, saved.size.left);
           state.setEvents({ enabled: true });
-          clockObj.autoStart = true;
-          setDeveloping(false);
+          setExportFrame(null);
         }
       },
     };
     return () => {
+      alive = false;
       director.current = null;
     };
-  }, [get, motion, director, setDeveloping]);
+  }, [get, motion, director, setExportFrame]);
 
   return null;
 };
@@ -819,7 +833,8 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
   // The terminal easter egg covers the hero with its own full-screen shader.
   // Two WebGL loops for one visible scene is the worst case on a battery, so
   // the hidden one stops drawing; the accumulated clock resumes it in place.
-  const [developing, setDeveloping] = useState(false);
+  const [exportFrame, setExportFrame] = useState<ExportFrame | null>(null);
+  const developing = exportFrame !== null;
   const paused = consoleCtx.isEasterEggActive || developing;
 
   // Detect screen size for responsive 3D rendering
@@ -871,10 +886,16 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
   const fogSettings = getFog();
 
   return (
-    <div className={`w-full h-full ${className}`}>
+    // While a take develops, the container itself takes the export frame's
+    // size, so the Canvas measures and renders at it (hidden behind the
+    // darkroom overlay; the page clips the overflow)
+    <div
+      className={exportFrame ? className : `w-full h-full ${className}`}
+      style={exportFrame ? { width: exportFrame.width, height: exportFrame.height } : undefined}
+    >
       <Canvas
         key={canvasKey}
-        dpr={dpr}
+        dpr={exportFrame ? 1 : dpr}
         frameloop={paused ? 'never' : 'always'}
         camera={{ position: [0, 12, 16], fov: getFov(), near: 0.1, far: 100 }}
         // The hero content overlay sits above the canvas and would swallow
@@ -933,7 +954,7 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
           <PillarLights motion={motion} />
           <CameraRig motion={motion} />
           <ContextGuard onLost={handleContextLost} />
-          {director && <DirectorBridge motion={motion} director={director} setDeveloping={setDeveloping} />}
+          {director && <DirectorBridge motion={motion} director={director} setExportFrame={setExportFrame} />}
           {onReady && <ReadyDetector onReady={onReady} />}
 
           {/* Bloom turns the emissive cells into neon light sources.
