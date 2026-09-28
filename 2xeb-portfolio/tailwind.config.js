@@ -49,6 +49,10 @@ export default {
         'fade-in': 'fadeIn 0.2s ease-out forwards',
         'message-in': 'messageIn 0.25s cubic-bezier(0.23, 1, 0.32, 1) both',
         'modal-in': 'modalIn 0.2s cubic-bezier(0.23, 1, 0.32, 1) both',
+        // 'backwards' (not 'both') so a finished animation releases transform —
+        // safe to combine with .pressable / hover transforms on descendants
+        'rise-in': 'riseIn 0.45s cubic-bezier(0.23, 1, 0.32, 1) backwards',
+        'caret-blink': 'caretBlink 1s step-end infinite',
       },
       keyframes: {
         modalIn: {
@@ -62,6 +66,14 @@ export default {
         messageIn: {
           '0%': { opacity: '0', transform: 'translateY(6px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        riseIn: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        caretBlink: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
         },
       },
       maxWidth: {

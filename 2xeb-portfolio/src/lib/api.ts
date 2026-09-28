@@ -35,7 +35,7 @@ export interface ContactPayload {
  *
  * @param question - The user's question
  * @param context - Pre-built context string from static project data
- * @param modelId - Model ID (e.g., 'llama-3.1-8b-instant')
+ * @param modelId - Model ID (e.g., 'openai/gpt-oss-20b')
  * @returns AI response with answer and related project slugs
  */
 export async function askPortfolio(

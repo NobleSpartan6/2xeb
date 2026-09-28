@@ -23,7 +23,7 @@ AI assistant for portfolio questions. **Groq primary, Cerebras 429 fallback**, w
 
 - **Endpoint**: `POST /functions/v1/ask-portfolio`
 - **Input**: `{ question, context, model?, stream? }`
-  - `model`: Specific model ID (e.g., `"llama-3.1-8b-instant"`)
+  - `model`: Specific model ID (e.g., `"openai/gpt-oss-20b"`)
   - `stream`: `true` for SSE streaming
 - **Output (non-streaming)**: `{ answer, projectSlugs, model, provider }`
 - **Prompting**: Streaming uses a plain-text prompt (no JSON) to avoid flashing; non-stream uses `response_format: json_object`
@@ -31,10 +31,9 @@ AI assistant for portfolio questions. **Groq primary, Cerebras 429 fallback**, w
 - **Available Models**:
   | Model ID | Daily Limit | Default |
   |----------|-------------|---------|
-  | `llama-3.1-8b-instant` | 14,400 | No |
-  | `meta-llama/llama-4-scout-17b-16e-instruct` | 1,000 | **Yes** |
-  | `llama-3.3-70b-versatile` | 1,000 | No |
-  | `openai/gpt-oss-120b` | 1,000 | No |
+  | `openai/gpt-oss-20b` | 1,000 | No |
+  | `qwen/qwen3.6-27b` | 1,000 | No |
+  | `openai/gpt-oss-120b` | 1,000 | **Yes** |
 - **Reasoning models**: `gpt-oss` models get `reasoning_effort: "low"` so chat replies stay snappy
 - **Fallback**: if Groq responds 429 (rate limit) and `CEREBRAS_API_KEY` is set, the request is retried once against Cerebras (`https://api.cerebras.ai/v1/chat/completions`, OpenAI-compatible) with `gpt-oss-120b` — Cerebras's only production free-tier model, the same open weights as Groq's `openai/gpt-oss-120b`. Works for both streaming and JSON modes; the response/metadata event then reports `provider: "cerebras"` and the Cerebras model ID. If Groq isn't configured at all, Cerebras is used directly.
 - **Security**: Server validates model ID against whitelist (ALLOWED_GROQ_MODELS); the Cerebras fallback model is fixed server-side (never client-chosen)

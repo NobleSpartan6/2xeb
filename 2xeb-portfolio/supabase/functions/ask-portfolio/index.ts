@@ -10,15 +10,16 @@ type Provider = "groq" | "cerebras";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-// Allowed Groq models (free tier) — keep in sync with src/lib/models.ts
+// Allowed Groq models (free tier) — keep in sync with src/lib/models.ts.
+// Groq retired its Llama lineup in mid-2026; unknown/legacy IDs fall back to
+// DEFAULT_GROQ_MODEL, so clients pinned to a removed model keep working.
 const ALLOWED_GROQ_MODELS = [
-  "llama-3.1-8b-instant",
-  "meta-llama/llama-4-scout-17b-16e-instruct",
-  "llama-3.3-70b-versatile",
+  "openai/gpt-oss-20b",
+  "qwen/qwen3.6-27b",
   "openai/gpt-oss-120b",
 ];
 
-const DEFAULT_GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+const DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b";
 
 // Free fallback when Groq is rate-limited (429). Cerebras's public API is
 // OpenAI-compatible and hosts GPT-OSS 120B as its only production model —

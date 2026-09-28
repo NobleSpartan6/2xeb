@@ -279,12 +279,9 @@ const ProjectDetail: React.FC = () => {
       {caseStudy && showCaseStudy && (
         <div className="mt-16 border-t border-[#262626] pt-16">
           <Suspense fallback={
-            <div className="flex items-center justify-center py-20">
-              <div className="flex gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-bounce" style={{ animationDelay: '0s' }}></span>
-                <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-bounce" style={{ animationDelay: '0.15s' }}></span>
-                <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-bounce" style={{ animationDelay: '0.3s' }}></span>
-              </div>
+            <div className="flex items-center justify-center gap-2 py-20 font-mono">
+              <span className="inline-block w-[7px] h-[14px] bg-[#2563EB] animate-caret-blink" aria-hidden />
+              <span className="text-[10px] uppercase tracking-widest text-[#525252]">Loading case study</span>
             </div>
           }>
             <CaseStudyExplorer caseStudy={caseStudy} onClose={() => setShowCaseStudy(false)} />
