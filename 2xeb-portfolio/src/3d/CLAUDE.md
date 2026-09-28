@@ -61,6 +61,36 @@ slow, local colour drifts, so they run at 0.3× instead. Viewport-scale effects
 stay curbed under reduce-motion — camera parallax off (CameraRig early
 return), shockwave amplitude damped (`pulseAmp`), stars still.
 
+**Motion is frame-rate independent (`frame.ts`):**
+Browsers choose the rAF cadence: 120 Hz on ProMotion, 60 on most monitors, 30
+under power saving (Chrome Energy Saver, Edge efficiency mode, Safari/iOS Low
+Power Mode). So:
+- No per-frame lerp factors. Use `approach(rate, dt)` with a per-second rate;
+  `rateFromLerp60(0.08)` converts an old 60 fps-tuned factor exactly
+- One accumulated scene clock (`SceneMotion`, advanced by `MotionDriver` at
+  `useFrame` priority -1). Never read `state.clock` for motion: the wall clock
+  teleports the shapes when reduce-motion flips (0.3 × t), when a paused
+  canvas resumes, and after a backgrounded tab. Pillars are computed once per
+  frame there and read by the grid, the lights and the camera
+- The wave sim substeps at ≤1/60 s, so ripples travel at the same real speed
+  at 30 fps instead of half
+- Steps are clamped to `MAX_STEP` (0.1 s)
+
+**Quality degrades, motion doesn't (`CadenceMonitor`, `QUALITY_STEPS`):**
+The governor judges frames against the beat the browser is giving, not 60 fps.
+A steady 30 Hz power-saving cap is healthy and must never trip it (an
+"fps < 50 → degrade" monitor would strip quality from a perfect scene). Only
+*missed* beats count: two 2-second windows with >25% of frames past 1.6× the
+beat step down one notch (85% → 70% resolution → no bloom) for the rest of the
+visit. Down only, so it can't oscillate. The hero also stops drawing
+(`frameloop="never"`) while the terminal easter egg covers it.
+
+**Instance buffers are written directly:**
+Cells never rotate and only move in y, so the x/z translation is seeded once per
+layout and each frame writes two matrix floats and three colour floats per cell
+(linear values, exactly what `Color.setRGB` stored). Don't go back to
+`Object3D.updateMatrix()` + `setMatrixAt` per cell.
+
 **Responsive Behavior:**
 ```typescript
 const getGridConfig = (isMobile: boolean) => ({

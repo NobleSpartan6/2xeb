@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { useConsole, ConsoleContext } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
 import { useReducedMotion } from '../hooks/useAnimations';
+import { MAX_STEP, approach, rateFromLerp60, budgetDpr, CadenceMonitor } from './frame';
 
 // --- RESPONSIVE CONFIGURATION ---
 type ScreenSize = 'mobile' | 'desktop' | 'large' | 'ultrawide';
@@ -35,11 +36,6 @@ const getScreenSize = (width: number): ScreenSize => {
 const CELL_SIZE = 0.5;
 const GAP = 0.08;
 
-/** Widest framebuffer we'll render, in device pixels. See `dpr` below.
- *  A multiple of the 64px viewport rounding step so the budget and the
- *  rounded width can't disagree by a fraction of a step. */
-const MAX_RENDER_WIDTH = 2240;
-
 // Colors matching design system
 const COLORS = {
   bg: '#050505',
@@ -50,9 +46,13 @@ const COLORS = {
   dim: new THREE.Color('#0a0a0a'),
 };
 
-// Reusable objects to avoid GC pressure
-const _dummy = new THREE.Object3D();
-const _color = new THREE.Color();
+// Per-second rates, tuned as per-frame lerps at 60 fps (see frame.ts)
+const SWE_SNAP_RATE = rateFromLerp60(0.08);
+const CAMERA_RATE = rateFromLerp60(0.03);
+const CAMERA_SETTLE_RATE = rateFromLerp60(0.1);
+
+/** Wave sim substep ceiling. Holds the 60 fps behaviour at any frame rate. */
+const WAVE_STEP = 1 / 60;
 
 // --- FIELD SHAPE ---
 // Influence extents, hoisted out of the per-cube loop.
@@ -99,49 +99,70 @@ const FLOOR_B = 0.055;
 // --- PILLAR BEHAVIORS ---
 // Each pillar represents a discipline with distinct movement patterns
 
-interface PillarState {
-  position: THREE.Vector3;
-  velocity: THREE.Vector3;
-  phase: number;
-}
-
 // SWE: Precise, grid-snapped, architectural movement
-const updateSWEPillar = (state: PillarState, time: number): void => {
-  const speed = 0.6;
-  const t = time * speed;
+const updateSWEPillar = (position: THREE.Vector3, time: number, dt: number): void => {
+  const t = time * 0.6;
 
   // Quantized movement - snaps to grid intersections
   const gridStep = (CELL_SIZE + GAP) * 3;
   const targetX = Math.round(Math.sin(t * 0.7) * 8) * gridStep / 3;
   const targetZ = Math.round(Math.cos(t * 0.5) * 6) * gridStep / 3;
 
-  // Smooth interpolation to target
-  state.position.x += (targetX - state.position.x) * 0.08;
-  state.position.z += (targetZ - state.position.z) * 0.08;
-  state.phase = t;
+  // Glide to the snapped target at a per-second rate, so the step reads the
+  // same at 30, 60 and 120 fps
+  const k = approach(SWE_SNAP_RATE, dt);
+  position.x += (targetX - position.x) * k;
+  position.z += (targetZ - position.z) * k;
 };
 
 // ML: Organic, flowing, neural-network-like patterns
-const updateMLPillar = (state: PillarState, time: number): void => {
-  const speed = 0.4;
-  const t = time * speed;
+const updateMLPillar = (position: THREE.Vector3, time: number): void => {
+  const t = time * 0.4;
 
   // Lissajous curves for organic wandering
-  state.position.x = Math.sin(t * 1.3) * 6 + Math.cos(t * 0.5) * 3;
-  state.position.z = Math.cos(t * 0.8) * 5 + Math.sin(t * 1.1) * 2;
-  state.phase = t;
+  position.x = Math.sin(t * 1.3) * 6 + Math.cos(t * 0.5) * 3;
+  position.z = Math.cos(t * 0.8) * 5 + Math.sin(t * 1.1) * 2;
 };
 
 // VIDEO: Linear sweep, timeline-like scanning motion
-const updateVideoPillar = (state: PillarState, time: number): void => {
-  const speed = 0.35;
-  const t = time * speed;
+const updateVideoPillar = (position: THREE.Vector3, time: number): void => {
+  const t = time * 0.35;
 
   // Horizontal sweep with subtle vertical drift
-  state.position.x = Math.sin(t) * 10;
-  state.position.z = Math.sin(t * 0.3) * 2;
-  state.phase = t;
+  position.x = Math.sin(t) * 10;
+  position.z = Math.sin(t * 0.3) * 2;
 };
+
+/**
+ * One clock and one set of pillar positions for the whole scene, advanced once
+ * per frame by `MotionDriver` before anything reads them.
+ *
+ * The clock is accumulated, not read off the wall: each frame adds a clamped
+ * step times `timeScale`. So flipping reduce-motion changes the *speed* of the
+ * shapes instead of teleporting them (0.3 × a wall clock jumps from t=100 to
+ * t=30), a paused or backgrounded scene resumes where it stopped, and the grid
+ * and its lights can't drift apart because they read the same positions.
+ */
+interface SceneMotion {
+  /** Scene time in seconds, slowed under reduced motion. */
+  time: number;
+  /** This frame's real step in seconds, clamped to MAX_STEP. */
+  dt: number;
+  /** Eases toward 1, or REDUCED_TIME_SCALE under reduced motion. */
+  timeScale: number;
+  swe: THREE.Vector3;
+  ml: THREE.Vector3;
+  video: THREE.Vector3;
+}
+
+const createSceneMotion = (): SceneMotion => ({
+  time: 0,
+  dt: 0,
+  timeScale: 1,
+  swe: new THREE.Vector3(0, 0, 0),
+  ml: new THREE.Vector3(5, 0, 3),
+  video: new THREE.Vector3(-5, 0, -2),
+});
 
 // Click shockwave signal, in NDC (-1..1) with a timestamp for dedup
 export interface PulseSignal {
@@ -156,9 +177,10 @@ interface InteractiveGridProps {
   gridSize: number;
   cellSize: number;
   pulse: PulseSignal | null;
+  motion: SceneMotion;
 }
 
-const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gridSize, cellSize, pulse }) => {
+const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gridSize, cellSize, pulse, motion }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const { mouse, viewport } = useThree();
   const totalCells = gridSize * gridSize;
@@ -198,12 +220,8 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
   /** Per-discipline presence, eased so focusing one cross-fades the others. */
   const focusWeights = useRef({ swe: 1, ml: 1, video: 1 });
 
-  // Pillar states
-  const pillars = useRef({
-    swe: { position: new THREE.Vector3(0, 0, 0), velocity: new THREE.Vector3(), phase: 0 },
-    ml: { position: new THREE.Vector3(5, 0, 3), velocity: new THREE.Vector3(), phase: 0 },
-    video: { position: new THREE.Vector3(-5, 0, -2), velocity: new THREE.Vector3(), phase: 0 },
-  });
+  /** The grid layout the instance buffers were last seeded for. */
+  const seededFor = useRef<unknown>(null);
 
   // Pre-compute grid positions. edgeFade dissolves the outermost cells into
   // darkness so the plane reads as infinite — parallax near the viewport
@@ -240,25 +258,41 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
   const sweCrossWidth = useMemo(() => (cellSize + GAP) * SWE_ARM_PITCHES, [cellSize]);
   const prevMouseRef = useRef<{ x: number; z: number; init: boolean }>({ x: 0, z: 0, init: false });
 
-  // Reduced motion: slow the clock (REDUCED_TIME_SCALE) rather than freeze it —
-  // a frozen scan burns a saturated static column that looks broken. Camera
-  // parallax and shockwave amplitude are curbed separately. Reactive so the
-  // scene thaws live when the OS setting flips.
+  // Reduced motion slows the shared clock (MotionDriver) rather than freezing
+  // it; here it only curbs the viewport-scale effects: shockwave amplitude and
+  // the focus cross-fade.
   const reduceMotion = useReducedMotion();
 
-  useFrame((state, delta) => {
-    if (!meshRef.current) return;
-    const rawTime = state.clock.getElapsedTime();
-    const time = reduceMotion ? rawTime * REDUCED_TIME_SCALE : rawTime;
+  useFrame(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    const { time, dt: delta } = motion;
+    const matrices = mesh.instanceMatrix.array as Float32Array;
 
-    // Update pillar positions
-    updateSWEPillar(pillars.current.swe, time);
-    updateMLPillar(pillars.current.ml, time);
-    updateVideoPillar(pillars.current.video, time);
+    // Cells never rotate and only move in y, so each instance matrix is a
+    // fixed x/z translation plus a y scale and offset. Seed the fixed parts
+    // once per layout; per frame only two floats per cell change, instead of
+    // composing a full matrix through an Object3D for every cube.
+    if (seededFor.current !== gridData) {
+      for (let i = 0; i < totalCells; i++) {
+        const o = i * 16;
+        matrices.fill(0, o, o + 16);
+        matrices[o] = 1;
+        matrices[o + 10] = 1;
+        matrices[o + 15] = 1;
+        matrices[o + 12] = gridData[i].x;
+        matrices[o + 14] = gridData[i].z;
+      }
+      if (mesh.instanceColor?.count !== totalCells) {
+        mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(totalCells * 3), 3);
+      }
+      seededFor.current = gridData;
+    }
+    const colors = mesh.instanceColor!.array as Float32Array;
 
-    const swePos = pillars.current.swe.position;
-    const mlPos = pillars.current.ml.position;
-    const videoPos = pillars.current.video.position;
+    const swePos = motion.swe;
+    const mlPos = motion.ml;
+    const videoPos = motion.video;
 
     // Mouse position in world space (approximate)
     const mouseX = (mouse.x * viewport.width) / 2;
@@ -313,20 +347,25 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     pm.z = mouseZ;
     pm.init = true;
 
-    // Damped wave propagation (clamped dt for stability on slow frames)
-    const dtw = Math.min(delta, 0.033);
+    // Damped wave propagation. Substepped so a 30 fps frame runs two 60 fps
+    // steps: the ripples travel at the same real speed under a power-saving
+    // frame cap instead of the old single clamped step (half speed at 30).
+    const substeps = Math.min(4, Math.max(1, Math.ceil(delta / WAVE_STEP - 1e-6)));
+    const dtw = delta / substeps;
     const c2 = 90;
     const wDamp = Math.exp(-4.5 * dtw);
     const N = gridSize;
-    for (let i = 0; i < totalCells; i++) {
-      const row = (i / N) | 0, col = i % N;
-      const nL = col > 0 ? wh[i - 1] : wh[i];
-      const nR = col < N - 1 ? wh[i + 1] : wh[i];
-      const nU = row > 0 ? wh[i - N] : wh[i];
-      const nD = row < N - 1 ? wh[i + N] : wh[i];
-      wv[i] = (wv[i] + ((nL + nR + nU + nD) / 4 - wh[i]) * c2 * dtw) * wDamp;
+    for (let s = 0; s < substeps; s++) {
+      for (let i = 0; i < totalCells; i++) {
+        const row = (i / N) | 0, col = i % N;
+        const nL = col > 0 ? wh[i - 1] : wh[i];
+        const nR = col < N - 1 ? wh[i + 1] : wh[i];
+        const nU = row > 0 ? wh[i - N] : wh[i];
+        const nD = row < N - 1 ? wh[i + N] : wh[i];
+        wv[i] = (wv[i] + ((nL + nR + nU + nD) / 4 - wh[i]) * c2 * dtw) * wDamp;
+      }
+      for (let i = 0; i < totalCells; i++) wh[i] += wv[i] * dtw;
     }
-    for (let i = 0; i < totalCells; i++) wh[i] += wv[i] * dtw;
 
     // Frame-rate-independent trail decay (longer streaks: ~1.3s tails)
     const decay = Math.exp(-5 * delta);
@@ -388,7 +427,8 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
           // pow(1.5), as originally written: already zero at the edge, and the
           // soft leading/trailing gradient is what makes the sweep read as a
           // scan pass rather than a hard bar
-          const intensity = Math.pow(1 - dVid / VIDEO_SCAN_WIDTH, 1.5);
+          const u = 1 - dVid / VIDEO_SCAN_WIDTH;
+          const intensity = u * Math.sqrt(u);
           const video = intensity * zGradient * videoWeight;
 
           ih += video * 0.5;
@@ -426,78 +466,93 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       const breathe = Math.sin(time * 0.5 + idx * 0.01) * 0.03;
       const targetY = (hT + wH * 0.6 + breathe) * edgeFade;
 
-      // Apply position
-      _dummy.position.set(x, targetY - 0.5, z);
-      _dummy.scale.set(1, Math.max(0.1, 0.3 + targetY * 0.5), 1);
-      _dummy.updateMatrix();
-      meshRef.current.setMatrixAt(i, _dummy.matrix);
+      // Apply position: y scale and y offset (see the seeding above)
+      const o = i * 16;
+      matrices[o + 5] = Math.max(0.1, 0.3 + targetY * 0.5);
+      matrices[o + 13] = targetY - 0.5;
 
       // Apply color: permanent floor, trails + wave glow on top, everything
-      // dissolving at the grid edge
-      _color.setRGB(
-        Math.min(1, (FLOOR_R + rT + COLORS.accent.r * wGlow) * edgeFade),
-        Math.min(1, (FLOOR_G + gT + COLORS.accent.g * wGlow) * edgeFade),
-        Math.min(1, (FLOOR_B + bT + COLORS.accent.b * wGlow) * edgeFade)
-      );
-      meshRef.current.setColorAt(i, _color);
+      // dissolving at the grid edge. Linear values, as Color.setRGB stored them.
+      const c = i * 3;
+      colors[c] = Math.min(1, (FLOOR_R + rT + COLORS.accent.r * wGlow) * edgeFade);
+      colors[c + 1] = Math.min(1, (FLOOR_G + gT + COLORS.accent.g * wGlow) * edgeFade);
+      colors[c + 2] = Math.min(1, (FLOOR_B + bT + COLORS.accent.b * wGlow) * edgeFade);
     }
 
-    meshRef.current.instanceMatrix.needsUpdate = true;
-    if (meshRef.current.instanceColor) {
-      meshRef.current.instanceColor.needsUpdate = true;
-    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.instanceColor!.needsUpdate = true;
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, totalCells]}>
+    // The grid fills the frame from every camera pose, so culling can only
+    // cost a bounding-sphere pass over every instance
+    <instancedMesh ref={meshRef} args={[undefined, undefined, totalCells]} frustumCulled={false}>
       <boxGeometry args={[cellSize, 1, cellSize]} />
       <primitive object={gridMaterial} attach="material" />
     </instancedMesh>
   );
 };
 
+// --- MOTION DRIVER ---
+// Quality given up, in order, when frames keep missing their beat. Motion is
+// never on the list: a softer or glow-less grid that moves beats a sharp one
+// that stutters.
+const QUALITY_STEPS = [
+  { dpr: 1, bloom: true },
+  { dpr: 0.85, bloom: true },
+  { dpr: 0.7, bloom: true },
+  { dpr: 0.7, bloom: false },
+] as const;
+
+/**
+ * Advances the shared clock and pillars once per frame, ahead of every other
+ * subscriber (negative priority runs first without taking over rendering).
+ * Also watches cadence: two windows in a row of frames missing their beat
+ * step quality down one notch for the rest of the visit. Only down, never
+ * back up, so it can't oscillate; a 30 fps power-saving cap is a steady beat
+ * and never trips it.
+ */
+const MotionDriver: React.FC<{ motion: SceneMotion; onStruggling: () => void }> = ({ motion, onStruggling }) => {
+  const reduceMotion = useReducedMotion();
+  const monitor = useMemo(() => new CadenceMonitor(), []);
+  const strikes = useRef(0);
+
+  useFrame((_, delta) => {
+    const dt = Math.min(delta, MAX_STEP);
+    const m = motion;
+    m.dt = dt;
+    m.timeScale += ((reduceMotion ? REDUCED_TIME_SCALE : 1) - m.timeScale) * approach(4, dt);
+    const sceneDt = dt * m.timeScale;
+    m.time += sceneDt;
+
+    updateSWEPillar(m.swe, m.time, sceneDt);
+    updateMLPillar(m.ml, m.time);
+    updateVideoPillar(m.video, m.time);
+
+    const verdict = monitor.sample(delta);
+    if (verdict === 'struggling') {
+      if (++strikes.current >= 2) {
+        strikes.current = 0;
+        onStruggling();
+      }
+    } else if (verdict) {
+      strikes.current = 0;
+    }
+  }, -1);
+
+  return null;
+};
+
 // --- PILLAR LIGHTS ---
-const PillarLights: React.FC = () => {
+const PillarLights: React.FC<{ motion: SceneMotion }> = ({ motion }) => {
   const sweRef = useRef<THREE.PointLight>(null);
   const mlRef = useRef<THREE.PointLight>(null);
   const videoRef = useRef<THREE.PointLight>(null);
 
-  const pillars = useRef({
-    swe: { position: new THREE.Vector3(), velocity: new THREE.Vector3(), phase: 0 },
-    ml: { position: new THREE.Vector3(), velocity: new THREE.Vector3(), phase: 0 },
-    video: { position: new THREE.Vector3(), velocity: new THREE.Vector3(), phase: 0 },
-  });
-
-  const reduceMotion = useReducedMotion();
-
-  useFrame((state) => {
-    const time = state.clock.getElapsedTime() * (reduceMotion ? REDUCED_TIME_SCALE : 1);
-
-    updateSWEPillar(pillars.current.swe, time);
-    updateMLPillar(pillars.current.ml, time);
-    updateVideoPillar(pillars.current.video, time);
-
-    if (sweRef.current) {
-      sweRef.current.position.set(
-        pillars.current.swe.position.x,
-        2,
-        pillars.current.swe.position.z
-      );
-    }
-    if (mlRef.current) {
-      mlRef.current.position.set(
-        pillars.current.ml.position.x,
-        2.5 + Math.sin(time * 2) * 0.5,
-        pillars.current.ml.position.z
-      );
-    }
-    if (videoRef.current) {
-      videoRef.current.position.set(
-        pillars.current.video.position.x,
-        2,
-        pillars.current.video.position.z
-      );
-    }
+  useFrame(() => {
+    sweRef.current?.position.set(motion.swe.x, 2, motion.swe.z);
+    mlRef.current?.position.set(motion.ml.x, 2.5 + Math.sin(motion.time * 2) * 0.5, motion.ml.z);
+    videoRef.current?.position.set(motion.video.x, 2, motion.video.z);
   });
 
   return (
@@ -510,12 +565,12 @@ const PillarLights: React.FC = () => {
 };
 
 // --- CAMERA RIG ---
-const CameraRig: React.FC = () => {
+const CameraRig: React.FC<{ motion: SceneMotion }> = ({ motion }) => {
   const { camera, mouse, viewport } = useThree();
   const targetPos = useRef(new THREE.Vector3(0, 12, 16));
   const reduceMotion = useReducedMotion();
 
-  useFrame((state) => {
+  useFrame(() => {
     // Tall/narrow viewports leave empty sky above the grid's horizon with the
     // wide-screen framing — steepen the pitch so the floor fills the frame.
     // tall: 0 on wide desktop → 1 on portrait.
@@ -527,7 +582,7 @@ const CameraRig: React.FC = () => {
     // framing without drift
     if (reduceMotion) {
       targetPos.current.set(0, baseY, baseZ);
-      camera.position.lerp(targetPos.current, 0.1);
+      camera.position.lerp(targetPos.current, approach(CAMERA_SETTLE_RATE, motion.dt));
       camera.lookAt(0, -1, 0);
       return;
     }
@@ -536,7 +591,7 @@ const CameraRig: React.FC = () => {
     // mouse parallax layers on top
     // Parallax travel kept modest so the camera never pans far enough to
     // resolve the grid's edge
-    const t = state.clock.getElapsedTime();
+    const t = motion.time;
     const targetX = mouse.x * 2.2 + Math.sin(t * 0.08) * 0.9;
     const targetY = baseY + mouse.y * 1 + Math.sin(t * 0.05) * 0.3;
     const targetZ = baseZ - mouse.y * 2 + Math.cos(t * 0.06) * 0.5;
@@ -544,7 +599,7 @@ const CameraRig: React.FC = () => {
     targetPos.current.set(targetX, targetY, targetZ);
 
     // Smooth camera movement
-    camera.position.lerp(targetPos.current, 0.03);
+    camera.position.lerp(targetPos.current, approach(CAMERA_RATE, motion.dt));
     camera.lookAt(0, -1, 0);
   });
 
@@ -606,6 +661,31 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
   );
   const [canvasKey, setCanvasKey] = useState(0);
   const reduceMotion = useReducedMotion();
+  // Outlives canvas remounts (context loss), so a fresh canvas picks the
+  // shapes up where the old one left them
+  const [motion] = useState(createSceneMotion);
+  const [qualityStep, setQualityStep] = useState(0);
+  const quality = QUALITY_STEPS[qualityStep];
+
+  const handleStruggling = useCallback(() => {
+    setQualityStep((step) => Math.min(step + 1, QUALITY_STEPS.length - 1));
+  }, []);
+
+  // Say so out loud: from the outside, a deliberately softened scene and a
+  // rendering bug look alike
+  useEffect(() => {
+    if (qualityStep === 0) return;
+    console.info(
+      `[ImmersiveScene] frames are missing their beat — ${
+        quality.bloom ? `rendering at ${Math.round(quality.dpr * 100)}% resolution` : 'dropping the glow pass'
+      } to keep the motion smooth`
+    );
+  }, [qualityStep, quality]);
+
+  // The terminal easter egg covers the hero with its own full-screen shader.
+  // Two WebGL loops for one visible scene is the worst case on a battery, so
+  // the hidden one stops drawing; the accumulated clock resumes it in place.
+  const paused = consoleCtx.isEasterEggActive;
 
   // Detect screen size for responsive 3D rendering
   useEffect(() => {
@@ -628,18 +708,14 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
 
   /**
    * Device pixel ratio, capped by a *rendered width* budget rather than a flat
-   * ratio. Bloom's mipmap chain and every fullscreen pass scale with framebuffer
-   * area, so a 2560px canvas at DPR 1.5 renders 8.3M pixels per frame — enough
-   * to drop an integrated GPU to single-digit FPS, or to exhaust it and lose the
-   * WebGL context, both of which read as the hero being frozen. Budgeting the
-   * width gives every display comparable per-frame cost; on a high-density
+   * ratio (see budgetDpr: a lost context or single-digit FPS both read as the
+   * hero being frozen), then scaled by the cadence governor. On a high-density
    * panel the glow aesthetic carries the softness anyway.
    */
-  const dpr = useMemo(() => {
-    const device = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;
-    if (isMobile) return Math.min(device, 1);
-    return Math.max(0.7, Math.min(device, 1.5, MAX_RENDER_WIDTH / viewportWidth));
-  }, [isMobile, viewportWidth]);
+  const dpr = useMemo(
+    () => Math.max(0.5, budgetDpr(viewportWidth, isMobile) * quality.dpr),
+    [isMobile, viewportWidth, quality.dpr]
+  );
 
   // FOV settings - wider on mobile, narrower on large screens for more detail
   const getFov = (): number => {
@@ -664,6 +740,7 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
       <Canvas
         key={canvasKey}
         dpr={dpr}
+        frameloop={paused ? 'never' : 'always'}
         camera={{ position: [0, 12, 16], fov: getFov(), near: 0.1, far: 100 }}
         // The hero content overlay sits above the canvas and would swallow
         // pointer events — source them from the app root so mouse parallax
@@ -710,14 +787,16 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
           {/* Accent light from below */}
           <pointLight position={[0, -5, 0]} intensity={0.3} color="#2563EB" />
 
+          <MotionDriver motion={motion} onStruggling={handleStruggling} />
           <InteractiveGrid
             focusedDiscipline={consoleCtx.focusedDiscipline}
             gridSize={config.gridSize}
             cellSize={config.cellSize}
             pulse={pulse}
+            motion={motion}
           />
-          <PillarLights />
-          <CameraRig />
+          <PillarLights motion={motion} />
+          <CameraRig motion={motion} />
           <ContextGuard onLost={handleContextLost} />
           {onReady && <ReadyDetector onReady={onReady} />}
 
@@ -725,7 +804,7 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
               Desktop only — mobile keeps the flat-lit look for performance.
               multisampling=0: MSAA on top of bloom is wasted GPU — the glow
               softens edges perceptually anyway */}
-          {!isMobile && (
+          {!isMobile && quality.bloom && (
             <EffectComposer multisampling={0}>
               <Bloom mipmapBlur intensity={0.7} luminanceThreshold={0.38} luminanceSmoothing={0.22} radius={0.7} />
             </EffectComposer>

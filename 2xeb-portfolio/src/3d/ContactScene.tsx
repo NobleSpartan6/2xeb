@@ -2,6 +2,10 @@ import React, { useRef, useMemo, useEffect, Suspense, useState, createContext, u
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useReducedMotion } from '../hooks/useAnimations';
+import { approach, rateFromLerp60, budgetDpr, MAX_STEP } from './frame';
+
+/** Camera parallax follow, tuned as a 0.03-per-frame lerp at 60 fps. */
+const CAMERA_RATE = rateFromLerp60(0.03);
 
 // Colors matching design system
 const COLORS = {
@@ -223,7 +227,7 @@ const CameraRig: React.FC<{ isMobile: boolean }> = ({ isMobile }) => {
   const targetPos = useRef(new THREE.Vector3());
   const reduceMotion = useReducedMotion();
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     // Reduced motion: no viewport-wide parallax — hold the framing
     if (reduceMotion) {
       camera.lookAt(0, -1, 0);
@@ -238,7 +242,7 @@ const CameraRig: React.FC<{ isMobile: boolean }> = ({ isMobile }) => {
     const targetZ = baseZ - mouse.y * 1.5;
 
     targetPos.current.set(targetX, targetY, targetZ);
-    camera.position.lerp(targetPos.current, 0.03);
+    camera.position.lerp(targetPos.current, approach(CAMERA_RATE, Math.min(delta, MAX_STEP)));
     camera.lookAt(0, -1, 0);
   });
 
@@ -296,13 +300,18 @@ const ContactScene: React.FC<ContactSceneProps> = ({
   isSuccess = false,
   triggerPulse = 0,
 }) => {
-  const [isMobile, setIsMobile] = useState(false);
+  // Rounded to 64px steps so a drag-resize doesn't reallocate the framebuffer
+  // on every pixel
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window === 'undefined' ? 1280 : Math.round(window.innerWidth / 64) * 64
+  );
+  const isMobile = viewportWidth < 768;
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    const onResize = () => setViewportWidth(Math.round(window.innerWidth / 64) * 64);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   const interactionState: InteractionState = {
@@ -315,7 +324,9 @@ const ContactScene: React.FC<ContactSceneProps> = ({
   return (
     <div className="w-full h-full absolute inset-0">
       <Canvas
-        dpr={isMobile ? [1, 1] : [1, 1.5]}
+        // Same width budget as the hero: this canvas is full-screen with MSAA,
+        // so an uncapped DPR at 1440p+ is the same cost cliff
+        dpr={budgetDpr(viewportWidth, isMobile)}
         camera={{ position: [0, 12, 16], fov: isMobile ? 55 : 45, near: 0.1, far: 100 }}
         gl={{
           antialias: !isMobile,
