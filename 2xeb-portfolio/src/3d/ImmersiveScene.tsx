@@ -7,6 +7,8 @@ import { useConsole, ConsoleContext } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
 import { useReducedMotion } from '../hooks/useAnimations';
 import { MAX_STEP, approach, rateFromLerp60, budgetDpr, CadenceMonitor } from './frame';
+import type { TakeDirector } from '../components/take/types';
+import { sampleFocus } from '../components/take/types';
 
 // --- RESPONSIVE CONFIGURATION ---
 type ScreenSize = 'mobile' | 'desktop' | 'large' | 'ultrawide';
@@ -172,6 +174,10 @@ interface SceneMotion {
   swe: THREE.Vector3;
   ml: THREE.Vector3;
   video: THREE.Vector3;
+  /** While a take develops, the recorded focus stands in for the live one. */
+  focusOverride?: ConsoleLane | null;
+  /** While a take develops, recorded clicks stand in for live ones. */
+  pulseOverride: PulseSignal | null;
 }
 
 const createSceneMotion = (): SceneMotion => ({
@@ -181,6 +187,7 @@ const createSceneMotion = (): SceneMotion => ({
   swe: new THREE.Vector3(0, 0, 0),
   ml: new THREE.Vector3(5, 0, 3),
   video: new THREE.Vector3(-5, 0, -2),
+  pulseOverride: null,
 });
 
 // Click shockwave signal, in NDC (-1..1) with a timestamp for dedup
@@ -199,7 +206,13 @@ interface InteractiveGridProps {
   motion: SceneMotion;
 }
 
-const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gridSize, cellSize, pulse, motion }) => {
+const InteractiveGrid: React.FC<InteractiveGridProps> = ({
+  focusedDiscipline: liveFocus,
+  gridSize,
+  cellSize,
+  pulse: livePulse,
+  motion,
+}) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const { mouse, viewport } = useThree();
   const totalCells = gridSize * gridSize;
@@ -286,6 +299,8 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     const mesh = meshRef.current;
     if (!mesh) return;
     const { time, dt: delta } = motion;
+    const focusedDiscipline = motion.focusOverride !== undefined ? motion.focusOverride : liveFocus;
+    const pulse = motion.pulseOverride ?? livePulse;
     const matrices = mesh.instanceMatrix.array as Float32Array;
 
     // Cells never rotate and only move in y, so each instance matrix is a
@@ -626,6 +641,103 @@ const CameraRig: React.FC<{ motion: SceneMotion }> = ({ motion }) => {
   return null;
 };
 
+// --- TAKE DIRECTOR ---
+/** Seconds simulated before frame 0, so trails and ripples have settled. */
+const TAKE_PREROLL = 1;
+
+/**
+ * Develops a recorded take: the live loop stops, the renderer takes the export
+ * frame's size, and each frame is stepped by hand at a locked rate with the
+ * recorded pointer, clicks and focus fed in. Then the scene gets its size,
+ * pointer and clock back and resumes exactly where the visitor left it.
+ *
+ * The frameloop itself flips through `setDeveloping`, not `setFrameloop`:
+ * the Canvas re-applies its `frameloop` prop on every render, so the prop has
+ * to say "never" for as long as the take develops.
+ */
+const DirectorBridge: React.FC<{
+  motion: SceneMotion;
+  director: React.MutableRefObject<TakeDirector | null>;
+  setDeveloping: (developing: boolean) => void;
+}> = ({ motion, director, setDeveloping }) => {
+  const get = useThree((s) => s.get);
+
+  useEffect(() => {
+    director.current = {
+      now: () => motion.time,
+      async develop(take, { width, height, fps, onFrame, cancelled }) {
+        const state = get();
+        const saved = {
+          size: { ...state.size },
+          dpr: state.viewport.dpr,
+          time: motion.time,
+          pointer: state.pointer.clone(),
+        };
+        state.setEvents({ enabled: false });
+        setDeveloping(true);
+        state.setDpr(1);
+        state.setSize(width, height);
+        // Let React commit: the frameloop prop and the bloom composer's size
+        // both land in the next render
+        await new Promise((r) => setTimeout(r, 80));
+
+        // R3F's 'never' mode feeds `advance(t)` timestamps into the clock, but
+        // an auto-starting stopped clock restarts itself on the first
+        // getDelta() and then mixes its ms reads into those seconds. Hold it
+        // stopped so every step is exactly dt.
+        const clockObj = get().clock;
+        clockObj.autoStart = false;
+
+        const dt = 1 / fps;
+        const preroll = Math.round(TAKE_PREROLL * fps);
+        const total = Math.max(1, Math.round(take.duration * fps));
+        const pulseBase = Date.now();
+        let p = 0;
+        let k = 0;
+        let clock = clockObj.elapsedTime;
+        motion.time = take.sceneStart - TAKE_PREROLL;
+
+        try {
+          for (let i = -preroll; i < total; i++) {
+            if (cancelled?.()) break;
+            const t = Math.max(0, i * dt);
+            while (p + 1 < take.pointer.length && take.pointer[p + 1].t <= t) p++;
+            const at = take.pointer[p];
+            if (at) state.pointer.set(at.x, at.y);
+            const focus = sampleFocus(take, t);
+            motion.focusOverride = focus;
+            while (i >= 0 && k < take.pulses.length && take.pulses[k].t <= t) {
+              const hit = take.pulses[k++];
+              motion.pulseOverride = { nx: hit.nx, ny: hit.ny, t: pulseBase + k };
+            }
+
+            clock += dt;
+            get().advance(clock);
+
+            if (i >= 0) await onFrame(state.gl.domElement, { index: i, total, focus });
+            else if (i % 15 === 0) await new Promise((r) => setTimeout(r));
+          }
+        } finally {
+          motion.focusOverride = undefined;
+          motion.pulseOverride = null;
+          motion.time = saved.time;
+          state.pointer.copy(saved.pointer);
+          state.setDpr(saved.dpr);
+          state.setSize(saved.size.width, saved.size.height, saved.size.top, saved.size.left);
+          state.setEvents({ enabled: true });
+          clockObj.autoStart = true;
+          setDeveloping(false);
+        }
+      },
+    };
+    return () => {
+      director.current = null;
+    };
+  }, [get, motion, director, setDeveloping]);
+
+  return null;
+};
+
 // --- CONTEXT LOSS GUARD ---
 // Without preventDefault the browser never offers a restored context, so a
 // canvas that loses one (VRAM pressure, GPU reset, tab backgrounded on some
@@ -669,9 +781,11 @@ interface ImmersiveSceneProps {
   onReady?: () => void;
   /** Click shockwave signal from the overlay (NDC coords + timestamp) */
   pulse?: PulseSignal | null;
+  /** Filled with the take director once the canvas is up. */
+  director?: React.MutableRefObject<TakeDirector | null>;
 }
 
-const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady, pulse = null }) => {
+const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady, pulse = null, director }) => {
   const consoleCtx = useConsole();
   // Rounded to 64px steps so a drag-resize doesn't re-render (and reallocate
   // the framebuffer) on every pixel. Seeded from the real width so the grid is
@@ -705,7 +819,8 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
   // The terminal easter egg covers the hero with its own full-screen shader.
   // Two WebGL loops for one visible scene is the worst case on a battery, so
   // the hidden one stops drawing; the accumulated clock resumes it in place.
-  const paused = consoleCtx.isEasterEggActive;
+  const [developing, setDeveloping] = useState(false);
+  const paused = consoleCtx.isEasterEggActive || developing;
 
   // Detect screen size for responsive 3D rendering
   useEffect(() => {
@@ -818,13 +933,15 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
           <PillarLights motion={motion} />
           <CameraRig motion={motion} />
           <ContextGuard onLost={handleContextLost} />
+          {director && <DirectorBridge motion={motion} director={director} setDeveloping={setDeveloping} />}
           {onReady && <ReadyDetector onReady={onReady} />}
 
           {/* Bloom turns the emissive cells into neon light sources.
-              Desktop only — mobile keeps the flat-lit look for performance.
-              multisampling=0: MSAA on top of bloom is wasted GPU — the glow
-              softens edges perceptually anyway */}
-          {!isMobile && quality.bloom && (
+              Live on desktop only — mobile keeps the flat-lit look for
+              performance, but a developing take renders offline, so phones
+              get the glow in their clip. multisampling=0: MSAA on top of
+              bloom is wasted GPU — the glow softens edges perceptually */}
+          {(!isMobile || developing) && quality.bloom && (
             <EffectComposer multisampling={0}>
               <Bloom mipmapBlur intensity={0.7} luminanceThreshold={0.38} luminanceSmoothing={0.22} radius={0.7} />
             </EffectComposer>
