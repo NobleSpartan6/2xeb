@@ -1,11 +1,11 @@
-import React, { useRef, useMemo, useState, useEffect } from 'react';
+import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useConsole, ConsoleContext } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
-import { prefersReducedMotion } from '../hooks/useAnimations';
+import { useReducedMotion } from '../hooks/useAnimations';
 
 // --- RESPONSIVE CONFIGURATION ---
 type ScreenSize = 'mobile' | 'desktop' | 'large' | 'ultrawide';
@@ -35,6 +35,11 @@ const getScreenSize = (width: number): ScreenSize => {
 const CELL_SIZE = 0.5;
 const GAP = 0.08;
 
+/** Widest framebuffer we'll render, in device pixels. See `dpr` below.
+ *  A multiple of the 64px viewport rounding step so the budget and the
+ *  rounded width can't disagree by a fraction of a step. */
+const MAX_RENDER_WIDTH = 2240;
+
 // Colors matching design system
 const COLORS = {
   bg: '#050505',
@@ -52,33 +57,26 @@ const _color = new THREE.Color();
 // --- FIELD SHAPE ---
 // Influence extents, hoisted out of the per-cube loop.
 //
-// Cells sample the field, so the field has to stay coarser than the cells.
-// Anything thinner than ~2 cell pitches can't be drawn as a shape: it aliases
-// into a chain of individually lit cubes that light and unlight one at a time,
-// which reads as cubes being created and deleted rather than a beam moving.
-// Widths that must survive sampling are therefore expressed in cell pitches.
-const SWE_ARM_PITCHES = 2;
+// Cells stepping on and off IS the aesthetic — the shapes are meant to read as
+// discrete blocks lighting as they pass, pixel-style. The one sizing rule: a
+// shape must be at least one cell pitch wide. The original 0.3 arm was thinner
+// than a cell, so as it slid it kept falling between rows and whole arms
+// flickered. Width is expressed in pitches so it holds at every breakpoint.
+const SWE_ARM_PITCHES = 1.1;
 const SWE_CROSS_LENGTH = 3.8;
 const ML_RADIUS = 5.5;
 const VIDEO_SCAN_WIDTH = 2.0;
 const MOUSE_RADIUS = 4;
 
 /**
- * How fast a cell lights up, as a half-life in seconds. Trails already smooth
- * the way light *leaves* a cell; without a matching ramp on the way in, cells
- * jump from the near-black floor to full emissive in a single frame, which
- * bloom then amplifies into a visible pop.
+ * Clock rate under prefers-reduced-motion. Freezing the clock (0) parks the
+ * three shapes in a permanent saturated pose — the video scan sits at centre
+ * burning a blown-out white column, which looks broken, and "reduced motion
+ * means fewer and gentler, not zero". The pillars are small, slow, local
+ * colour drifts on a dark field, not viewport-scale motion; camera parallax
+ * and click shockwaves stay curbed separately.
  */
-const LIGHT_RISE_HALF_LIFE = 0.045;
-
-/**
- * How much of the surface's shortest wavelengths to remove each frame. The sim
- * happily carries ripples down to a single cell, but a one-cell ripple isn't a
- * wave on screen — it's one cube standing at an unrelated height to its
- * neighbours, blinking as the ripple passes. Averaging toward the neighbourhood
- * strips those while leaving broad swells untouched.
- */
-const WAVE_SMOOTHING = 0.12;
+const REDUCED_TIME_SCALE = 0.3;
 
 /**
  * Resting colour of an untouched cell — the permanent lattice.
@@ -97,32 +95,6 @@ const WAVE_SMOOTHING = 0.12;
 const FLOOR_R = 0.034;
 const FLOOR_G = 0.039;
 const FLOOR_B = 0.055;
-
-/**
- * Smooth 0..1 falloff: 1 at the centre, 0 at `extent`, with zero slope at both
- * ends. Replaces hard `if (distance < extent)` gates — a gate makes a cell's
- * contribution appear and vanish between frames as a pillar slides past it,
- * so cells at an influence boundary blink instead of fading.
- */
-const smoothFalloff = (extent: number, distance: number): number => {
-  if (distance >= extent) return 0;
-  const t = 1 - distance / extent;
-  return t * t * (3 - 2 * t);
-};
-
-/**
- * Falloff with a flat core: full strength out to `core` of the extent, then a
- * smooth shoulder to zero. A plain dome spreads a wide feature into a haze —
- * widening a beam enough to survive sampling shouldn't cost it its edge, so the
- * width buys a solid core and only the last stretch is the fade.
- */
-const plateauFalloff = (extent: number, distance: number, core: number): number => {
-  if (distance >= extent) return 0;
-  const inner = extent * core;
-  if (distance <= inner) return 1;
-  const t = 1 - (distance - inner) / (extent - inner);
-  return t * t * (3 - 2 * t);
-};
 
 // --- PILLAR BEHAVIORS ---
 // Each pillar represents a discipline with distinct movement patterns
@@ -256,32 +228,28 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
   // click splashes) propagate as damped waves through neighbouring cells,
   // with momentum and interference — not scripted rings.
   const wave = useMemo(
-    () => ({
-      h: new Float32Array(totalCells),
-      v: new Float32Array(totalCells),
-      // Scratch buffer for the band-limiting pass (reused, never reallocated)
-      s: new Float32Array(totalCells),
-    }),
+    () => ({ h: new Float32Array(totalCells), v: new Float32Array(totalCells) }),
     [totalCells]
   );
 
   /**
-   * SWE arm width in world units, pinned to whole cell pitches so the beam is
-   * always a few cells thick at every breakpoint (the pitch changes with
-   * `cellSize`). Sub-pitch widths alias into a staircase of single cubes.
+   * SWE arm width in world units, pinned to the cell pitch so the sliding arm
+   * always covers a full row of cells at every breakpoint (the pitch changes
+   * with `cellSize`). Sub-pitch widths fall between rows and flicker.
    */
   const sweCrossWidth = useMemo(() => (cellSize + GAP) * SWE_ARM_PITCHES, [cellSize]);
   const prevMouseRef = useRef<{ x: number; z: number; init: boolean }>({ x: 0, z: 0, init: false });
 
-  // Reduced motion: freeze the clock so pillars, waves and breathing hold a
-  // static (still lit and colored) pose; the mouse highlight stays as direct
-  // interaction feedback.
-  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+  // Reduced motion: slow the clock (REDUCED_TIME_SCALE) rather than freeze it —
+  // a frozen scan burns a saturated static column that looks broken. Camera
+  // parallax and shockwave amplitude are curbed separately. Reactive so the
+  // scene thaws live when the OS setting flips.
+  const reduceMotion = useReducedMotion();
 
   useFrame((state, delta) => {
     if (!meshRef.current) return;
     const rawTime = state.clock.getElapsedTime();
-    const time = reduceMotion ? 0 : rawTime;
+    const time = reduceMotion ? rawTime * REDUCED_TIME_SCALE : rawTime;
 
     // Update pillar positions
     updateSWEPillar(pillars.current.swe, time);
@@ -307,9 +275,6 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     const sweWeight = fw.swe;
     const mlWeight = fw.ml;
     const videoWeight = fw.video;
-
-    // How far a cell can climb toward its instantaneous influence this frame
-    const kRise = reduceMotion ? 1 : 1 - Math.pow(2, -Math.min(delta, 1 / 30) / LIGHT_RISE_HALF_LIFE);
 
     const pulseAmp = reduceMotion ? 0.4 : 1;
 
@@ -363,20 +328,6 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     }
     for (let i = 0; i < totalCells; i++) wh[i] += wv[i] * dtw;
 
-    // Band-limit the surface so ripples stay wider than the cells that draw
-    // them. Without this the sim's single-cell wavelengths render as lone cubes
-    // at unrelated heights, popping in and out as a ripple crosses them.
-    const ws = wave.s;
-    for (let i = 0; i < totalCells; i++) {
-      const row = (i / N) | 0, col = i % N;
-      const nL = col > 0 ? wh[i - 1] : wh[i];
-      const nR = col < N - 1 ? wh[i + 1] : wh[i];
-      const nU = row > 0 ? wh[i - N] : wh[i];
-      const nD = row < N - 1 ? wh[i + N] : wh[i];
-      ws[i] = wh[i] + ((nL + nR + nU + nD) / 4 - wh[i]) * WAVE_SMOOTHING;
-    }
-    wh.set(ws);
-
     // Frame-rate-independent trail decay (longer streaks: ~1.3s tails)
     const decay = Math.exp(-5 * delta);
     const tR = trails.r, tG = trails.g, tB = trails.b, tH = trails.h;
@@ -392,17 +343,19 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
         const dSweX = Math.abs(x - swePos.x);
         const dSweZ = Math.abs(z - swePos.z);
 
-        // Two smoothly shouldered arms rather than a hard Manhattan test, so
-        // the cross keeps its shape but its ends and edges fade as it slides
-        const armH = plateauFalloff(sweCrossWidth, dSweZ, 0.45) * smoothFalloff(SWE_CROSS_LENGTH, dSweX);
-        const armV = plateauFalloff(sweCrossWidth, dSweX, 0.45) * smoothFalloff(SWE_CROSS_LENGTH, dSweZ);
-        const swe = Math.max(armH, armV) * sweWeight;
+        // Manhattan cross pattern — hard-edged and architectural on purpose
+        const inCross = (dSweX < sweCrossWidth && dSweZ < SWE_CROSS_LENGTH) ||
+                        (dSweZ < sweCrossWidth && dSweX < SWE_CROSS_LENGTH);
 
-        if (swe > 0) {
-          ih += swe * 1.2;
-          ir += COLORS.swe.r * swe * 0.9;
-          ig += COLORS.swe.g * swe * 0.9;
-          ib += COLORS.swe.b * swe * 0.9;
+        if (inCross) {
+          const dist = Math.min(dSweX, dSweZ);
+          const intensity = Math.max(0, 1 - dist / sweCrossWidth) * sweWeight;
+          const falloff = 1 - Math.max(dSweX, dSweZ) / SWE_CROSS_LENGTH;
+
+          ih += intensity * falloff * 1.2;
+          ir += COLORS.swe.r * intensity * falloff * 0.9;
+          ig += COLORS.swe.g * intensity * falloff * 0.9;
+          ib += COLORS.swe.b * intensity * falloff * 0.9;
         }
       }
 
@@ -448,7 +401,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       // === MOUSE INTERACTION ===
       const dMouse = Math.sqrt((x - mouseX) ** 2 + (z - mouseZ) ** 2);
       if (dMouse < MOUSE_RADIUS) {
-        const hover = smoothFalloff(MOUSE_RADIUS, dMouse);
+        const hover = 1 - dMouse / MOUSE_RADIUS;
         ih += hover * 0.6;
         // Swiss Blue accent on mouse hover
         ir += COLORS.accent.r * hover * 0.3;
@@ -456,17 +409,14 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
         ib += COLORS.accent.b * hover * 0.3;
       }
 
-      // === TRAILS: ramp up toward "now", decay away from it ===
-      // Rising through kRise instead of jumping straight to `ih` keeps cells
-      // from popping on at full emissive; the decay below is the comet tail.
-      const hD = tH[i] * decay;
-      const rD = tR[i] * decay;
-      const gD = tG[i] * decay;
-      const bD = tB[i] * decay;
-      const hT = (tH[i] = ih > hD ? hD + (ih - hD) * kRise : hD);
-      const rT = (tR[i] = ir > rD ? rD + (ir - rD) * kRise : rD);
-      const gT = (tG[i] = ig > gD ? gD + (ig - gD) * kRise : gD);
-      const bT = (tB[i] = ib > bD ? bD + (ib - bD) * kRise : bD);
+      // === TRAILS: keep the brighter of "now" and the decaying memory ===
+      // Attack is instant on purpose: blocks stepping on crisply as a shape
+      // arrives is the pixel look, and the permanent floor keeps the step
+      // reading as "lit" rather than "created". The decay is the comet tail.
+      const hT = (tH[i] = Math.max(ih, tH[i] * decay));
+      const rT = (tR[i] = Math.max(ir, tR[i] * decay));
+      const gT = (tG[i] = Math.max(ig, tG[i] * decay));
+      const bT = (tB[i] = Math.max(ib, tB[i] * decay));
 
       // === WAVE FIELD: ripples lift the surface and glow accent-blue ===
       const wH = wh[idx];
@@ -518,10 +468,10 @@ const PillarLights: React.FC = () => {
     video: { position: new THREE.Vector3(), velocity: new THREE.Vector3(), phase: 0 },
   });
 
-  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+  const reduceMotion = useReducedMotion();
 
   useFrame((state) => {
-    const time = reduceMotion ? 0 : state.clock.getElapsedTime();
+    const time = state.clock.getElapsedTime() * (reduceMotion ? REDUCED_TIME_SCALE : 1);
 
     updateSWEPillar(pillars.current.swe, time);
     updateMLPillar(pillars.current.ml, time);
@@ -563,7 +513,7 @@ const PillarLights: React.FC = () => {
 const CameraRig: React.FC = () => {
   const { camera, mouse, viewport } = useThree();
   const targetPos = useRef(new THREE.Vector3(0, 12, 16));
-  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+  const reduceMotion = useReducedMotion();
 
   useFrame((state) => {
     // Tall/narrow viewports leave empty sky above the grid's horizon with the
@@ -601,6 +551,27 @@ const CameraRig: React.FC = () => {
   return null;
 };
 
+// --- CONTEXT LOSS GUARD ---
+// Without preventDefault the browser never offers a restored context, so a
+// canvas that loses one (VRAM pressure, GPU reset, tab backgrounded on some
+// drivers) stays dead for the rest of the session.
+const ContextGuard: React.FC<{ onLost: () => void }> = ({ onLost }) => {
+  const { gl } = useThree();
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const handleLost = (event: Event) => {
+      event.preventDefault();
+      console.warn('[ImmersiveScene] WebGL context lost — remounting the canvas');
+      onLost();
+    };
+    canvas.addEventListener('webglcontextlost', handleLost);
+    return () => canvas.removeEventListener('webglcontextlost', handleLost);
+  }, [gl, onLost]);
+
+  return null;
+};
+
 // --- READY DETECTOR ---
 // Fires callback after first frame renders
 const ReadyDetector: React.FC<{ onReady: () => void }> = ({ onReady }) => {
@@ -627,30 +598,48 @@ interface ImmersiveSceneProps {
 
 const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady, pulse = null }) => {
   const consoleCtx = useConsole();
-  const [screenSize, setScreenSize] = useState<ScreenSize>('desktop');
-  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+  // Rounded to 64px steps so a drag-resize doesn't re-render (and reallocate
+  // the framebuffer) on every pixel. Seeded from the real width so the grid is
+  // built at its final size once, instead of mounting at 40² and rebuilding.
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window === 'undefined' ? 1280 : Math.round(window.innerWidth / 64) * 64
+  );
+  const [canvasKey, setCanvasKey] = useState(0);
+  const reduceMotion = useReducedMotion();
 
   // Detect screen size for responsive 3D rendering
   useEffect(() => {
-    const checkScreenSize = () => {
-      setScreenSize(getScreenSize(window.innerWidth));
-    };
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    return () => window.removeEventListener('resize', checkScreenSize);
+    const onResize = () => setViewportWidth(Math.round(window.innerWidth / 64) * 64);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  // A lost context leaves a dead canvas on screen — the hero looks frozen and
+  // never recovers. Remount to acquire a fresh one.
+  const handleContextLost = useCallback(() => {
+    setTimeout(() => setCanvasKey((k) => k + 1), 300);
+  }, []);
+
+  const screenSize = getScreenSize(viewportWidth);
   const config = getGridConfig(screenSize);
   const isMobile = screenSize === 'mobile';
   const isLargeScreen = screenSize === 'large' || screenSize === 'ultrawide';
 
-  // DPR settings based on screen size
-  const getDpr = (): [number, number] => {
-    if (isMobile) return [1, 1];
-    // Cap at 1.5 everywhere: bloom's mipmap chain at DPR 2 on 1440p+ doubles
-    // GPU work for sharpness the glow aesthetic doesn't need
-    return [1, 1.5];
-  };
+  /**
+   * Device pixel ratio, capped by a *rendered width* budget rather than a flat
+   * ratio. Bloom's mipmap chain and every fullscreen pass scale with framebuffer
+   * area, so a 2560px canvas at DPR 1.5 renders 8.3M pixels per frame — enough
+   * to drop an integrated GPU to single-digit FPS, or to exhaust it and lose the
+   * WebGL context, both of which read as the hero being frozen. Budgeting the
+   * width gives every display comparable per-frame cost; on a high-density
+   * panel the glow aesthetic carries the softness anyway.
+   */
+  const dpr = useMemo(() => {
+    const device = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;
+    if (isMobile) return Math.min(device, 1);
+    return Math.max(0.7, Math.min(device, 1.5, MAX_RENDER_WIDTH / viewportWidth));
+  }, [isMobile, viewportWidth]);
 
   // FOV settings - wider on mobile, narrower on large screens for more detail
   const getFov = (): number => {
@@ -673,7 +662,8 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
   return (
     <div className={`w-full h-full ${className}`}>
       <Canvas
-        dpr={getDpr()}
+        key={canvasKey}
+        dpr={dpr}
         camera={{ position: [0, 12, 16], fov: getFov(), near: 0.1, far: 100 }}
         // The hero content overlay sits above the canvas and would swallow
         // pointer events — source them from the app root so mouse parallax
@@ -681,7 +671,10 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
         eventSource={document.getElementById('root') as HTMLElement}
         eventPrefix="client"
         gl={{
-          antialias: !isMobile, // Disable antialiasing on mobile for performance
+          // EffectComposer renders the scene into its own target, so the
+          // canvas's MSAA buffer is allocated but never sampled — pure cost,
+          // and at 1440p+ a large chunk of VRAM. Mobile never had it either.
+          antialias: false,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: isLargeScreen ? 1.3 : 1.2, // Slightly brighter on large screens
           powerPreference: 'high-performance',
@@ -725,6 +718,7 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
           />
           <PillarLights />
           <CameraRig />
+          <ContextGuard onLost={handleContextLost} />
           {onReady && <ReadyDetector onReady={onReady} />}
 
           {/* Bloom turns the emissive cells into neon light sources.

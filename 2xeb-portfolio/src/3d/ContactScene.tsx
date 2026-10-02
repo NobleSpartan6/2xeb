@@ -1,7 +1,7 @@
 import React, { useRef, useMemo, useEffect, Suspense, useState, createContext, useContext } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { prefersReducedMotion } from '../hooks/useAnimations';
+import { useReducedMotion } from '../hooks/useAnimations';
 
 // Colors matching design system
 const COLORS = {
@@ -82,7 +82,7 @@ const ContactGrid: React.FC<ContactGridProps> = ({ isMobile }) => {
   // Reduced motion: freeze ambient oscillation (breathing, focus/success
   // waves) into a static pose. Pulses stay — they're brief, user-triggered
   // feedback for focus/submit — as does the mouse highlight.
-  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+  const reduceMotion = useReducedMotion();
 
   useFrame((state) => {
     if (!meshRef.current) return;
@@ -221,7 +221,7 @@ const ContactGrid: React.FC<ContactGridProps> = ({ isMobile }) => {
 const CameraRig: React.FC<{ isMobile: boolean }> = ({ isMobile }) => {
   const { camera, mouse } = useThree();
   const targetPos = useRef(new THREE.Vector3());
-  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+  const reduceMotion = useReducedMotion();
 
   useFrame(() => {
     // Reduced motion: no viewport-wide parallax — hold the framing
