@@ -69,6 +69,20 @@ export const PROJECTS: Project[] = [
 
   // --- VIDEO / CREATIVE WORK ---
   {
+    id: 26,
+    slug: 'death-comes-knocking',
+    title: 'Yuzeren - Death Comes Knocking feat. RedRomeo (The Dark Ascent, Track 2)',
+    shortDesc: 'Official music video for "Death Comes Knocking" by Yuzeren feat. RedRomeo. Co-directed and shot with Sean Ross, edited by EB.',
+    longDesc: 'Official music video for "Death Comes Knocking" by Yuzeren feat. RedRomeo — Track 2 of The Dark Ascent, a ten-track visual mixtape. Co-directed and shot by EB and Sean Ross; edited by EB.',
+    primaryDiscipline: Discipline.VIDEO,
+    tags: ['Direction', 'Cinematography', 'Edit', 'Music Video'],
+    createdAt: '2026-10-01',
+    imageUrl: 'https://img.youtube.com/vi/UJNg0b0ZIwE/maxresdefault.jpg',
+    status: 'live',
+    videoUrl: 'https://youtu.be/UJNg0b0ZIwE',
+    role: 'co-dir / shot / edit'
+  },
+  {
     id: 25,
     slug: 'summer-wars',
     title: 'nbr* - SUMMER WARS (official music video)',
