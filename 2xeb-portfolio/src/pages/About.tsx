@@ -80,16 +80,28 @@ const About: React.FC = () => {
           </div>
         </div>
         <div className="flex items-end">
-           <p data-animate className="relative text-lg md:text-2xl text-[#D4D4D4] leading-relaxed font-light pl-6 md:pl-8">
+          {/* Bio: a lead line, the work, then life outside it. Each paragraph
+              reveals on its own beat; the accent rule spans all three. */}
+          <div className="relative flex flex-col gap-5 md:gap-6 pl-6 md:pl-8 max-w-[40rem]">
             {/* Accent line draws in top-to-bottom on the page's first visit
                 this session; static on revisits (matches the reveal gating) */}
             <span
               aria-hidden
               className={`absolute left-0 top-0 bottom-0 w-[2px] bg-[#2563EB] ${revealedBefore ? '' : 'accent-draw'}`}
             />
-            Software Engineer based in New York City. <br/>
-            Specializing in high-performance financial systems, machine learning applications, and creative visual media.
-          </p>
+            <p data-animate className="text-lg md:text-2xl text-white leading-snug font-light text-pretty">
+              Software engineer and creative technologist based in New York City.
+            </p>
+            <p data-animate className="text-base md:text-lg text-[#A3A3A3] leading-relaxed font-light text-pretty">
+              I build products at the intersection of software, AI, and creative tools, from large-scale financial
+              systems to agentic developer tools, local-first applications, music software, and language-learning
+              products. I’m especially interested in systems that give people more capability without taking away
+              control, and in making technically ambitious software feel simple, fast, and intentional.
+            </p>
+            <p data-animate className="text-base md:text-lg text-[#A3A3A3] leading-relaxed font-light text-pretty">
+              Outside of code, I shoot film, edit, and make music.
+            </p>
+          </div>
         </div>
       </div>
 
