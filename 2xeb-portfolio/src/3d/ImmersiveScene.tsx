@@ -1,11 +1,12 @@
-import React, { useRef, useMemo, useState, useEffect } from 'react';
+import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useConsole, ConsoleContext } from '../context/ConsoleContext';
 import { ConsoleLane } from '../lib/types';
-import { prefersReducedMotion } from '../hooks/useAnimations';
+import { useReducedMotion } from '../hooks/useAnimations';
+import { MAX_STEP, approach, rateFromLerp60, budgetDpr, CadenceMonitor } from './frame';
 
 // --- RESPONSIVE CONFIGURATION ---
 type ScreenSize = 'mobile' | 'desktop' | 'large' | 'ultrawide';
@@ -45,40 +46,56 @@ const COLORS = {
   dim: new THREE.Color('#0a0a0a'),
 };
 
-// Reusable objects to avoid GC pressure
-const _dummy = new THREE.Object3D();
-const _color = new THREE.Color();
+// Per-second rates, tuned as per-frame lerps at 60 fps (see frame.ts)
+const SWE_SNAP_RATE = rateFromLerp60(0.08);
+const CAMERA_RATE = rateFromLerp60(0.03);
+const CAMERA_SETTLE_RATE = rateFromLerp60(0.1);
+
+/** Wave sim substep ceiling. Holds the 60 fps behaviour at any frame rate. */
+const WAVE_STEP = 1 / 60;
+
+/**
+ * Pull of the wave surface back to its rest height, per second².
+ *
+ * Clicks and the cursor wake push the surface *down*, and the neighbour term
+ * only spreads a push, it never undoes one. So every splash left its net
+ * depression in the floor for seconds, and a few quick clicks sank whole
+ * patches of cells under the floor plane: cubes vanishing, the one thing the
+ * permanent floor exists to prevent. This heals a trough in ~1.5s while the
+ * ripples (c² = 90, far stiffer) still travel as before.
+ */
+const WAVE_REST = 12;
+
+/**
+ * Deepest a cell may dip, in lift units. Soft-limited (tanh) rather than
+ * clipped, so a trough rounds off instead of flattening; at this depth a
+ * cell's top still clears the floor plane.
+ */
+const MAX_DIP = 0.2;
 
 // --- FIELD SHAPE ---
 // Influence extents, hoisted out of the per-cube loop.
 //
-// Cells sample the field, so the field has to stay coarser than the cells.
-// Anything thinner than ~2 cell pitches can't be drawn as a shape: it aliases
-// into a chain of individually lit cubes that light and unlight one at a time,
-// which reads as cubes being created and deleted rather than a beam moving.
-// Widths that must survive sampling are therefore expressed in cell pitches.
-const SWE_ARM_PITCHES = 2;
+// Cells stepping on and off IS the aesthetic — the shapes are meant to read as
+// discrete blocks lighting as they pass, pixel-style. The one sizing rule: a
+// shape must be at least one cell pitch wide. The original 0.3 arm was thinner
+// than a cell, so as it slid it kept falling between rows and whole arms
+// flickered. Width is expressed in pitches so it holds at every breakpoint.
+const SWE_ARM_PITCHES = 1.1;
 const SWE_CROSS_LENGTH = 3.8;
 const ML_RADIUS = 5.5;
 const VIDEO_SCAN_WIDTH = 2.0;
 const MOUSE_RADIUS = 4;
 
 /**
- * How fast a cell lights up, as a half-life in seconds. Trails already smooth
- * the way light *leaves* a cell; without a matching ramp on the way in, cells
- * jump from the near-black floor to full emissive in a single frame, which
- * bloom then amplifies into a visible pop.
+ * Clock rate under prefers-reduced-motion. Freezing the clock (0) parks the
+ * three shapes in a permanent saturated pose — the video scan sits at centre
+ * burning a blown-out white column, which looks broken, and "reduced motion
+ * means fewer and gentler, not zero". The pillars are small, slow, local
+ * colour drifts on a dark field, not viewport-scale motion; camera parallax
+ * and click shockwaves stay curbed separately.
  */
-const LIGHT_RISE_HALF_LIFE = 0.045;
-
-/**
- * How much of the surface's shortest wavelengths to remove each frame. The sim
- * happily carries ripples down to a single cell, but a one-cell ripple isn't a
- * wave on screen — it's one cube standing at an unrelated height to its
- * neighbours, blinking as the ripple passes. Averaging toward the neighbourhood
- * strips those while leaving broad swells untouched.
- */
-const WAVE_SMOOTHING = 0.12;
+const REDUCED_TIME_SCALE = 0.3;
 
 /**
  * Resting colour of an untouched cell — the permanent lattice.
@@ -98,78 +115,73 @@ const FLOOR_R = 0.034;
 const FLOOR_G = 0.039;
 const FLOOR_B = 0.055;
 
-/**
- * Smooth 0..1 falloff: 1 at the centre, 0 at `extent`, with zero slope at both
- * ends. Replaces hard `if (distance < extent)` gates — a gate makes a cell's
- * contribution appear and vanish between frames as a pillar slides past it,
- * so cells at an influence boundary blink instead of fading.
- */
-const smoothFalloff = (extent: number, distance: number): number => {
-  if (distance >= extent) return 0;
-  const t = 1 - distance / extent;
-  return t * t * (3 - 2 * t);
-};
-
-/**
- * Falloff with a flat core: full strength out to `core` of the extent, then a
- * smooth shoulder to zero. A plain dome spreads a wide feature into a haze —
- * widening a beam enough to survive sampling shouldn't cost it its edge, so the
- * width buys a solid core and only the last stretch is the fade.
- */
-const plateauFalloff = (extent: number, distance: number, core: number): number => {
-  if (distance >= extent) return 0;
-  const inner = extent * core;
-  if (distance <= inner) return 1;
-  const t = 1 - (distance - inner) / (extent - inner);
-  return t * t * (3 - 2 * t);
-};
-
 // --- PILLAR BEHAVIORS ---
 // Each pillar represents a discipline with distinct movement patterns
 
-interface PillarState {
-  position: THREE.Vector3;
-  velocity: THREE.Vector3;
-  phase: number;
-}
-
 // SWE: Precise, grid-snapped, architectural movement
-const updateSWEPillar = (state: PillarState, time: number): void => {
-  const speed = 0.6;
-  const t = time * speed;
+const updateSWEPillar = (position: THREE.Vector3, time: number, dt: number): void => {
+  const t = time * 0.6;
 
   // Quantized movement - snaps to grid intersections
   const gridStep = (CELL_SIZE + GAP) * 3;
   const targetX = Math.round(Math.sin(t * 0.7) * 8) * gridStep / 3;
   const targetZ = Math.round(Math.cos(t * 0.5) * 6) * gridStep / 3;
 
-  // Smooth interpolation to target
-  state.position.x += (targetX - state.position.x) * 0.08;
-  state.position.z += (targetZ - state.position.z) * 0.08;
-  state.phase = t;
+  // Glide to the snapped target at a per-second rate, so the step reads the
+  // same at 30, 60 and 120 fps
+  const k = approach(SWE_SNAP_RATE, dt);
+  position.x += (targetX - position.x) * k;
+  position.z += (targetZ - position.z) * k;
 };
 
 // ML: Organic, flowing, neural-network-like patterns
-const updateMLPillar = (state: PillarState, time: number): void => {
-  const speed = 0.4;
-  const t = time * speed;
+const updateMLPillar = (position: THREE.Vector3, time: number): void => {
+  const t = time * 0.4;
 
   // Lissajous curves for organic wandering
-  state.position.x = Math.sin(t * 1.3) * 6 + Math.cos(t * 0.5) * 3;
-  state.position.z = Math.cos(t * 0.8) * 5 + Math.sin(t * 1.1) * 2;
-  state.phase = t;
+  position.x = Math.sin(t * 1.3) * 6 + Math.cos(t * 0.5) * 3;
+  position.z = Math.cos(t * 0.8) * 5 + Math.sin(t * 1.1) * 2;
 };
 
 // VIDEO: Linear sweep, timeline-like scanning motion
-const updateVideoPillar = (state: PillarState, time: number): void => {
-  const speed = 0.35;
-  const t = time * speed;
+const updateVideoPillar = (position: THREE.Vector3, time: number): void => {
+  const t = time * 0.35;
 
   // Horizontal sweep with subtle vertical drift
-  state.position.x = Math.sin(t) * 10;
-  state.position.z = Math.sin(t * 0.3) * 2;
-  state.phase = t;
+  position.x = Math.sin(t) * 10;
+  position.z = Math.sin(t * 0.3) * 2;
 };
+
+/**
+ * One clock and one set of pillar positions for the whole scene, advanced once
+ * per frame by `MotionDriver` before anything reads them.
+ *
+ * The clock is accumulated, not read off the wall: each frame adds a clamped
+ * step times `timeScale`. So flipping reduce-motion changes the *speed* of the
+ * shapes instead of teleporting them (0.3 × a wall clock jumps from t=100 to
+ * t=30), a paused or backgrounded scene resumes where it stopped, and the grid
+ * and its lights can't drift apart because they read the same positions.
+ */
+interface SceneMotion {
+  /** Scene time in seconds, slowed under reduced motion. */
+  time: number;
+  /** This frame's real step in seconds, clamped to MAX_STEP. */
+  dt: number;
+  /** Eases toward 1, or REDUCED_TIME_SCALE under reduced motion. */
+  timeScale: number;
+  swe: THREE.Vector3;
+  ml: THREE.Vector3;
+  video: THREE.Vector3;
+}
+
+const createSceneMotion = (): SceneMotion => ({
+  time: 0,
+  dt: 0,
+  timeScale: 1,
+  swe: new THREE.Vector3(0, 0, 0),
+  ml: new THREE.Vector3(5, 0, 3),
+  video: new THREE.Vector3(-5, 0, -2),
+});
 
 // Click shockwave signal, in NDC (-1..1) with a timestamp for dedup
 export interface PulseSignal {
@@ -184,9 +196,10 @@ interface InteractiveGridProps {
   gridSize: number;
   cellSize: number;
   pulse: PulseSignal | null;
+  motion: SceneMotion;
 }
 
-const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gridSize, cellSize, pulse }) => {
+const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gridSize, cellSize, pulse, motion }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const { mouse, viewport } = useThree();
   const totalCells = gridSize * gridSize;
@@ -226,12 +239,8 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
   /** Per-discipline presence, eased so focusing one cross-fades the others. */
   const focusWeights = useRef({ swe: 1, ml: 1, video: 1 });
 
-  // Pillar states
-  const pillars = useRef({
-    swe: { position: new THREE.Vector3(0, 0, 0), velocity: new THREE.Vector3(), phase: 0 },
-    ml: { position: new THREE.Vector3(5, 0, 3), velocity: new THREE.Vector3(), phase: 0 },
-    video: { position: new THREE.Vector3(-5, 0, -2), velocity: new THREE.Vector3(), phase: 0 },
-  });
+  /** The grid layout the instance buffers were last seeded for. */
+  const seededFor = useRef<unknown>(null);
 
   // Pre-compute grid positions. edgeFade dissolves the outermost cells into
   // darkness so the plane reads as infinite — parallax near the viewport
@@ -256,41 +265,53 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
   // click splashes) propagate as damped waves through neighbouring cells,
   // with momentum and interference — not scripted rings.
   const wave = useMemo(
-    () => ({
-      h: new Float32Array(totalCells),
-      v: new Float32Array(totalCells),
-      // Scratch buffer for the band-limiting pass (reused, never reallocated)
-      s: new Float32Array(totalCells),
-    }),
+    () => ({ h: new Float32Array(totalCells), v: new Float32Array(totalCells) }),
     [totalCells]
   );
 
   /**
-   * SWE arm width in world units, pinned to whole cell pitches so the beam is
-   * always a few cells thick at every breakpoint (the pitch changes with
-   * `cellSize`). Sub-pitch widths alias into a staircase of single cubes.
+   * SWE arm width in world units, pinned to the cell pitch so the sliding arm
+   * always covers a full row of cells at every breakpoint (the pitch changes
+   * with `cellSize`). Sub-pitch widths fall between rows and flicker.
    */
   const sweCrossWidth = useMemo(() => (cellSize + GAP) * SWE_ARM_PITCHES, [cellSize]);
   const prevMouseRef = useRef<{ x: number; z: number; init: boolean }>({ x: 0, z: 0, init: false });
 
-  // Reduced motion: freeze the clock so pillars, waves and breathing hold a
-  // static (still lit and colored) pose; the mouse highlight stays as direct
-  // interaction feedback.
-  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+  // Reduced motion slows the shared clock (MotionDriver) rather than freezing
+  // it; here it only curbs the viewport-scale effects: shockwave amplitude and
+  // the focus cross-fade.
+  const reduceMotion = useReducedMotion();
 
-  useFrame((state, delta) => {
-    if (!meshRef.current) return;
-    const rawTime = state.clock.getElapsedTime();
-    const time = reduceMotion ? 0 : rawTime;
+  useFrame(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    const { time, dt: delta } = motion;
+    const matrices = mesh.instanceMatrix.array as Float32Array;
 
-    // Update pillar positions
-    updateSWEPillar(pillars.current.swe, time);
-    updateMLPillar(pillars.current.ml, time);
-    updateVideoPillar(pillars.current.video, time);
+    // Cells never rotate and only move in y, so each instance matrix is a
+    // fixed x/z translation plus a y scale and offset. Seed the fixed parts
+    // once per layout; per frame only two floats per cell change, instead of
+    // composing a full matrix through an Object3D for every cube.
+    if (seededFor.current !== gridData) {
+      for (let i = 0; i < totalCells; i++) {
+        const o = i * 16;
+        matrices.fill(0, o, o + 16);
+        matrices[o] = 1;
+        matrices[o + 10] = 1;
+        matrices[o + 15] = 1;
+        matrices[o + 12] = gridData[i].x;
+        matrices[o + 14] = gridData[i].z;
+      }
+      if (mesh.instanceColor?.count !== totalCells) {
+        mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(totalCells * 3), 3);
+      }
+      seededFor.current = gridData;
+    }
+    const colors = mesh.instanceColor!.array as Float32Array;
 
-    const swePos = pillars.current.swe.position;
-    const mlPos = pillars.current.ml.position;
-    const videoPos = pillars.current.video.position;
+    const swePos = motion.swe;
+    const mlPos = motion.ml;
+    const videoPos = motion.video;
 
     // Mouse position in world space (approximate)
     const mouseX = (mouse.x * viewport.width) / 2;
@@ -307,9 +328,6 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     const sweWeight = fw.swe;
     const mlWeight = fw.ml;
     const videoWeight = fw.video;
-
-    // How far a cell can climb toward its instantaneous influence this frame
-    const kRise = reduceMotion ? 1 : 1 - Math.pow(2, -Math.min(delta, 1 / 30) / LIGHT_RISE_HALF_LIFE);
 
     const pulseAmp = reduceMotion ? 0.4 : 1;
 
@@ -348,34 +366,25 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
     pm.z = mouseZ;
     pm.init = true;
 
-    // Damped wave propagation (clamped dt for stability on slow frames)
-    const dtw = Math.min(delta, 0.033);
+    // Damped wave propagation. Substepped so a 30 fps frame runs two 60 fps
+    // steps: the ripples travel at the same real speed under a power-saving
+    // frame cap instead of the old single clamped step (half speed at 30).
+    const substeps = Math.min(4, Math.max(1, Math.ceil(delta / WAVE_STEP - 1e-6)));
+    const dtw = delta / substeps;
     const c2 = 90;
     const wDamp = Math.exp(-4.5 * dtw);
     const N = gridSize;
-    for (let i = 0; i < totalCells; i++) {
-      const row = (i / N) | 0, col = i % N;
-      const nL = col > 0 ? wh[i - 1] : wh[i];
-      const nR = col < N - 1 ? wh[i + 1] : wh[i];
-      const nU = row > 0 ? wh[i - N] : wh[i];
-      const nD = row < N - 1 ? wh[i + N] : wh[i];
-      wv[i] = (wv[i] + ((nL + nR + nU + nD) / 4 - wh[i]) * c2 * dtw) * wDamp;
+    for (let s = 0; s < substeps; s++) {
+      for (let i = 0; i < totalCells; i++) {
+        const row = (i / N) | 0, col = i % N;
+        const nL = col > 0 ? wh[i - 1] : wh[i];
+        const nR = col < N - 1 ? wh[i + 1] : wh[i];
+        const nU = row > 0 ? wh[i - N] : wh[i];
+        const nD = row < N - 1 ? wh[i + N] : wh[i];
+        wv[i] = (wv[i] + (((nL + nR + nU + nD) / 4 - wh[i]) * c2 - wh[i] * WAVE_REST) * dtw) * wDamp;
+      }
+      for (let i = 0; i < totalCells; i++) wh[i] += wv[i] * dtw;
     }
-    for (let i = 0; i < totalCells; i++) wh[i] += wv[i] * dtw;
-
-    // Band-limit the surface so ripples stay wider than the cells that draw
-    // them. Without this the sim's single-cell wavelengths render as lone cubes
-    // at unrelated heights, popping in and out as a ripple crosses them.
-    const ws = wave.s;
-    for (let i = 0; i < totalCells; i++) {
-      const row = (i / N) | 0, col = i % N;
-      const nL = col > 0 ? wh[i - 1] : wh[i];
-      const nR = col < N - 1 ? wh[i + 1] : wh[i];
-      const nU = row > 0 ? wh[i - N] : wh[i];
-      const nD = row < N - 1 ? wh[i + N] : wh[i];
-      ws[i] = wh[i] + ((nL + nR + nU + nD) / 4 - wh[i]) * WAVE_SMOOTHING;
-    }
-    wh.set(ws);
 
     // Frame-rate-independent trail decay (longer streaks: ~1.3s tails)
     const decay = Math.exp(-5 * delta);
@@ -392,17 +401,19 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
         const dSweX = Math.abs(x - swePos.x);
         const dSweZ = Math.abs(z - swePos.z);
 
-        // Two smoothly shouldered arms rather than a hard Manhattan test, so
-        // the cross keeps its shape but its ends and edges fade as it slides
-        const armH = plateauFalloff(sweCrossWidth, dSweZ, 0.45) * smoothFalloff(SWE_CROSS_LENGTH, dSweX);
-        const armV = plateauFalloff(sweCrossWidth, dSweX, 0.45) * smoothFalloff(SWE_CROSS_LENGTH, dSweZ);
-        const swe = Math.max(armH, armV) * sweWeight;
+        // Manhattan cross pattern — hard-edged and architectural on purpose
+        const inCross = (dSweX < sweCrossWidth && dSweZ < SWE_CROSS_LENGTH) ||
+                        (dSweZ < sweCrossWidth && dSweX < SWE_CROSS_LENGTH);
 
-        if (swe > 0) {
-          ih += swe * 1.2;
-          ir += COLORS.swe.r * swe * 0.9;
-          ig += COLORS.swe.g * swe * 0.9;
-          ib += COLORS.swe.b * swe * 0.9;
+        if (inCross) {
+          const dist = Math.min(dSweX, dSweZ);
+          const intensity = Math.max(0, 1 - dist / sweCrossWidth) * sweWeight;
+          const falloff = 1 - Math.max(dSweX, dSweZ) / SWE_CROSS_LENGTH;
+
+          ih += intensity * falloff * 1.2;
+          ir += COLORS.swe.r * intensity * falloff * 0.9;
+          ig += COLORS.swe.g * intensity * falloff * 0.9;
+          ib += COLORS.swe.b * intensity * falloff * 0.9;
         }
       }
 
@@ -435,7 +446,8 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
           // pow(1.5), as originally written: already zero at the edge, and the
           // soft leading/trailing gradient is what makes the sweep read as a
           // scan pass rather than a hard bar
-          const intensity = Math.pow(1 - dVid / VIDEO_SCAN_WIDTH, 1.5);
+          const u = 1 - dVid / VIDEO_SCAN_WIDTH;
+          const intensity = u * Math.sqrt(u);
           const video = intensity * zGradient * videoWeight;
 
           ih += video * 0.5;
@@ -448,7 +460,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
       // === MOUSE INTERACTION ===
       const dMouse = Math.sqrt((x - mouseX) ** 2 + (z - mouseZ) ** 2);
       if (dMouse < MOUSE_RADIUS) {
-        const hover = smoothFalloff(MOUSE_RADIUS, dMouse);
+        const hover = 1 - dMouse / MOUSE_RADIUS;
         ih += hover * 0.6;
         // Swiss Blue accent on mouse hover
         ir += COLORS.accent.r * hover * 0.3;
@@ -456,17 +468,14 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
         ib += COLORS.accent.b * hover * 0.3;
       }
 
-      // === TRAILS: ramp up toward "now", decay away from it ===
-      // Rising through kRise instead of jumping straight to `ih` keeps cells
-      // from popping on at full emissive; the decay below is the comet tail.
-      const hD = tH[i] * decay;
-      const rD = tR[i] * decay;
-      const gD = tG[i] * decay;
-      const bD = tB[i] * decay;
-      const hT = (tH[i] = ih > hD ? hD + (ih - hD) * kRise : hD);
-      const rT = (tR[i] = ir > rD ? rD + (ir - rD) * kRise : rD);
-      const gT = (tG[i] = ig > gD ? gD + (ig - gD) * kRise : gD);
-      const bT = (tB[i] = ib > bD ? bD + (ib - bD) * kRise : bD);
+      // === TRAILS: keep the brighter of "now" and the decaying memory ===
+      // Attack is instant on purpose: blocks stepping on crisply as a shape
+      // arrives is the pixel look, and the permanent floor keeps the step
+      // reading as "lit" rather than "created". The decay is the comet tail.
+      const hT = (tH[i] = Math.max(ih, tH[i] * decay));
+      const rT = (tR[i] = Math.max(ir, tR[i] * decay));
+      const gT = (tG[i] = Math.max(ig, tG[i] * decay));
+      const bT = (tB[i] = Math.max(ib, tB[i] * decay));
 
       // === WAVE FIELD: ripples lift the surface and glow accent-blue ===
       const wH = wh[idx];
@@ -474,80 +483,96 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
 
       // === SUBTLE BREATHING ===
       const breathe = Math.sin(time * 0.5 + idx * 0.01) * 0.03;
-      const targetY = (hT + wH * 0.6 + breathe) * edgeFade;
+      const lift = wH >= 0 ? wH * 0.6 : -MAX_DIP * Math.tanh((-wH * 0.6) / MAX_DIP);
+      const targetY = (hT + lift + breathe) * edgeFade;
 
-      // Apply position
-      _dummy.position.set(x, targetY - 0.5, z);
-      _dummy.scale.set(1, Math.max(0.1, 0.3 + targetY * 0.5), 1);
-      _dummy.updateMatrix();
-      meshRef.current.setMatrixAt(i, _dummy.matrix);
+      // Apply position: y scale and y offset (see the seeding above)
+      const o = i * 16;
+      matrices[o + 5] = Math.max(0.1, 0.3 + targetY * 0.5);
+      matrices[o + 13] = targetY - 0.5;
 
       // Apply color: permanent floor, trails + wave glow on top, everything
-      // dissolving at the grid edge
-      _color.setRGB(
-        Math.min(1, (FLOOR_R + rT + COLORS.accent.r * wGlow) * edgeFade),
-        Math.min(1, (FLOOR_G + gT + COLORS.accent.g * wGlow) * edgeFade),
-        Math.min(1, (FLOOR_B + bT + COLORS.accent.b * wGlow) * edgeFade)
-      );
-      meshRef.current.setColorAt(i, _color);
+      // dissolving at the grid edge. Linear values, as Color.setRGB stored them.
+      const c = i * 3;
+      colors[c] = Math.min(1, (FLOOR_R + rT + COLORS.accent.r * wGlow) * edgeFade);
+      colors[c + 1] = Math.min(1, (FLOOR_G + gT + COLORS.accent.g * wGlow) * edgeFade);
+      colors[c + 2] = Math.min(1, (FLOOR_B + bT + COLORS.accent.b * wGlow) * edgeFade);
     }
 
-    meshRef.current.instanceMatrix.needsUpdate = true;
-    if (meshRef.current.instanceColor) {
-      meshRef.current.instanceColor.needsUpdate = true;
-    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.instanceColor!.needsUpdate = true;
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, totalCells]}>
+    // The grid fills the frame from every camera pose, so culling can only
+    // cost a bounding-sphere pass over every instance
+    <instancedMesh ref={meshRef} args={[undefined, undefined, totalCells]} frustumCulled={false}>
       <boxGeometry args={[cellSize, 1, cellSize]} />
       <primitive object={gridMaterial} attach="material" />
     </instancedMesh>
   );
 };
 
+// --- MOTION DRIVER ---
+// Quality given up, in order, when frames keep missing their beat. Motion is
+// never on the list: a softer or glow-less grid that moves beats a sharp one
+// that stutters.
+const QUALITY_STEPS = [
+  { dpr: 1, bloom: true },
+  { dpr: 0.85, bloom: true },
+  { dpr: 0.7, bloom: true },
+  { dpr: 0.7, bloom: false },
+] as const;
+
+/**
+ * Advances the shared clock and pillars once per frame, ahead of every other
+ * subscriber (negative priority runs first without taking over rendering).
+ * Also watches cadence: two windows in a row of frames missing their beat
+ * step quality down one notch for the rest of the visit. Only down, never
+ * back up, so it can't oscillate; a 30 fps power-saving cap is a steady beat
+ * and never trips it.
+ */
+const MotionDriver: React.FC<{ motion: SceneMotion; onStruggling: () => void }> = ({ motion, onStruggling }) => {
+  const reduceMotion = useReducedMotion();
+  const monitor = useMemo(() => new CadenceMonitor(), []);
+  const strikes = useRef(0);
+
+  useFrame((_, delta) => {
+    const dt = Math.min(delta, MAX_STEP);
+    const m = motion;
+    m.dt = dt;
+    m.timeScale += ((reduceMotion ? REDUCED_TIME_SCALE : 1) - m.timeScale) * approach(4, dt);
+    const sceneDt = dt * m.timeScale;
+    m.time += sceneDt;
+
+    updateSWEPillar(m.swe, m.time, sceneDt);
+    updateMLPillar(m.ml, m.time);
+    updateVideoPillar(m.video, m.time);
+
+    const verdict = monitor.sample(delta);
+    if (verdict === 'struggling') {
+      if (++strikes.current >= 2) {
+        strikes.current = 0;
+        onStruggling();
+      }
+    } else if (verdict) {
+      strikes.current = 0;
+    }
+  }, -1);
+
+  return null;
+};
+
 // --- PILLAR LIGHTS ---
-const PillarLights: React.FC = () => {
+const PillarLights: React.FC<{ motion: SceneMotion }> = ({ motion }) => {
   const sweRef = useRef<THREE.PointLight>(null);
   const mlRef = useRef<THREE.PointLight>(null);
   const videoRef = useRef<THREE.PointLight>(null);
 
-  const pillars = useRef({
-    swe: { position: new THREE.Vector3(), velocity: new THREE.Vector3(), phase: 0 },
-    ml: { position: new THREE.Vector3(), velocity: new THREE.Vector3(), phase: 0 },
-    video: { position: new THREE.Vector3(), velocity: new THREE.Vector3(), phase: 0 },
-  });
-
-  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
-
-  useFrame((state) => {
-    const time = reduceMotion ? 0 : state.clock.getElapsedTime();
-
-    updateSWEPillar(pillars.current.swe, time);
-    updateMLPillar(pillars.current.ml, time);
-    updateVideoPillar(pillars.current.video, time);
-
-    if (sweRef.current) {
-      sweRef.current.position.set(
-        pillars.current.swe.position.x,
-        2,
-        pillars.current.swe.position.z
-      );
-    }
-    if (mlRef.current) {
-      mlRef.current.position.set(
-        pillars.current.ml.position.x,
-        2.5 + Math.sin(time * 2) * 0.5,
-        pillars.current.ml.position.z
-      );
-    }
-    if (videoRef.current) {
-      videoRef.current.position.set(
-        pillars.current.video.position.x,
-        2,
-        pillars.current.video.position.z
-      );
-    }
+  useFrame(() => {
+    sweRef.current?.position.set(motion.swe.x, 2, motion.swe.z);
+    mlRef.current?.position.set(motion.ml.x, 2.5 + Math.sin(motion.time * 2) * 0.5, motion.ml.z);
+    videoRef.current?.position.set(motion.video.x, 2, motion.video.z);
   });
 
   return (
@@ -560,12 +585,12 @@ const PillarLights: React.FC = () => {
 };
 
 // --- CAMERA RIG ---
-const CameraRig: React.FC = () => {
+const CameraRig: React.FC<{ motion: SceneMotion }> = ({ motion }) => {
   const { camera, mouse, viewport } = useThree();
   const targetPos = useRef(new THREE.Vector3(0, 12, 16));
-  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+  const reduceMotion = useReducedMotion();
 
-  useFrame((state) => {
+  useFrame(() => {
     // Tall/narrow viewports leave empty sky above the grid's horizon with the
     // wide-screen framing — steepen the pitch so the floor fills the frame.
     // tall: 0 on wide desktop → 1 on portrait.
@@ -577,7 +602,7 @@ const CameraRig: React.FC = () => {
     // framing without drift
     if (reduceMotion) {
       targetPos.current.set(0, baseY, baseZ);
-      camera.position.lerp(targetPos.current, 0.1);
+      camera.position.lerp(targetPos.current, approach(CAMERA_SETTLE_RATE, motion.dt));
       camera.lookAt(0, -1, 0);
       return;
     }
@@ -586,7 +611,7 @@ const CameraRig: React.FC = () => {
     // mouse parallax layers on top
     // Parallax travel kept modest so the camera never pans far enough to
     // resolve the grid's edge
-    const t = state.clock.getElapsedTime();
+    const t = motion.time;
     const targetX = mouse.x * 2.2 + Math.sin(t * 0.08) * 0.9;
     const targetY = baseY + mouse.y * 1 + Math.sin(t * 0.05) * 0.3;
     const targetZ = baseZ - mouse.y * 2 + Math.cos(t * 0.06) * 0.5;
@@ -594,9 +619,30 @@ const CameraRig: React.FC = () => {
     targetPos.current.set(targetX, targetY, targetZ);
 
     // Smooth camera movement
-    camera.position.lerp(targetPos.current, 0.03);
+    camera.position.lerp(targetPos.current, approach(CAMERA_RATE, motion.dt));
     camera.lookAt(0, -1, 0);
   });
+
+  return null;
+};
+
+// --- CONTEXT LOSS GUARD ---
+// Without preventDefault the browser never offers a restored context, so a
+// canvas that loses one (VRAM pressure, GPU reset, tab backgrounded on some
+// drivers) stays dead for the rest of the session.
+const ContextGuard: React.FC<{ onLost: () => void }> = ({ onLost }) => {
+  const { gl } = useThree();
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const handleLost = (event: Event) => {
+      event.preventDefault();
+      console.warn('[ImmersiveScene] WebGL context lost — remounting the canvas');
+      onLost();
+    };
+    canvas.addEventListener('webglcontextlost', handleLost);
+    return () => canvas.removeEventListener('webglcontextlost', handleLost);
+  }, [gl, onLost]);
 
   return null;
 };
@@ -627,30 +673,69 @@ interface ImmersiveSceneProps {
 
 const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady, pulse = null }) => {
   const consoleCtx = useConsole();
-  const [screenSize, setScreenSize] = useState<ScreenSize>('desktop');
-  const reduceMotion = useMemo(() => prefersReducedMotion(), []);
+  // Rounded to 64px steps so a drag-resize doesn't re-render (and reallocate
+  // the framebuffer) on every pixel. Seeded from the real width so the grid is
+  // built at its final size once, instead of mounting at 40² and rebuilding.
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window === 'undefined' ? 1280 : Math.round(window.innerWidth / 64) * 64
+  );
+  const [canvasKey, setCanvasKey] = useState(0);
+  const reduceMotion = useReducedMotion();
+  // Outlives canvas remounts (context loss), so a fresh canvas picks the
+  // shapes up where the old one left them
+  const [motion] = useState(createSceneMotion);
+  const [qualityStep, setQualityStep] = useState(0);
+  const quality = QUALITY_STEPS[qualityStep];
+
+  const handleStruggling = useCallback(() => {
+    setQualityStep((step) => Math.min(step + 1, QUALITY_STEPS.length - 1));
+  }, []);
+
+  // Say so out loud: from the outside, a deliberately softened scene and a
+  // rendering bug look alike
+  useEffect(() => {
+    if (qualityStep === 0) return;
+    console.info(
+      `[ImmersiveScene] frames are missing their beat — ${
+        quality.bloom ? `rendering at ${Math.round(quality.dpr * 100)}% resolution` : 'dropping the glow pass'
+      } to keep the motion smooth`
+    );
+  }, [qualityStep, quality]);
+
+  // The terminal easter egg covers the hero with its own full-screen shader.
+  // Two WebGL loops for one visible scene is the worst case on a battery, so
+  // the hidden one stops drawing; the accumulated clock resumes it in place.
+  const paused = consoleCtx.isEasterEggActive;
 
   // Detect screen size for responsive 3D rendering
   useEffect(() => {
-    const checkScreenSize = () => {
-      setScreenSize(getScreenSize(window.innerWidth));
-    };
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-    return () => window.removeEventListener('resize', checkScreenSize);
+    const onResize = () => setViewportWidth(Math.round(window.innerWidth / 64) * 64);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  // A lost context leaves a dead canvas on screen — the hero looks frozen and
+  // never recovers. Remount to acquire a fresh one.
+  const handleContextLost = useCallback(() => {
+    setTimeout(() => setCanvasKey((k) => k + 1), 300);
+  }, []);
+
+  const screenSize = getScreenSize(viewportWidth);
   const config = getGridConfig(screenSize);
   const isMobile = screenSize === 'mobile';
   const isLargeScreen = screenSize === 'large' || screenSize === 'ultrawide';
 
-  // DPR settings based on screen size
-  const getDpr = (): [number, number] => {
-    if (isMobile) return [1, 1];
-    // Cap at 1.5 everywhere: bloom's mipmap chain at DPR 2 on 1440p+ doubles
-    // GPU work for sharpness the glow aesthetic doesn't need
-    return [1, 1.5];
-  };
+  /**
+   * Device pixel ratio, capped by a *rendered width* budget rather than a flat
+   * ratio (see budgetDpr: a lost context or single-digit FPS both read as the
+   * hero being frozen), then scaled by the cadence governor. On a high-density
+   * panel the glow aesthetic carries the softness anyway.
+   */
+  const dpr = useMemo(
+    () => Math.max(0.5, budgetDpr(viewportWidth, isMobile) * quality.dpr),
+    [isMobile, viewportWidth, quality.dpr]
+  );
 
   // FOV settings - wider on mobile, narrower on large screens for more detail
   const getFov = (): number => {
@@ -673,7 +758,9 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
   return (
     <div className={`w-full h-full ${className}`}>
       <Canvas
-        dpr={getDpr()}
+        key={canvasKey}
+        dpr={dpr}
+        frameloop={paused ? 'never' : 'always'}
         camera={{ position: [0, 12, 16], fov: getFov(), near: 0.1, far: 100 }}
         // The hero content overlay sits above the canvas and would swallow
         // pointer events — source them from the app root so mouse parallax
@@ -681,7 +768,10 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
         eventSource={document.getElementById('root') as HTMLElement}
         eventPrefix="client"
         gl={{
-          antialias: !isMobile, // Disable antialiasing on mobile for performance
+          // EffectComposer renders the scene into its own target, so the
+          // canvas's MSAA buffer is allocated but never sampled — pure cost,
+          // and at 1440p+ a large chunk of VRAM. Mobile never had it either.
+          antialias: false,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: isLargeScreen ? 1.3 : 1.2, // Slightly brighter on large screens
           powerPreference: 'high-performance',
@@ -717,21 +807,24 @@ const ImmersiveScene: React.FC<ImmersiveSceneProps> = ({ className = '', onReady
           {/* Accent light from below */}
           <pointLight position={[0, -5, 0]} intensity={0.3} color="#2563EB" />
 
+          <MotionDriver motion={motion} onStruggling={handleStruggling} />
           <InteractiveGrid
             focusedDiscipline={consoleCtx.focusedDiscipline}
             gridSize={config.gridSize}
             cellSize={config.cellSize}
             pulse={pulse}
+            motion={motion}
           />
-          <PillarLights />
-          <CameraRig />
+          <PillarLights motion={motion} />
+          <CameraRig motion={motion} />
+          <ContextGuard onLost={handleContextLost} />
           {onReady && <ReadyDetector onReady={onReady} />}
 
           {/* Bloom turns the emissive cells into neon light sources.
               Desktop only — mobile keeps the flat-lit look for performance.
               multisampling=0: MSAA on top of bloom is wasted GPU — the glow
               softens edges perceptually anyway */}
-          {!isMobile && (
+          {!isMobile && quality.bloom && (
             <EffectComposer multisampling={0}>
               <Bloom mipmapBlur intensity={0.7} luminanceThreshold={0.38} luminanceSmoothing={0.22} radius={0.7} />
             </EffectComposer>

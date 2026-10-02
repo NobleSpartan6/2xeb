@@ -35,21 +35,69 @@ endpoint itself is invisible. The resting level sits below the bloom threshold
 perimeter, so the plane keeps reading as infinite. Don't darken the floor to the
 background to "restore contrast"; dim the *lit* contributions instead.
 
-**Nothing in the field may change in a single frame:**
-Cells are emitters feeding bloom, so any instant change reads as a cube being
-created or deleted rather than lit or dimmed. Both directions must ramp:
-- Trails handle the way light *leaves* a cell (`decay`). The way in ramps
-  through `kRise` (`LIGHT_RISE_HALF_LIFE`) — going straight to the
-  instantaneous influence pops the cell on at full emissive
-- Influence extents use `smoothFalloff()` (zero slope at the outer edge), never
-  a hard `if (distance < extent)` gate, which switches a cell's contribution on
-  and off between frames as a pillar slides past it
-- Keep `SWE_CROSS_WIDTH` above one cell pitch (`cellSize + GAP`); a narrower arm
-  falls between cell rows as the cross slides and flickers
+**Attack is instant, exit decays — don't smooth the attack:**
+Blocks stepping on crisply as a shape passes is the pixel aesthetic; the
+permanent floor is what keeps that step reading as "lit" rather than "created".
+Trails (`decay`) carry the exit as a comet tail. A rise ramp on the way in was
+tried and it killed the sense of motion — the shapes stopped reading as blocks
+moving. Don't reintroduce one, and don't swap the pillars' falloff curves for a
+shared smooth falloff: the cross is hard-edged, ML is a linear cone, VIDEO is
+pow(1.5), and those distinct characters are the design.
+
+Two real rules:
+- Shapes must be at least one cell pitch wide (`SWE_ARM_PITCHES` keeps the
+  cross arm at 1.1 pitches). A sub-pitch feature falls between cell rows as it
+  slides and whole arms flicker — that DOES read as broken
 - Discipline focus ramps `focusWeights` instead of flipping booleans, so
-  hovering CODE cross-fades the other two out
-- All rates are frame-rate independent (`1 - exp(-k·delta)` / half-life form) and
-  collapse to instant under `reduceMotion`, which keeps its static pose
+  hovering CODE cross-fades the other two out instead of dropping two thirds
+  of the field's light in one frame
+
+**Reduced motion slows the clock, never freezes it (`REDUCED_TIME_SCALE`):**
+Freezing `time` at 0 parks the shapes in a permanent saturated pose — the
+video scan sits at centre burning a blown-out white column, which reads as the
+site being broken (and did, for a user with OS-level Reduce Motion enabled).
+"Reduced motion means fewer and gentler, not zero": the pillars are small,
+slow, local colour drifts, so they run at 0.3× instead. Viewport-scale effects
+stay curbed under reduce-motion — camera parallax off (CameraRig early
+return), shockwave amplitude damped (`pulseAmp`), stars still.
+
+**Motion is frame-rate independent (`frame.ts`):**
+Browsers choose the rAF cadence: 120 Hz on ProMotion, 60 on most monitors, 30
+under power saving (Chrome Energy Saver, Edge efficiency mode, Safari/iOS Low
+Power Mode). So:
+- No per-frame lerp factors. Use `approach(rate, dt)` with a per-second rate;
+  `rateFromLerp60(0.08)` converts an old 60 fps-tuned factor exactly
+- One accumulated scene clock (`SceneMotion`, advanced by `MotionDriver` at
+  `useFrame` priority -1). Never read `state.clock` for motion: the wall clock
+  teleports the shapes when reduce-motion flips (0.3 × t), when a paused
+  canvas resumes, and after a backgrounded tab. Pillars are computed once per
+  frame there and read by the grid, the lights and the camera
+- The wave sim substeps at ≤1/60 s, so ripples travel at the same real speed
+  at 30 fps instead of half
+- Steps are clamped to `MAX_STEP` (0.1 s)
+
+**Quality degrades, motion doesn't (`CadenceMonitor`, `QUALITY_STEPS`):**
+The governor judges frames against the beat the browser is giving, not 60 fps.
+A steady 30 Hz power-saving cap is healthy and must never trip it (an
+"fps < 50 → degrade" monitor would strip quality from a perfect scene). Only
+*missed* beats count: two 2-second windows with >25% of frames past 1.6× the
+beat step down one notch (85% → 70% resolution → no bloom) for the rest of the
+visit. Down only, so it can't oscillate. The hero also stops drawing
+(`frameloop="never"`) while the terminal easter egg covers it.
+
+**The wave surface returns to rest (`WAVE_REST`, `MAX_DIP`):**
+Impulses push the surface down and the neighbour (Laplacian) term only spreads
+a push, never undoes it, so without a rest spring every click left a lasting
+trough and a few quick clicks sank patches of cells under the floor plane.
+The spring heals troughs in ~1.5s; `MAX_DIP` soft-limits how far a cell can
+drop so its top always clears the floor. Same doctrine as the permanent
+floor: light and waves move over the surface, cells never disappear.
+
+**Instance buffers are written directly:**
+Cells never rotate and only move in y, so the x/z translation is seeded once per
+layout and each frame writes two matrix floats and three colour floats per cell
+(linear values, exactly what `Color.setRGB` stored). Don't go back to
+`Object3D.updateMatrix()` + `setMatrixAt` per cell.
 
 **Responsive Behavior:**
 ```typescript
