@@ -46,6 +46,6 @@ export const SITE_INDEX: SitePage[] = [
     path: '/work/portfolio-console',
     title: 'Case Study: Portfolio Console',
     description: 'Deep dive into how this site was built',
-    keywords: ['case study', 'how it works', 'architecture'],
+    keywords: ['case study', 'how it works', 'architecture', 'animations', 'anime.js', 'performance'],
   },
 ];
