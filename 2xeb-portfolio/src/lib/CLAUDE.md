@@ -71,6 +71,9 @@ TypeScript interfaces used across the app.
 - `Discipline` - 'SWE' | 'ML' | 'VIDEO' | 'HYBRID'
 - `ConsoleLane` - 'DESIGN' | 'CODE' | 'VISION'
 
+### thumbnails.ts
+`fallbackYouTubeThumbnail` — wire to both `onLoad` and `onError` of a project `<img>`. `maxresdefault`/`sddefault` don't exist for every video (404, or a 120x90 stub with HTTP 200); it steps down maxres → sd → hq (always present). Used by `ProjectCard` and the `ProjectDetail` hero.
+
 ### debug.ts
 Debug utilities for development. Contains logging helpers and conditional debug output.
 
