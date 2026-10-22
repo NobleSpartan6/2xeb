@@ -6,6 +6,7 @@ import { useProject } from '../hooks/useProjects';
 import { useScrollReveal } from '../hooks/useAnimations';
 import { useConsole } from '../context/ConsoleContext';
 import DisciplineChip from '../components/DisciplineChip';
+import { fallbackYouTubeThumbnail } from '../lib/thumbnails';
 
 // Lazy load CaseStudyExplorer - only loaded when needed
 const CaseStudyExplorer = lazy(() => import('../components/CaseStudyExplorer'));
@@ -174,6 +175,8 @@ const ProjectDetail: React.FC = () => {
                loading="lazy"
                width="1920"
                height="1080"
+               onLoad={fallbackYouTubeThumbnail}
+               onError={fallbackYouTubeThumbnail}
                className="w-full h-full object-cover opacity-90 transition-opacity duration-500 group-hover:opacity-60"
              />
              {embedUrl && (

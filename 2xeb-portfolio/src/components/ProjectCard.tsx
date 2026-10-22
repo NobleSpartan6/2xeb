@@ -3,6 +3,7 @@ import { Link, useViewTransitionState } from 'react-router-dom';
 import { Project } from '../lib/types';
 import DisciplineChip from './DisciplineChip';
 import { useConsole } from '../context/ConsoleContext';
+import { fallbackYouTubeThumbnail } from '../lib/thumbnails';
 
 interface ProjectCardProps {
   project: Project;
@@ -40,15 +41,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
               width="800"
               height="450"
               className={`w-full h-full object-cover group-hover:opacity-100 group-hover:scale-105 transition-[opacity,transform] duration-500 ease-out-strong ${isDesignedCover ? 'opacity-90' : 'opacity-60'}`}
-              onLoad={(e) => {
-                // YouTube serves a 120x90 stub (HTTP 200) when a video has no
-                // maxres thumbnail — fall back to the always-present hqdefault
-                const img = e.currentTarget;
-                if (img.naturalWidth <= 120 && img.src.includes('maxresdefault') && !img.dataset.fallback) {
-                  img.dataset.fallback = '1';
-                  img.src = img.src.replace('maxresdefault', 'hqdefault');
-                }
-              }}
+              onLoad={fallbackYouTubeThumbnail}
+              onError={fallbackYouTubeThumbnail}
            />
          ) : (
            <div className="w-full h-full bg-[#111] flex items-center justify-center text-[#333] font-mono text-xs">
