@@ -38,7 +38,7 @@ const ProjectDetail: React.FC = () => {
 
   if (!project) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white bg-[#050505]">
+      <div className="min-h-screen flex items-center justify-center text-white bg-bg">
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-4 font-space-grotesk">404</h1>
           <p className="text-[#A3A3A3] mb-8 font-mono">Project not found.</p>
@@ -103,7 +103,7 @@ const ProjectDetail: React.FC = () => {
   const embedUrl = getEmbedUrl(project.videoUrl);
 
   return (
-    <article ref={revealRef} className="min-h-screen pt-32 pb-20 px-6 md:px-12 max-w-6xl mx-auto bg-[#050505]">
+    <article ref={revealRef} className="min-h-screen pt-32 pb-20 px-6 md:px-12 max-w-6xl mx-auto bg-bg">
       <Link to="/work" data-animate className="inline-flex items-center text-[#A3A3A3] hover:text-[#2563EB] mb-12 transition-colors text-xs uppercase tracking-widest font-mono">
         ← Back Index
       </Link>
@@ -140,7 +140,7 @@ const ProjectDetail: React.FC = () => {
           View Transitions API. Not [data-animate] — the reveal would hide it
           at snapshot time and break the morph. */}
       <div
-        className="w-full aspect-video bg-[#0A0A0A] border border-[#262626] mb-16 relative overflow-hidden group"
+        className="w-full aspect-video bg-card border border-[#262626] mb-16 relative overflow-hidden group"
         style={{ viewTransitionName: 'project-media' }}
       >
         {gumletEmbed ? (
@@ -178,8 +178,8 @@ const ProjectDetail: React.FC = () => {
              />
              {embedUrl && (
                <div className="absolute inset-0 flex items-center justify-center">
-                 <div className="w-20 h-20 rounded-full border border-white/20 flex items-center justify-center bg-black/50 backdrop-blur-sm group-hover:scale-110 group-hover:border-[#2563EB] transition-[transform,border-color] duration-300 ease-out-strong">
-                   <div className="w-0 h-0 border-t-[10px] border-t-transparent border-l-[20px] border-l-white border-b-[10px] border-b-transparent ml-1 group-hover:border-l-[#2563EB] transition-colors"></div>
+                 <div className="w-20 h-20 rounded-full border border-white/20 flex items-center justify-center bg-black/50 backdrop-blur-xs group-hover:scale-110 group-hover:border-[#2563EB] transition-[transform,border-color] duration-300 ease-out-strong">
+                   <div className="w-0 h-0 border-t-10 border-t-transparent border-l-20 border-l-white border-b-10 border-b-transparent ml-1 group-hover:border-l-[#2563EB] transition-colors"></div>
                  </div>
                </div>
              )}
@@ -236,7 +236,7 @@ const ProjectDetail: React.FC = () => {
                 onClick={() => setIsEasterEggActive(true)}
                 className="group flex items-center gap-3 text-left w-full"
               >
-                <div className="w-10 h-10 border border-[#262626] bg-[#0A0A0A] flex items-center justify-center group-hover:border-[#2563EB] group-hover:bg-[#2563EB]/5 transition-colors duration-200">
+                <div className="w-10 h-10 border border-[#262626] bg-card flex items-center justify-center group-hover:border-[#2563EB] group-hover:bg-[#2563EB]/5 transition-colors duration-200">
                   <span className="text-[#2563EB]/60 group-hover:text-[#2563EB] font-mono text-sm animate-pulse">&gt;_</span>
                 </div>
                 <div>

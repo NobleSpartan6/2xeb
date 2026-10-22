@@ -106,7 +106,7 @@ const Contact: React.FC = () => {
 
   if (status === 'success') {
     return (
-      <div className="relative w-full h-[100dvh] overflow-hidden bg-[#050505]">
+      <div className="relative w-full h-dvh overflow-hidden bg-bg">
         <div className="absolute inset-0 z-0">
           <Suspense fallback={null}>
             <ContactScene isSuccess={true} triggerPulse={triggerPulse} />
@@ -121,7 +121,7 @@ const Contact: React.FC = () => {
                 </span>
               ))}
             </h1>
-            <p data-sent-detail className="mt-6 text-[#666] text-sm md:text-base max-w-md leading-relaxed">
+            <p data-sent-detail className="mt-6 text-[#666] text-sm md:text-base/6 max-w-md leading-relaxed">
               Message received. I'll get back to you soon.
             </p>
             <button
@@ -138,7 +138,7 @@ const Contact: React.FC = () => {
   }
 
   return (
-    <div ref={pageRef} className="relative w-full h-[100dvh] overflow-hidden bg-[#050505]">
+    <div ref={pageRef} className="relative w-full h-dvh overflow-hidden bg-bg">
       {/* 3D Background */}
       <div className="absolute inset-0 z-0">
         <Suspense fallback={null}>
@@ -162,7 +162,7 @@ const Contact: React.FC = () => {
             <span data-contact-heading className="inline-block text-[#2563EB]">TOUCH</span>
           </h1>
 
-          <p data-contact-heading className="text-[#666] text-sm md:text-base max-w-md leading-relaxed mb-8">
+          <p data-contact-heading className="text-[#666] text-sm md:text-base/6 max-w-md leading-relaxed mb-8">
             Have a project in mind or want to collaborate?
             Send me a message.
           </p>
@@ -194,7 +194,7 @@ const Contact: React.FC = () => {
                     onBlur={handleBlur}
                     className={`w-full bg-transparent border-b-2 ${
                       focusedField === 'name' ? 'border-[#2563EB]' : 'border-[#222]'
-                    } px-0 py-2 text-white text-sm focus:outline-none placeholder:text-[#444] transition-colors duration-200`}
+                    } px-0 py-2 text-white text-sm focus:outline-hidden placeholder:text-[#444] transition-colors duration-200`}
                     placeholder="Your name"
                   />
                 </div>
@@ -211,7 +211,7 @@ const Contact: React.FC = () => {
                     onBlur={handleBlur}
                     className={`w-full bg-transparent border-b-2 ${
                       focusedField === 'email' ? 'border-[#2563EB]' : 'border-[#222]'
-                    } px-0 py-2 text-white text-sm focus:outline-none placeholder:text-[#444] transition-colors duration-200`}
+                    } px-0 py-2 text-white text-sm focus:outline-hidden placeholder:text-[#444] transition-colors duration-200`}
                     placeholder="you@email.com"
                   />
                 </div>
@@ -228,7 +228,7 @@ const Contact: React.FC = () => {
                   onBlur={handleBlur}
                   className={`w-full bg-transparent border-b-2 ${
                     focusedField === 'reason' ? 'border-[#2563EB]' : 'border-[#222]'
-                  } px-0 py-2 text-white text-sm focus:outline-none appearance-none cursor-pointer transition-colors duration-200`}
+                  } px-0 py-2 text-white text-sm focus:outline-hidden appearance-none cursor-pointer transition-colors duration-200`}
                 >
                   <option value="general" className="bg-[#111]">General Inquiry</option>
                   <option value="swe" className="bg-[#111]">Software Engineering</option>
@@ -251,7 +251,7 @@ const Contact: React.FC = () => {
                   onBlur={handleBlur}
                   className={`w-full bg-transparent border-b-2 ${
                     focusedField === 'message' ? 'border-[#2563EB]' : 'border-[#222]'
-                  } px-0 py-2 text-white text-sm focus:outline-none resize-none placeholder:text-[#444] transition-colors duration-200`}
+                  } px-0 py-2 text-white text-sm focus:outline-hidden resize-none placeholder:text-[#444] transition-colors duration-200`}
                   placeholder="Tell me about your project..."
                 ></textarea>
               </div>

@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 // Plugin to serve static HTML files for specific paths
 function serveStaticHtml(): Plugin {
@@ -34,7 +35,7 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
     },
 
-    plugins: [serveStaticHtml(), react()],
+    plugins: [serveStaticHtml(), react(), tailwindcss()],
 
     resolve: {
       alias: {

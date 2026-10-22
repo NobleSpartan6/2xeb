@@ -21,7 +21,7 @@ const SUGGESTIONS = [
 function renderMarkdown(text: string): string {
   return text
     // Code blocks (```...```)
-    .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre class="bg-[#0a0a0a] border border-[#1f2937] p-3 my-2 overflow-x-auto text-[11px]"><code>$2</code></pre>')
+    .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre class="bg-card border border-[#1f2937] p-3 my-2 overflow-x-auto text-[11px]"><code>$2</code></pre>')
     // Inline code (`...`)
     .replace(/`([^`]+)`/g, '<code class="bg-[#1a1a1a] px-1.5 py-0.5 text-[#06B6D4] text-[11px]">$1</code>')
     // Links [text](url)
@@ -339,12 +339,12 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#0A0A0A]">
+    <div className="flex flex-col h-full w-full bg-card">
 
       {/* Chat Area */}
       <div
         ref={chatContainerRef}
-        className={`flex-grow min-h-0 overflow-y-auto custom-scrollbar flex flex-col ${compact ? 'p-4' : 'p-5'}`}
+        className={`grow min-h-0 overflow-y-auto custom-scrollbar flex flex-col ${compact ? 'p-4' : 'p-5'}`}
         aria-live="polite"
       >
         {chatHistory.length === 0 ? (
@@ -400,14 +400,14 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
             {/* User message - with edit mode */}
             {isUser && editingIdx === idx ? (
               <div className="max-w-[85%] w-full">
-                <div className="flex flex-col gap-2 bg-[#2563EB]/[0.08] border border-[#2563EB]/40 p-3">
+                <div className="flex flex-col gap-2 bg-[#2563EB]/8 border border-[#2563EB]/40 p-3">
                   <input
                     ref={editInputRef}
                     type="text"
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
                     onKeyDown={handleEditKeyDown}
-                    className="w-full bg-[#0A0A0A] border border-[#1f2937] px-3 py-2 text-white focus:outline-none focus:border-[#2563EB] text-[16px] sm:text-[13px] font-mono"
+                    className="w-full bg-card border border-[#1f2937] px-3 py-2 text-white focus:outline-hidden focus:border-[#2563EB] text-[16px] sm:text-[13px] font-mono"
                     placeholder="Edit your message..."
                   />
                   <div className="flex gap-2 justify-end">
@@ -433,7 +433,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
               <>
                 <div className={`max-w-[85%] px-4 py-3 text-[13px] leading-relaxed font-mono ${
                   isUser
-                    ? 'bg-[#2563EB]/[0.08] border-r-2 border-[#2563EB] text-[#c7d9ff]'
+                    ? 'bg-[#2563EB]/8 border-r-2 border-[#2563EB] text-[#c7d9ff]'
                     : 'bg-[#080808]/70 border-l-2 border-[#1f2937] text-[#d4d4d4]'
                 }`}>
                   {isUser ? (
@@ -527,7 +527,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
         {error && (
           <div className="flex flex-col items-start animate-message-in">
             <span className="text-[9px] font-mono uppercase tracking-[0.18em] mb-1.5 ml-0.5 text-red-400/80">System</span>
-            <div className="max-w-[85%] px-4 py-3 bg-red-500/[0.04] border-l-2 border-red-500/60 text-[11px] font-mono text-red-300/90 leading-relaxed">
+            <div className="max-w-[85%] px-4 py-3 bg-red-500/4 border-l-2 border-red-500/60 text-[11px] font-mono text-red-300/90 leading-relaxed">
               {error}
               {lastUserMessageRef.current && (
                 <button
@@ -562,7 +562,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
                   className={`px-2 sm:px-2.5 py-1 text-[9px] font-mono uppercase tracking-wider whitespace-nowrap transition-colors ${
                     selectedModelId === model.id
                       ? 'bg-[#2563EB]/15 text-[#2563EB]'
-                      : 'text-[#525252] hover:text-[#a3a3a3] hover:bg-white/[0.03]'
+                      : 'text-[#525252] hover:text-[#a3a3a3] hover:bg-white/3'
                   }`}
                 >
                   <span className="hidden md:inline">{model.name}</span>
@@ -588,7 +588,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
         </div>
 
         {/* Prompt line: > glyph + input + send */}
-        <div className="flex items-center bg-[#0A0A0A] border border-[#1f2937] focus-within:border-[#2563EB] transition-colors">
+        <div className="flex items-center bg-card border border-[#1f2937] focus-within:border-[#2563EB] transition-colors">
           <span className="pl-3.5 pr-1 text-[#2563EB] font-mono text-[13px] select-none" aria-hidden>&gt;</span>
           <input
             ref={inputRef}
@@ -597,7 +597,7 @@ const AskPortfolioWidget: React.FC<WidgetProps> = ({ compact = false, autoFocus 
             onChange={(e) => setQuestion(e.target.value)}
             placeholder={editingIdx !== null ? "Finish editing above..." : "Ask about the work..."}
             disabled={editingIdx !== null}
-            className="flex-1 min-w-0 bg-transparent px-2 py-3 text-white focus:outline-none text-[16px] sm:text-[13px] font-mono placeholder-[#404040] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 min-w-0 bg-transparent px-2 py-3 text-white focus:outline-hidden text-[16px] sm:text-[13px] font-mono placeholder-[#404040] disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Ask EB about this portfolio"
           />
           <button

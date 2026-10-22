@@ -59,9 +59,7 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
 /2xeb-portfolio
 ├── index.html              # Entry HTML (fonts, root div)
-├── tailwind.config.js      # Tailwind theme (screens, fonts, colors)
-├── postcss.config.js       # PostCSS (tailwindcss + autoprefixer)
-├── vite.config.ts          # Vite config (alias @/ -> src/)
+├── vite.config.ts          # Vite 8 config (alias @/ -> src/, @tailwindcss/vite plugin)
 ├── tsconfig.json           # TypeScript config
 ├── package.json            # Dependencies
 │
@@ -181,7 +179,7 @@ Standards live in `.claude/skills/` (emil-design-eng, review-animations). Rules:
 - Strong easing tokens (defined in `src/index.css`, exposed via Tailwind): `ease-out-strong`, `ease-in-out-strong`, `ease-drawer` (iOS-style, for drawers/sheets)
 - Pressable elements (buttons, link-buttons) get the `.pressable` class: scale(0.97) on `:active` + owns its full transition list — don't combine with `transition-*` utilities, and never put it on an anime.js target (inline transforms fight CSS transitions)
 - Hover/color transitions: 150-200ms; UI movement: ≤300ms; drawers/modals: 300-500ms
-- `hoverOnlyWhenSupported` is on — `hover:` variants don't fire on touch devices
+- `hover:` variants only fire on devices that support hover (Tailwind v4 default) — they don't fire on touch devices
 
 ### Case Study Explorer
 - Lazy-loaded component (`React.lazy`) for Portfolio Console project
@@ -205,7 +203,8 @@ Standards live in `.claude/skills/` (emil-design-eng, review-animations). Rules:
 - **Code-splitting**: 3D scenes (`ImmersiveScene`, `ContactScene`), `MrRobotTerminal`, `NotFound`, and `CaseStudyExplorer` are `React.lazy` — keep heavy deps (three, R3F, shaders) out of the main bundle
 
 ### Styling
-- Tailwind compiled at build time (PostCSS): config in `tailwind.config.js`, entry CSS in `src/index.css` (imported by `main.tsx`)
+- Tailwind v4 compiled at build time by the `@tailwindcss/vite` plugin. No `tailwind.config.js`: theme tokens (screens incl. `3xl`/`4xl`, fonts, colors, easings, animations) live in the `@theme` block of `src/index.css` (imported by `main.tsx`), which also scopes class scanning to `index.html` + `src/` via `@source`
+- v4 gotchas: palette colors in use are pinned to their v3 hex values in `@theme`; a responsive `md:text-*` no longer overrides `leading-*` (write `md:text-lg/7` when a breakpoint needs the size's own line-height); `space-y-*`/`divide-*` use `:where()` so a child's own margin wins — prefer `gap` in flex/grid stacks; opacity uses the `/50` modifier (no `*-opacity-*` utilities)
 - Do NOT reintroduce the Tailwind CDN script; do NOT construct class names dynamically (JIT scans literal strings only)
 - Keep MVP styling as-is (do not redesign)
 

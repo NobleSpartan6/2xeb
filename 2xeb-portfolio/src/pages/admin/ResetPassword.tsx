@@ -54,9 +54,9 @@ const ResetPassword: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-bg flex items-center justify-center px-4">
         <div className="text-center">
-          <div className="w-12 h-12 bg-[#2563EB]/10 border border-[#2563EB]/30 grid place-items-center mx-auto mb-4 rounded">
+          <div className="w-12 h-12 bg-[#2563EB]/10 border border-[#2563EB]/30 grid place-items-center mx-auto mb-4 rounded-sm">
             <svg className="w-6 h-6 text-[#2563EB]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
@@ -69,12 +69,12 @@ const ResetPassword: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-bg flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-[#0A0A0A] border border-[#262626] grid place-items-center">
+            <div className="w-10 h-10 bg-card border border-[#262626] grid place-items-center">
               <span className="text-[#2563EB] font-bold text-xl font-space-grotesk">EB</span>
             </div>
             <span className="text-[10px] uppercase tracking-widest text-[#525252] font-mono">
@@ -90,12 +90,12 @@ const ResetPassword: React.FC = () => {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded">
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-sm">
             <p className="text-sm text-red-400 font-mono">{error}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="p-6 bg-[#0A0A0A] border border-[#262626]">
+        <form onSubmit={handleSubmit} className="p-6 bg-card border border-[#262626]">
           <div className="mb-4">
             <label
               htmlFor="password"
@@ -113,7 +113,7 @@ const ResetPassword: React.FC = () => {
                 autoFocus
                 minLength={6}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 pr-12 bg-[#050505] border border-[#262626] text-white font-mono text-sm placeholder-[#525252] focus:outline-none focus:border-[#2563EB] transition-colors"
+                className="w-full px-4 py-3 pr-12 bg-bg border border-[#262626] text-white font-mono text-sm placeholder-[#525252] focus:outline-hidden focus:border-[#2563EB] transition-colors"
               />
               <button
                 type="button"
@@ -150,7 +150,7 @@ const ResetPassword: React.FC = () => {
                 required
                 minLength={6}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 pr-12 bg-[#050505] border border-[#262626] text-white font-mono text-sm placeholder-[#525252] focus:outline-none focus:border-[#2563EB] transition-colors"
+                className="w-full px-4 py-3 pr-12 bg-bg border border-[#262626] text-white font-mono text-sm placeholder-[#525252] focus:outline-hidden focus:border-[#2563EB] transition-colors"
               />
               <button
                 type="button"

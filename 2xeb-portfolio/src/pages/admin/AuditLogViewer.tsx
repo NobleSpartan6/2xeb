@@ -99,7 +99,7 @@ const AuditLogViewer: React.FC = () => {
           <select
             value={filter.table}
             onChange={(e) => setFilter((prev) => ({ ...prev, table: e.target.value }))}
-            className="px-4 py-2 bg-[#0A0A0A] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+            className="px-4 py-2 bg-card border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
           >
             <option value="">All Tables</option>
             {tables.map((t) => (
@@ -115,7 +115,7 @@ const AuditLogViewer: React.FC = () => {
           <select
             value={filter.action}
             onChange={(e) => setFilter((prev) => ({ ...prev, action: e.target.value }))}
-            className="px-4 py-2 bg-[#0A0A0A] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+            className="px-4 py-2 bg-card border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
           >
             <option value="">All Actions</option>
             <option value="CREATE">CREATE</option>
@@ -153,7 +153,7 @@ const AuditLogViewer: React.FC = () => {
 
       {/* Log list */}
       {logs.length === 0 ? (
-        <div className="p-8 bg-[#0A0A0A] border border-[#262626] text-center">
+        <div className="p-8 bg-card border border-[#262626] text-center">
           <p className="text-sm text-[#525252] font-mono">No audit logs found</p>
         </div>
       ) : (
@@ -161,12 +161,12 @@ const AuditLogViewer: React.FC = () => {
           {logs.map((log) => (
             <div
               key={log.id}
-              className="bg-[#0A0A0A] border border-[#262626] overflow-hidden"
+              className="bg-card border border-[#262626] overflow-hidden"
             >
               {/* Summary row */}
               <button
                 onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-[#0A0A0A]/80 transition-colors"
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-card/80 transition-colors"
               >
                 <div className="flex items-center gap-4">
                   <span
@@ -203,7 +203,7 @@ const AuditLogViewer: React.FC = () => {
                         <h4 className="text-[10px] uppercase tracking-widest text-red-400 font-mono mb-2">
                           Old Data
                         </h4>
-                        <pre className="p-3 bg-[#050505] border border-[#1f2937] text-xs text-[#a3a3a3] font-mono overflow-x-auto max-h-48">
+                        <pre className="p-3 bg-bg border border-[#1f2937] text-xs text-[#a3a3a3] font-mono overflow-x-auto max-h-48">
                           {JSON.stringify(log.old_data, null, 2)}
                         </pre>
                       </div>
@@ -213,7 +213,7 @@ const AuditLogViewer: React.FC = () => {
                         <h4 className="text-[10px] uppercase tracking-widest text-green-400 font-mono mb-2">
                           New Data
                         </h4>
-                        <pre className="p-3 bg-[#050505] border border-[#1f2937] text-xs text-[#a3a3a3] font-mono overflow-x-auto max-h-48">
+                        <pre className="p-3 bg-bg border border-[#1f2937] text-xs text-[#a3a3a3] font-mono overflow-x-auto max-h-48">
                           {JSON.stringify(log.new_data, null, 2)}
                         </pre>
                       </div>

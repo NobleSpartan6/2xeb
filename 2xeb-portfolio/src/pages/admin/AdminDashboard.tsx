@@ -88,7 +88,7 @@ const AdminDashboard: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-pulse">
-          <div className="w-8 h-8 bg-[#0A0A0A] border border-[#262626] grid place-items-center">
+          <div className="w-8 h-8 bg-card border border-[#262626] grid place-items-center">
             <span className="text-[#2563EB] font-bold text-sm font-space-grotesk">EB</span>
           </div>
         </div>
@@ -112,7 +112,7 @@ const AdminDashboard: React.FC = () => {
           <Link
             key={stat.label}
             to={stat.path}
-            className="group p-6 bg-[#0A0A0A] border border-[#262626] hover:border-[#2563EB]/50 transition-colors"
+            className="group p-6 bg-card border border-[#262626] hover:border-[#2563EB]/50 transition-colors"
           >
             <div className="flex items-center justify-between mb-4">
               <span
@@ -139,14 +139,14 @@ const AdminDashboard: React.FC = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="p-6 bg-[#0A0A0A] border border-[#262626]">
+        <div className="p-6 bg-card border border-[#262626]">
           <h2 className="text-lg font-space-grotesk font-semibold text-white mb-4">
             Quick Actions
           </h2>
           <div className="space-y-3">
             <Link
               to="/admin/projects"
-              className="flex items-center gap-3 p-3 bg-[#050505] border border-[#1f2937] hover:border-[#2563EB]/50 transition-colors"
+              className="flex items-center gap-3 p-3 bg-bg border border-[#1f2937] hover:border-[#2563EB]/50 transition-colors"
             >
               <div className="w-8 h-8 bg-[#2563EB]/10 grid place-items-center">
                 <svg className="w-4 h-4 text-[#2563EB]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -157,7 +157,7 @@ const AdminDashboard: React.FC = () => {
             </Link>
             <Link
               to="/admin/experience"
-              className="flex items-center gap-3 p-3 bg-[#050505] border border-[#1f2937] hover:border-[#2563EB]/50 transition-colors"
+              className="flex items-center gap-3 p-3 bg-bg border border-[#1f2937] hover:border-[#2563EB]/50 transition-colors"
             >
               <div className="w-8 h-8 bg-[#06B6D4]/10 grid place-items-center">
                 <svg className="w-4 h-4 text-[#06B6D4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -168,7 +168,7 @@ const AdminDashboard: React.FC = () => {
             </Link>
             <Link
               to="/admin/pages"
-              className="flex items-center gap-3 p-3 bg-[#050505] border border-[#1f2937] hover:border-[#2563EB]/50 transition-colors"
+              className="flex items-center gap-3 p-3 bg-bg border border-[#1f2937] hover:border-[#2563EB]/50 transition-colors"
             >
               <div className="w-8 h-8 bg-[#84CC16]/10 grid place-items-center">
                 <svg className="w-4 h-4 text-[#84CC16]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -181,7 +181,7 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         {/* Recent Activity */}
-        <div className="p-6 bg-[#0A0A0A] border border-[#262626]">
+        <div className="p-6 bg-card border border-[#262626]">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-space-grotesk font-semibold text-white">
               Recent Activity

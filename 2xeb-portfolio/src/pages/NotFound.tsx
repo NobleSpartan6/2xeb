@@ -378,7 +378,7 @@ const NotFound: React.FC = () => {
   };
 
   return (
-    <div className={`h-screen w-screen bg-[#050505] relative overflow-hidden transition-[opacity,transform] duration-300 ease-out-strong ${isTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'}`}>
+    <div className={`h-screen w-screen bg-bg relative overflow-hidden transition-[opacity,transform] duration-300 ease-out-strong ${isTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'}`}>
       <style>{`
         .terminal-cursor { animation: blink 1s step-end infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
@@ -423,7 +423,7 @@ const NotFound: React.FC = () => {
         {!terminalOpen && (
           <button
             onClick={() => setTerminalOpen(true)}
-            className="mb-4 px-6 py-3 bg-[#0a0a0a]/80 backdrop-blur border border-[#333] hover:border-[#2563EB] pressable font-mono text-sm text-white"
+            className="mb-4 px-6 py-3 bg-card/80 backdrop-blur-sm border border-[#333] hover:border-[#2563EB] pressable font-mono text-sm text-white"
           >
             Open Terminal
           </button>
@@ -432,7 +432,7 @@ const NotFound: React.FC = () => {
         {/* Terminal window */}
         {terminalOpen && (
           <div className="w-full max-w-2xl">
-            <div className="bg-[#1a1a1a]/90 backdrop-blur border border-[#333] border-b-0 rounded-t-lg px-4 py-2 flex items-center gap-2">
+            <div className="bg-[#1a1a1a]/90 backdrop-blur-sm border border-[#333] border-b-0 rounded-t-lg px-4 py-2 flex items-center gap-2">
               <div className="flex gap-1.5">
                 <button onClick={() => setTerminalOpen(false)} className="w-3 h-3 rounded-full bg-[#ff5f56] hover:brightness-110" />
                 <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
@@ -443,7 +443,7 @@ const NotFound: React.FC = () => {
 
             <div
               ref={terminalRef}
-              className="bg-[#0a0a0a]/90 backdrop-blur border border-[#333] border-t-0 rounded-b-lg p-4 h-[200px] overflow-y-auto font-mono text-sm"
+              className="bg-card/90 backdrop-blur-sm border border-[#333] border-t-0 rounded-b-lg p-4 h-[200px] overflow-y-auto font-mono text-sm"
             >
               {terminalLines.map((line, i) => (
                 <div
@@ -467,7 +467,7 @@ const NotFound: React.FC = () => {
                     type="text"
                     value={currentInput}
                     onChange={(e) => setCurrentInput(e.target.value)}
-                    className="w-full bg-transparent text-white outline-none font-mono caret-transparent"
+                    className="w-full bg-transparent text-white outline-hidden font-mono caret-transparent"
                     autoFocus
                     spellCheck={false}
                     autoComplete="off"
@@ -489,7 +489,7 @@ const NotFound: React.FC = () => {
               setIsTransitioning(true);
               setTimeout(() => navigate('/'), 1000);
             }}
-            className="group px-6 py-3 bg-[#0a0a0a]/80 backdrop-blur border border-[#333] hover:border-[#2563EB] pressable flex items-center gap-2"
+            className="group px-6 py-3 bg-card/80 backdrop-blur-sm border border-[#333] hover:border-[#2563EB] pressable flex items-center gap-2"
           >
             <span className="text-[#2563EB] group-hover:translate-x-[-4px] transition-transform">&larr;</span>
             <span className="text-white font-mono text-sm">Go Home</span>
@@ -503,7 +503,7 @@ const NotFound: React.FC = () => {
 
       {/* Transition overlay */}
       {isTransitioning && (
-        <div className="fixed inset-0 z-50 bg-[#050505] flex items-center justify-center">
+        <div className="fixed inset-0 z-50 bg-bg flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="w-8 h-8 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
             <div className="text-[#2563EB] font-mono animate-pulse">Escaping the void...</div>

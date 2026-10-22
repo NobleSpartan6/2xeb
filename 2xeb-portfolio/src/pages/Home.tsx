@@ -237,7 +237,7 @@ const Home: React.FC = () => {
   }, [focusedDiscipline, setFocusedDiscipline]);
 
   return (
-    <div className="relative w-full h-[100dvh] overflow-hidden bg-[#050505]" style={{ minHeight: '-webkit-fill-available' }}>
+    <div className="relative w-full h-dvh overflow-hidden bg-bg" style={{ minHeight: '-webkit-fill-available' }}>
 
       {/* 3D Background - Full Screen Immersive */}
       <div className={`absolute inset-0 z-0 transition-opacity duration-500 ease-out-strong ${sceneReady ? 'opacity-100' : 'opacity-0'}`}>
@@ -251,9 +251,9 @@ const Home: React.FC = () => {
       {/* Gradient overlays for depth */}
       <div className="absolute inset-0 z-10 pointer-events-none">
         {/* Top fade */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#050505] to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-32 bg-linear-to-b from-bg to-transparent" />
         {/* Bottom fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#050505] to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-48 bg-linear-to-t from-bg to-transparent" />
         {/* Vignette */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,transparent_50%,#050505_100%)]" />
       </div>
@@ -283,8 +283,8 @@ const Home: React.FC = () => {
           className={`
             fixed top-[100px] sm:top-[110px] md:top-[136px] right-6 md:right-12 lg:right-16 z-30
             font-mono text-[10px] sm:text-xs text-[#2563EB]/60 hover:text-[#2563EB]
-            transition-[opacity,transform,color] duration-300 ease-out-strong pointer-events-auto
-            ${showTerminalHint ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4 pointer-events-none'}
+            transition-[opacity,transform,color] duration-300 ease-out-strong
+            ${showTerminalHint ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 translate-x-4 pointer-events-none'}
           `}
           title="Hello, friend."
         >
@@ -295,9 +295,9 @@ const Home: React.FC = () => {
         </button>
 
         {/* Top Section - Live Status */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-[100px] sm:pt-[110px] md:pt-[136px] 2xl:pt-[148px] 3xl:pt-[160px] flex-shrink-0">
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pt-[100px] sm:pt-[110px] md:pt-[136px] 2xl:pt-[148px] 3xl:pt-[160px] shrink-0">
           <div data-hero-status className="flex items-start gap-2 sm:gap-3">
-            <div className="w-5 sm:w-8 h-[1px] bg-[#2563EB] flex-shrink-0 mt-[4px] sm:mt-[6px] pointer-events-none" />
+            <div className="w-5 sm:w-8 h-px bg-[#2563EB] shrink-0 mt-[4px] sm:mt-[6px] pointer-events-none" />
             <div className="font-mono text-[8px] sm:text-[9px] md:text-[10px] 2xl:text-[11px] 3xl:text-xs font-medium uppercase tracking-[0.15em] sm:tracking-[0.3em]">
               {/* Desktop: single line */}
               <div className="hidden md:flex items-center gap-2">
@@ -348,7 +348,7 @@ const Home: React.FC = () => {
         </div>
 
         {/* Center Section - Main Typography */}
-        <div className="flex-grow md:flex-1 flex items-center px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 min-h-0">
+        <div className="grow md:flex-1 flex items-center px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 min-h-0">
           <div className="w-full max-w-7xl 2xl:max-w-[1400px] 3xl:max-w-[1800px]">
             <h1 className="font-space-grotesk font-bold leading-[0.85] tracking-tighter select-none">
               {DISCIPLINES.map(({ lane, label, color }) => (
@@ -399,7 +399,7 @@ const Home: React.FC = () => {
         </div>
 
         {/* Bottom Section - CTA & Description */}
-        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-32 sm:pb-28 md:pb-24 lg:pb-24 2xl:pb-28 3xl:pb-32 flex-shrink-0">
+        <div className="px-6 md:px-12 lg:px-16 xl:px-20 2xl:px-24 3xl:px-32 pb-32 sm:pb-28 md:pb-24 lg:pb-24 2xl:pb-28 3xl:pb-32 shrink-0">
           <div className="flex flex-col-reverse md:flex-row md:items-end md:justify-between gap-1.5 sm:gap-4 md:gap-8 2xl:gap-12">
             {/* Identity + description */}
             <div className="flex flex-col gap-2 sm:gap-3">
@@ -408,7 +408,7 @@ const Home: React.FC = () => {
                 <span className="text-[#2563EB]">2XEB</span> <span className="text-[#525252]">·</span>{' '}
                 Engineer <span className="text-[#525252]">×</span> Filmmaker
               </p>
-              <p data-hero-footer className="text-white/40 text-[10px] sm:text-xs md:text-base 2xl:text-lg 3xl:text-xl max-w-[260px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-snug sm:leading-relaxed pointer-events-none">
+              <p data-hero-footer className="text-white/40 text-[10px] sm:text-xs md:text-base/6 2xl:text-lg/7 3xl:text-xl/7 max-w-[260px] sm:max-w-xs md:max-w-md 2xl:max-w-lg 3xl:max-w-xl font-light leading-snug sm:leading-relaxed pointer-events-none">
                 A multidisciplinary portfolio exploring the intersection of software engineering,
                 machine learning, and visual storytelling.
               </p>
@@ -416,7 +416,7 @@ const Home: React.FC = () => {
 
             {/* CTAs - rendered first on mobile due to flex-col-reverse.
                 Magnetic wrappers pull the buttons toward the cursor on desktop. */}
-            <div className="flex gap-3 2xl:gap-4 pointer-events-auto flex-shrink-0">
+            <div className="flex gap-3 2xl:gap-4 pointer-events-auto shrink-0">
               <div ref={workCtaRef} data-hero-footer>
                 <Link
                   to="/work"
@@ -432,12 +432,12 @@ const Home: React.FC = () => {
               <div ref={askCtaRef} data-hero-footer>
                 <button
                   onClick={() => setIsAgentOpen(true)}
-                  className="group px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 border border-white/20 hover:border-[#2563EB] backdrop-blur-sm pressable bg-black/20 flex items-center gap-2 2xl:gap-3 h-full"
+                  className="group px-6 md:px-8 2xl:px-10 3xl:px-12 py-3.5 md:py-4 2xl:py-5 border border-white/20 hover:border-[#2563EB] backdrop-blur-xs pressable bg-black/20 flex items-center gap-2 2xl:gap-3 h-full"
                 >
                   <span className="font-medium tracking-widest text-[11px] md:text-xs 2xl:text-sm uppercase text-white">
                     ASK
                   </span>
-                  <div className="w-5 h-5 md:w-6 md:h-6 2xl:w-7 2xl:h-7 bg-[#0A0A0A] border border-white/30 grid place-items-center">
+                  <div className="w-5 h-5 md:w-6 md:h-6 2xl:w-7 2xl:h-7 bg-card border border-white/30 grid place-items-center">
                     <span className="text-[#2563EB] font-bold text-[10px] md:text-[10px] 2xl:text-[11px] font-space-grotesk tracking-tight">
                       EB
                     </span>

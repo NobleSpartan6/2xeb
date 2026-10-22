@@ -279,7 +279,7 @@ const ProjectsEditor: React.FC = () => {
       )}
 
       {showForm && (
-        <div className="mb-8 p-6 bg-[#0A0A0A] border border-[#262626]">
+        <div className="mb-8 p-6 bg-card border border-[#262626]">
           <h2 className="text-lg font-space-grotesk font-semibold text-white mb-6">
             {editingProject ? 'Edit Project' : 'New Project'}
           </h2>
@@ -291,7 +291,7 @@ const ProjectsEditor: React.FC = () => {
                 type="text"
                 value={formData.title}
                 onChange={(e) => handleTitleChange(e.target.value)}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               />
             </div>
 
@@ -301,7 +301,7 @@ const ProjectsEditor: React.FC = () => {
                 type="text"
                 value={formData.slug}
                 onChange={(e) => setFormData((prev) => ({ ...prev, slug: e.target.value }))}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               />
             </div>
 
@@ -311,7 +311,7 @@ const ProjectsEditor: React.FC = () => {
                 type="text"
                 value={formData.short_desc}
                 onChange={(e) => setFormData((prev) => ({ ...prev, short_desc: e.target.value }))}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               />
             </div>
 
@@ -321,7 +321,7 @@ const ProjectsEditor: React.FC = () => {
                 value={formData.long_desc || ''}
                 onChange={(e) => setFormData((prev) => ({ ...prev, long_desc: e.target.value }))}
                 rows={4}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB] resize-none"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB] resize-none"
               />
             </div>
 
@@ -330,7 +330,7 @@ const ProjectsEditor: React.FC = () => {
               <select
                 value={formData.primary_discipline}
                 onChange={(e) => setFormData((prev) => ({ ...prev, primary_discipline: e.target.value as typeof DISCIPLINES[number] }))}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               >
                 {DISCIPLINES.map((d) => (<option key={d} value={d}>{d}</option>))}
               </select>
@@ -341,7 +341,7 @@ const ProjectsEditor: React.FC = () => {
               <select
                 value={formData.status || ''}
                 onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as typeof STATUSES[number] | undefined }))}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               >
                 <option value="">Draft</option>
                 {STATUSES.map((s) => (<option key={s} value={s}>{s}</option>))}
@@ -365,7 +365,7 @@ const ProjectsEditor: React.FC = () => {
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
                   placeholder="Add tag..."
-                  className="flex-1 px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                  className="flex-1 px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
                 />
                 <button type="button" onClick={handleAddTag} className="px-4 py-2 bg-[#262626] hover:bg-[#333] text-white text-sm font-mono">Add</button>
               </div>
@@ -378,7 +378,7 @@ const ProjectsEditor: React.FC = () => {
                 value={formData.video_url || ''}
                 onChange={(e) => setFormData((prev) => ({ ...prev, video_url: e.target.value }))}
                 placeholder="https://youtube.com/watch?v=..."
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               />
             </div>
 
@@ -389,7 +389,7 @@ const ProjectsEditor: React.FC = () => {
                 value={formData.image_url || ''}
                 onChange={(e) => setFormData((prev) => ({ ...prev, image_url: e.target.value }))}
                 placeholder="Auto-generated from video if empty"
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               />
             </div>
 
@@ -400,7 +400,7 @@ const ProjectsEditor: React.FC = () => {
                 value={formData.role || ''}
                 onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value }))}
                 placeholder="e.g. Lead Developer"
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               />
             </div>
 
@@ -420,7 +420,7 @@ const ProjectsEditor: React.FC = () => {
                   value={formData.external_url || ''}
                   onChange={(e) => setFormData((prev) => ({ ...prev, external_url: e.target.value }))}
                   placeholder="https://..."
-                  className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                  className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
                 />
               )}
             </div>

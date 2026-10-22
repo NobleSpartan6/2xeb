@@ -125,7 +125,7 @@ CREATE TRIGGER audit_projects
 
 ### Client-Side
 
-- Zod schemas validate form inputs
+- Native HTML constraints (`required`, `type="email"`) on the contact form
 - Type-safe form handling with TypeScript
 
 ### Server-Side

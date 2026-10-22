@@ -23,7 +23,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
   // dimming them like screenshots/photos muddies the artwork
   const isDesignedCover = project.imageUrl?.startsWith('data:image/svg') ?? false;
 
-  const CardContent = () => (
+  // A JSX value, not an inner component: hovering a card updates the shared
+  // console context, and a component type re-created each render would
+  // remount every card's body (image re-decode, hover zoom snapping).
+  const cardContent = (
     <>
       <div
         className="aspect-video w-full overflow-hidden bg-black relative"
@@ -63,12 +66,12 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
          </div>
 
          {project.isExternal && (
-           <div className="absolute top-4 right-4 bg-black/80 backdrop-blur px-2 py-1 border border-white/20">
+           <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-sm px-2 py-1 border border-white/20">
              <span className="text-white text-[10px] font-bold uppercase tracking-widest">EXT ↗</span>
            </div>
          )}
       </div>
-      <div className="p-6 flex flex-col flex-grow">
+      <div className="p-6 flex flex-col grow">
         <div className="mb-3">
            <h3
              title={project.title}
@@ -83,7 +86,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
            )}
         </div>
         
-        <p className="text-[#A3A3A3] text-sm leading-relaxed mb-6 font-sans flex-grow">
+        <p className="text-[#A3A3A3] text-sm leading-relaxed mb-6 font-sans grow">
           {project.shortDesc}
         </p>
         <div className="flex flex-wrap items-baseline gap-2 mt-auto pt-4 border-t border-[#262626] group-hover:border-[#2563EB]/30 transition-colors">
@@ -108,7 +111,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
   // Press feedback on the whole card (subtle 0.99 — large surface). Gated
   // behind motion-safe; lives on the card root, not the [data-card] wrapper,
   // which is an anime.js reveal target (inline transforms would conflict).
-  const containerClass = "group block bg-[#0A0A0A] border border-[#262626] hover:border-[#2563EB] transition-[border-color,transform] duration-200 ease-out-strong motion-safe:active:scale-[0.99] flex flex-col h-full";
+  const containerClass = "group block bg-card border border-[#262626] hover:border-[#2563EB] transition-[border-color,transform] duration-200 ease-out-strong motion-safe:active:scale-[0.99] flex flex-col h-full";
 
   if (project.isExternal && project.externalUrl) {
     return (
@@ -120,7 +123,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <CardContent />
+        {cardContent}
       </a>
     );
   }
@@ -133,7 +136,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <CardContent />
+      {cardContent}
     </Link>
   );
 };

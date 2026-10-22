@@ -94,16 +94,16 @@ const Work: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] pt-28 md:pt-36 pb-16 px-4 sm:px-6 lg:px-12">
+    <div className="min-h-screen bg-bg pt-28 md:pt-36 pb-16 px-4 sm:px-6 lg:px-12">
       <div ref={headerRef} className="max-w-6xl xl:max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-start lg:items-end mb-14 lg:mb-20 gap-10 lg:gap-14 border-b border-[#262626] pb-10 lg:pb-12">
         <div data-animate>
           <span ref={kickerRef} className="text-[#2563EB] font-mono text-[11px] sm:text-xs uppercase tracking-widest block mb-3 sm:mb-4">Index</span>
-          <h1 className="text-[2.7rem] sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white font-space-grotesk mb-6 tracking-tighter leading-[0.9]">
+          <h1 className="text-[2.7rem] sm:text-6xl md:text-7xl lg:text-8xl font-bold text-white font-space-grotesk mb-6 tracking-tighter leading-[0.9] sm:leading-none">
             SELECTED<br /><span className="text-[#2563EB]">WORK</span>
           </h1>
         </div>
 
-        <div data-animate className="flex flex-wrap gap-2 border border-[#262626] bg-[#0A0A0A] rounded-lg overflow-hidden w-full lg:w-auto">
+        <div data-animate className="flex flex-wrap gap-2 border border-[#262626] bg-card rounded-lg overflow-hidden w-full lg:w-auto">
           {filters.map((f) => (
             <button
               key={f.value}
@@ -111,7 +111,7 @@ const Work: React.FC = () => {
               className={`px-4 sm:px-5 lg:px-6 py-3 text-[11px] font-bold uppercase tracking-[0.16em] pressable border-r border-[#262626] last:border-r-0 ${
                 activeFilter === f.value
                   ? 'bg-[#2563EB] text-white'
-                  : 'bg-[#0A0A0A] text-[#A3A3A3] hover:bg-white hover:text-black'
+                  : 'bg-card text-[#A3A3A3] hover:bg-white hover:text-black'
               }`}
             >
               {f.label}
@@ -130,7 +130,7 @@ const Work: React.FC = () => {
             <div
               key={project.id}
               data-card
-              className="bg-[#050505] h-full"
+              className="bg-bg h-full"
               onClick={handleProjectClick}
             >
               <ProjectCard project={project} index={i} />

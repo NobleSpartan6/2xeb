@@ -85,7 +85,7 @@ const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] flex">
+    <div className="min-h-screen bg-bg flex">
       {/* Mobile sidebar backdrop */}
       {isSidebarOpen && (
         <div
@@ -104,7 +104,7 @@ const AdminLayout: React.FC = () => {
           {/* Logo */}
           <div className="p-6 border-b border-[#1f2937]">
             <a href="/" className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-[#0A0A0A] border border-[#262626] grid place-items-center">
+              <div className="w-8 h-8 bg-card border border-[#262626] grid place-items-center">
                 <span className="text-[#2563EB] font-bold text-sm font-space-grotesk">EB</span>
               </div>
               <span className="text-[10px] uppercase tracking-widest text-[#525252] font-mono">
@@ -125,7 +125,7 @@ const AdminLayout: React.FC = () => {
                   `flex items-center gap-3 px-3 py-2 text-sm font-mono transition-colors ${
                     isActive
                       ? 'bg-[#2563EB]/10 text-[#2563EB] border-l-2 border-[#2563EB]'
-                      : 'text-[#a3a3a3] hover:text-white hover:bg-[#0A0A0A]'
+                      : 'text-[#a3a3a3] hover:text-white hover:bg-card'
                   }`
                 }
               >
@@ -151,7 +151,7 @@ const AdminLayout: React.FC = () => {
             </div>
             <button
               onClick={handleSignOut}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-mono text-[#525252] hover:text-white hover:bg-[#0A0A0A] transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-mono text-[#525252] hover:text-white hover:bg-card transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -165,7 +165,7 @@ const AdminLayout: React.FC = () => {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 bg-[#050505]/90 backdrop-blur border-b border-[#1f2937]">
+        <header className="sticky top-0 z-30 bg-bg/90 backdrop-blur-sm border-b border-[#1f2937]">
           <div className="flex items-center justify-between px-4 lg:px-6 py-4">
             {/* Mobile menu button */}
             <button

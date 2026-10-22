@@ -175,7 +175,7 @@ const PagesEditor: React.FC = () => {
 
       {/* Form */}
       {activeConfig && (
-        <div className="p-6 bg-[#0A0A0A] border border-[#262626]">
+        <div className="p-6 bg-card border border-[#262626]">
           <div className="mb-6">
             <h2 className="text-lg font-space-grotesk font-semibold text-white">{activeConfig.title}</h2>
             <p className="text-sm text-[#525252] font-mono">{activeConfig.description}</p>
@@ -192,14 +192,14 @@ const PagesEditor: React.FC = () => {
                     value={(formData[field.key] as string) || ''}
                     onChange={(e) => handleFieldChange(field.key, e.target.value)}
                     rows={4}
-                    className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB] resize-none"
+                    className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB] resize-none"
                   />
                 ) : (
                   <input
                     type="text"
                     value={(formData[field.key] as string) || ''}
                     onChange={(e) => handleFieldChange(field.key, e.target.value)}
-                    className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                    className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
                   />
                 )}
               </div>
@@ -219,7 +219,7 @@ const PagesEditor: React.FC = () => {
       )}
 
       {/* JSON Preview */}
-      <div className="mt-6 p-4 bg-[#0A0A0A] border border-[#262626]">
+      <div className="mt-6 p-4 bg-card border border-[#262626]">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] uppercase tracking-widest text-[#525252] font-mono">JSON Preview</span>
         </div>

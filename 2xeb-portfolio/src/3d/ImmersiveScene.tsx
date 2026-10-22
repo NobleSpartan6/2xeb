@@ -192,7 +192,8 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
   const totalCells = gridSize * gridSize;
 
   // Instance colors double as emitters: bloom picks up vColor² so lit cells
-  // glow like neon while the near-black floor stays dark
+  // glow like neon while the near-black floor stays dark. (.rgb: three r186
+  // declares vColor as a vec4 — a bare vColor no longer compiles.)
   const gridMaterial = useMemo(() => {
     const mat = new THREE.MeshStandardMaterial({ metalness: 0.7, roughness: 0.3, envMapIntensity: 0.5 });
     mat.onBeforeCompile = (shader) => {
@@ -201,7 +202,7 @@ const InteractiveGrid: React.FC<InteractiveGridProps> = ({ focusedDiscipline, gr
         [
           '#include <emissivemap_fragment>',
           '#if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )',
-          '  totalEmissiveRadiance += vColor * vColor * 1.5;',
+          '  totalEmissiveRadiance += vColor.rgb * vColor.rgb * 1.5;',
           '#endif',
         ].join('\n')
       );
