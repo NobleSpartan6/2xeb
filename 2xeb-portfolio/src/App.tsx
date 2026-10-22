@@ -138,7 +138,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <div
-      className={`min-h-[100dvh] bg-[#050505] text-white font-sans selection:bg-[#2563EB] selection:text-white overflow-x-hidden ${isHome ? '' : 'pb-12'}`}
+      className={`min-h-dvh bg-bg text-white font-sans selection:bg-[#2563EB] selection:text-white overflow-x-hidden ${isHome ? '' : 'pb-12'}`}
       style={{ minHeight: '-webkit-fill-available' }}
     >
       <NavBar />
@@ -151,7 +151,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           full-viewport recomposite on every 3D frame. */}
       <div
         aria-hidden
-        className="fixed inset-0 z-[90] pointer-events-none opacity-[0.025]"
+        className="fixed inset-0 z-90 pointer-events-none opacity-[0.025]"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
         }}
@@ -188,7 +188,7 @@ const router = createBrowserRouter(
       <Route path="/friend" element={<FriendRouteActivator />} />
       <Route path="*" element={
         <React.Suspense fallback={
-          <div className="h-screen w-screen bg-[#050505] flex items-center justify-center">
+          <div className="h-screen w-screen bg-bg flex items-center justify-center">
             <div className="text-[#2563EB] font-mono animate-pulse">Loading...</div>
           </div>
         }>

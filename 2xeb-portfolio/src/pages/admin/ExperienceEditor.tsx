@@ -214,7 +214,7 @@ const ExperienceEditor: React.FC = () => {
       )}
 
       {showForm && (
-        <div className="mb-8 p-6 bg-[#0A0A0A] border border-[#262626]">
+        <div className="mb-8 p-6 bg-card border border-[#262626]">
           <h2 className="text-lg font-space-grotesk font-semibold text-white mb-6">
             {editingExp ? 'Edit Experience' : 'New Experience'}
           </h2>
@@ -226,7 +226,7 @@ const ExperienceEditor: React.FC = () => {
                 type="text"
                 value={formData.company}
                 onChange={(e) => setFormData((prev) => ({ ...prev, company: e.target.value }))}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               />
             </div>
 
@@ -236,7 +236,7 @@ const ExperienceEditor: React.FC = () => {
                 type="text"
                 value={formData.role}
                 onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value }))}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               />
             </div>
 
@@ -247,7 +247,7 @@ const ExperienceEditor: React.FC = () => {
                 value={formData.date_range}
                 onChange={(e) => setFormData((prev) => ({ ...prev, date_range: e.target.value }))}
                 placeholder="Jan 2023 - Present"
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               />
             </div>
 
@@ -257,7 +257,7 @@ const ExperienceEditor: React.FC = () => {
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               />
             </div>
 
@@ -266,7 +266,7 @@ const ExperienceEditor: React.FC = () => {
               <select
                 value={formData.type}
                 onChange={(e) => setFormData((prev) => ({ ...prev, type: e.target.value as typeof TYPES[number] }))}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               >
                 {TYPES.map((t) => (<option key={t} value={t}>{t}</option>))}
               </select>
@@ -278,7 +278,7 @@ const ExperienceEditor: React.FC = () => {
                 value={formData.description || ''}
                 onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                 rows={3}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB] resize-none"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB] resize-none"
               />
             </div>
 
@@ -299,7 +299,7 @@ const ExperienceEditor: React.FC = () => {
                   onChange={(e) => setSkillInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
                   placeholder="Add skill..."
-                  className="flex-1 px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                  className="flex-1 px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
                 />
                 <button type="button" onClick={handleAddSkill} className="px-4 py-2 bg-[#262626] hover:bg-[#333] text-white text-sm font-mono">Add</button>
               </div>

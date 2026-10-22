@@ -77,9 +77,9 @@ const AdminLogin: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+      <div className="min-h-screen bg-bg flex items-center justify-center">
         <div className="animate-pulse">
-          <div className="w-12 h-12 bg-[#0A0A0A] border border-[#262626] grid place-items-center">
+          <div className="w-12 h-12 bg-card border border-[#262626] grid place-items-center">
             <span className="text-[#2563EB] font-bold text-lg font-space-grotesk">EB</span>
           </div>
         </div>
@@ -88,12 +88,12 @@ const AdminLogin: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-bg flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-[#0A0A0A] border border-[#262626] grid place-items-center">
+            <div className="w-10 h-10 bg-card border border-[#262626] grid place-items-center">
               <span className="text-[#2563EB] font-bold text-xl font-space-grotesk">EB</span>
             </div>
             <span className="text-[10px] uppercase tracking-widest text-[#525252] font-mono">
@@ -110,7 +110,7 @@ const AdminLogin: React.FC = () => {
 
         {/* Error messages */}
         {(error || urlError) && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded">
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-sm">
             <p className="text-sm text-red-400 font-mono">
               {urlError === 'unauthorized'
                 ? 'You are not authorized to access the admin panel.'
@@ -121,9 +121,9 @@ const AdminLogin: React.FC = () => {
 
         {/* Reset sent success message */}
         {resetSent ? (
-          <div className="p-6 bg-[#0A0A0A] border border-[#262626]">
+          <div className="p-6 bg-card border border-[#262626]">
             <div className="text-center">
-              <div className="w-12 h-12 bg-[#2563EB]/10 border border-[#2563EB]/30 grid place-items-center mx-auto mb-4 rounded">
+              <div className="w-12 h-12 bg-[#2563EB]/10 border border-[#2563EB]/30 grid place-items-center mx-auto mb-4 rounded-sm">
                 <svg className="w-6 h-6 text-[#2563EB]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
@@ -142,7 +142,7 @@ const AdminLogin: React.FC = () => {
           </div>
         ) : forgotMode ? (
           /* Forgot password form */
-          <form onSubmit={handleForgotPassword} className="p-6 bg-[#0A0A0A] border border-[#262626]">
+          <form onSubmit={handleForgotPassword} className="p-6 bg-card border border-[#262626]">
             <div className="mb-6">
               <label
                 htmlFor="email"
@@ -159,7 +159,7 @@ const AdminLogin: React.FC = () => {
                 autoFocus
                 autoComplete="email"
                 placeholder="admin@example.com"
-                className="w-full px-4 py-3 bg-[#050505] border border-[#262626] text-white font-mono text-sm placeholder-[#525252] focus:outline-none focus:border-[#2563EB] transition-colors"
+                className="w-full px-4 py-3 bg-bg border border-[#262626] text-white font-mono text-sm placeholder-[#525252] focus:outline-hidden focus:border-[#2563EB] transition-colors"
               />
             </div>
 
@@ -191,7 +191,7 @@ const AdminLogin: React.FC = () => {
           </form>
         ) : (
           /* Login form */
-          <form onSubmit={handleSubmit} className="p-6 bg-[#0A0A0A] border border-[#262626]">
+          <form onSubmit={handleSubmit} className="p-6 bg-card border border-[#262626]">
             <div className="mb-4">
               <label
                 htmlFor="email"
@@ -208,7 +208,7 @@ const AdminLogin: React.FC = () => {
                 autoFocus
                 autoComplete="email"
                 placeholder="admin@example.com"
-                className="w-full px-4 py-3 bg-[#050505] border border-[#262626] text-white font-mono text-sm placeholder-[#525252] focus:outline-none focus:border-[#2563EB] transition-colors"
+                className="w-full px-4 py-3 bg-bg border border-[#262626] text-white font-mono text-sm placeholder-[#525252] focus:outline-hidden focus:border-[#2563EB] transition-colors"
               />
             </div>
 
@@ -228,7 +228,7 @@ const AdminLogin: React.FC = () => {
                   required
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 pr-12 bg-[#050505] border border-[#262626] text-white font-mono text-sm placeholder-[#525252] focus:outline-none focus:border-[#2563EB] transition-colors"
+                  className="w-full px-4 py-3 pr-12 bg-bg border border-[#262626] text-white font-mono text-sm placeholder-[#525252] focus:outline-hidden focus:border-[#2563EB] transition-colors"
                 />
                 <button
                   type="button"

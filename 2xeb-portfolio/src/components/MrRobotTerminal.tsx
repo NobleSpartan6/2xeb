@@ -1603,7 +1603,7 @@ drwxr-xr-x  ..
 
   return (
     <div
-      className="fixed inset-0 z-[200] bg-black/95 sm:bg-black/80 flex justify-center p-0 sm:p-8 items-start sm:items-center"
+      className="fixed inset-0 z-200 bg-black/95 sm:bg-black/80 flex justify-center p-0 sm:p-8 items-start sm:items-center"
       style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
       onClick={() => inputRef.current?.focus()}
     >
@@ -1737,7 +1737,7 @@ drwxr-xr-x  ..
           {/* Intro Phase */}
           {phase === 'intro' && (
             <div className={`flex flex-col items-start sm:items-center justify-start sm:justify-center flex-1 sm:max-w-2xl sm:mx-auto px-4 sm:px-6 ${isIntroFadingOut ? 'phase-intro-complete' : 'phase-intro'}`}>
-              <pre className="whitespace-pre-wrap leading-relaxed sm:leading-loose text-sm sm:text-base md:text-lg" style={{ color: TERM_COLOR }}>
+              <pre className="whitespace-pre-wrap leading-relaxed sm:leading-loose text-sm sm:text-base md:text-lg/7" style={{ color: TERM_COLOR }}>
                 {intro}
                 {/* Keep cursor visible until fade-out starts */}
                 {!isIntroFadingOut && <span className="animate-pulse">█</span>}
@@ -1749,8 +1749,8 @@ drwxr-xr-x  ..
           {phase === 'terminal' && (
             <div className="flex flex-col flex-1 min-h-0 overflow-hidden phase-terminal">
               {/* Terminal header with path - compact on mobile */}
-              <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4 pb-2 sm:pb-3" style={{ borderBottom: `1px solid rgba(96, 165, 250, 0.2)` }}>
-                <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs" style={{ background: 'rgba(96, 165, 250, 0.1)' }}>
+              <div className="shrink-0 flex items-center gap-2 sm:gap-3 mb-2 sm:mb-4 pb-2 sm:pb-3" style={{ borderBottom: `1px solid rgba(96, 165, 250, 0.2)` }}>
+                <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-sm text-[10px] sm:text-xs" style={{ background: 'rgba(96, 165, 250, 0.1)' }}>
                   <span style={{ color: TERM_ACCENT }}>→</span>
                   <span style={{ color: TERM_COLOR }}>{terminalCurrentDir.replace('/home/friend', '~')}</span>
                 </div>
@@ -1768,7 +1768,7 @@ drwxr-xr-x  ..
                 {terminalHistory.map((entry, i) => (
                   <pre
                     key={i}
-                    className={`whitespace-pre-wrap leading-[1.5] ${entry.type === 'input' ? 'pl-0' : 'pl-2 sm:pl-4 border-l-2'}`}
+                    className={`whitespace-pre-wrap leading-normal ${entry.type === 'input' ? 'pl-0' : 'pl-2 sm:pl-4 border-l-2'}`}
                     style={{
                       color: entry.type === 'input' ? TERM_COLOR : TERM_COLOR_DIM,
                       borderColor: entry.type === 'input' ? 'transparent' : 'rgba(96, 165, 250, 0.2)'
@@ -1781,7 +1781,7 @@ drwxr-xr-x  ..
 
               {/* Mobile Quick Commands - hide when keyboard is open to save space */}
               {!isKeyboardOpen && (
-                <div className="flex-shrink-0 flex sm:hidden flex-wrap gap-1.5 mt-2 pt-2" style={{ borderTop: `1px solid rgba(96, 165, 250, 0.15)` }}>
+                <div className="shrink-0 flex sm:hidden flex-wrap gap-1.5 mt-2 pt-2" style={{ borderTop: `1px solid rgba(96, 165, 250, 0.15)` }}>
                   {[
                     { label: 'help', cmd: 'help' },
                     { label: 'clear', cmd: 'clear' },
@@ -1792,7 +1792,7 @@ drwxr-xr-x  ..
                         e.stopPropagation();
                         handleCommand(cmd);
                       }}
-                      className="px-2.5 py-1.5 text-[10px] font-mono rounded border pressable"
+                      className="px-2.5 py-1.5 text-[10px] font-mono rounded-sm border pressable"
                       style={{
                         color: TERM_COLOR,
                         borderColor: 'rgba(96, 165, 250, 0.3)',
@@ -1808,11 +1808,11 @@ drwxr-xr-x  ..
               {/* Input line - reduced padding when keyboard is open */}
               <div
                 ref={inputContainerRef}
-                className={`flex-shrink-0 flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 pt-2 sm:pt-3 cursor-text ${isKeyboardOpen ? 'pb-2' : 'pb-8 sm:pb-6'}`}
+                className={`shrink-0 flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 pt-2 sm:pt-3 cursor-text ${isKeyboardOpen ? 'pb-2' : 'pb-8 sm:pb-6'}`}
                 style={{ borderTop: `1px solid rgba(96, 165, 250, 0.2)` }}
                 onClick={() => inputRef.current?.focus()}
               >
-                <span className="text-[13px] sm:text-sm whitespace-pre flex-shrink-0 select-none">
+                <span className="text-[13px] sm:text-sm whitespace-pre shrink-0 select-none">
                   <span className="hidden sm:inline" style={{ color: PROMPT_USER }}>{PROMPT_HOST}</span>
                   <span className="hidden sm:inline" style={{ color: TERM_COLOR_DIM }}>:</span>
                   <span style={{ color: PROMPT_PATH }}>{shortenDir(terminalCurrentDir)}</span>
@@ -1859,7 +1859,7 @@ drwxr-xr-x  ..
                     onKeyUp={updateCursorPosition}
                     onClick={updateCursorPosition}
                     onSelect={updateCursorPosition}
-                    className="absolute inset-0 w-full h-full bg-transparent outline-none opacity-0"
+                    className="absolute inset-0 w-full h-full bg-transparent outline-hidden opacity-0"
                     autoComplete="off"
                     autoCapitalize="off"
                     spellCheck={false}
@@ -1867,7 +1867,7 @@ drwxr-xr-x  ..
                   />
                 </div>
                 <div className="hidden sm:flex items-center gap-1 text-[10px] opacity-40" style={{ color: TERM_COLOR }}>
-                  <span className="px-1.5 py-0.5 rounded border border-current">TAB</span>
+                  <span className="px-1.5 py-0.5 rounded-sm border border-current">TAB</span>
                   <span>complete</span>
                 </div>
                 {/* Mobile keyboard dismiss button - shows when keyboard is open */}
@@ -1877,7 +1877,7 @@ drwxr-xr-x  ..
                       e.stopPropagation();
                       inputRef.current?.blur();
                     }}
-                    className="flex sm:hidden items-center gap-1 px-2 py-1 rounded border pressable"
+                    className="flex sm:hidden items-center gap-1 px-2 py-1 rounded-sm border pressable"
                     style={{
                       color: TERM_COLOR,
                       borderColor: 'rgba(96, 165, 250, 0.4)',

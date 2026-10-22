@@ -81,13 +81,13 @@ const NavBar: React.FC = memo(() => {
   return (
     <>
       {/* Main Header */}
-      <nav ref={navRef} className="fixed top-0 left-0 w-full z-[100] text-white pointer-events-none">
+      <nav ref={navRef} className="fixed top-0 left-0 w-full z-100 text-white pointer-events-none">
         <div
           className="max-w-[1800px] 3xl:max-w-[2200px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-16 2xl:px-20 3xl:px-24 pointer-events-auto"
           style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 10px)' }}
         >
-          <div className="relative flex items-center justify-between h-[74px] sm:h-[82px] md:h-[100px] 2xl:h-[110px] 3xl:h-[120px] rounded-2xl px-4 md:px-6 lg:px-8 2xl:px-10 3xl:px-12 bg-black/30 backdrop-blur-2xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
-            <div data-nav-item className="flex-shrink-0 z-50">
+          <div className="relative flex items-center justify-between h-[74px] sm:h-[82px] md:h-[100px] 2xl:h-[110px] 3xl:h-[120px] rounded-2xl px-4 md:px-6 lg:px-8 2xl:px-10 3xl:px-12 bg-black/30 backdrop-blur-2xl border border-white/8 shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]">
+            <div data-nav-item className="shrink-0 z-50">
               <Link to="/" viewTransition className="text-white font-bold text-xl sm:text-2xl 2xl:text-3xl 3xl:text-4xl tracking-tighter font-space-grotesk hover:text-[#2563EB] transition-colors">
                 2XEB
               </Link>
@@ -134,7 +134,7 @@ const NavBar: React.FC = memo(() => {
 
       {/* Mobile Side Drawer */}
       <div
-          className={`fixed inset-0 z-[110] md:hidden transition-[visibility] duration-300 ${isOpen ? 'pointer-events-auto' : 'pointer-events-none delay-300'}`}
+          className={`fixed inset-0 z-110 md:hidden transition-[visibility] duration-300 ${isOpen ? 'pointer-events-auto' : 'pointer-events-none delay-300'}`}
         aria-hidden={!isOpen}
       >
         
@@ -150,7 +150,7 @@ const NavBar: React.FC = memo(() => {
         <div
           ref={drawerRef}
           className={`absolute right-0 top-0 bottom-0 w-[88vw] max-w-[360px] bg-[#060606] border-l border-[#262626] shadow-[0_0_60px_rgba(0,0,0,0.55)] transform transition-transform ease-drawer flex flex-col ${
-            isOpen ? 'translate-x-0 duration-[450ms]' : 'translate-x-full duration-300'
+            isOpen ? 'translate-x-0 duration-450' : 'translate-x-full duration-300'
           }`}
           role="dialog"
           aria-modal="true"
@@ -158,7 +158,7 @@ const NavBar: React.FC = memo(() => {
         >
           {/* Header */}
           <div
-            className="h-24 flex items-center justify-between px-8 border-b border-[#262626] shrink-0 bg-[#0A0A0A]"
+            className="h-24 flex items-center justify-between px-8 border-b border-[#262626] shrink-0 bg-card"
             style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
           >
              <span className="text-[#2563EB] text-[10px] font-mono uppercase tracking-[0.2em]">System Navigation</span>
@@ -191,7 +191,7 @@ const NavBar: React.FC = memo(() => {
             ))}
 
             {/* Divider */}
-            <div data-drawer-item className="h-px bg-[#262626] w-full my-4" />
+            <div data-drawer-item className="h-px bg-[#262626] w-full" />
 
             {/* Agent Trigger */}
             <button
@@ -207,14 +207,14 @@ const NavBar: React.FC = memo(() => {
                  <span className="block text-white text-sm font-bold font-space-grotesk uppercase tracking-wider group-hover:text-[#2563EB] transition-colors">ASK</span>
                  <span className="block text-[#525252] text-[10px] font-mono uppercase tracking-widest">Portfolio Assistant</span>
                </div>
-               <div className="w-10 h-10 border border-[#262626] flex items-center justify-center bg-[#0A0A0A] group-hover:border-[#2563EB] transition-colors">
+               <div className="w-10 h-10 border border-[#262626] flex items-center justify-center bg-card group-hover:border-[#2563EB] transition-colors">
                  <span className="text-[#2563EB] font-bold text-sm font-space-grotesk tracking-tight">EB</span>
                </div>
             </button>
           </div>
 
           {/* Footer */}
-          <div className="p-8 border-t border-[#262626] bg-[#0A0A0A] shrink-0">
+          <div className="p-8 border-t border-[#262626] bg-card shrink-0">
              <div className="flex justify-between items-end">
                 <div className="flex flex-col">
                    <span className="text-[10px] text-[#444] font-mono uppercase tracking-widest mb-1">New York, NY</span>

@@ -229,7 +229,7 @@ const CaseStudiesEditor: React.FC = () => {
       )}
 
       {showForm && (
-        <div className="mb-8 p-6 bg-[#0A0A0A] border border-[#262626]">
+        <div className="mb-8 p-6 bg-card border border-[#262626]">
           <h2 className="text-lg font-space-grotesk font-semibold text-white mb-6">
             {editingCS ? 'Edit Case Study' : 'New Case Study'}
           </h2>
@@ -241,7 +241,7 @@ const CaseStudiesEditor: React.FC = () => {
                 type="text"
                 value={formData.title}
                 onChange={(e) => handleTitleChange(e.target.value)}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               />
             </div>
 
@@ -251,7 +251,7 @@ const CaseStudiesEditor: React.FC = () => {
                 type="text"
                 value={formData.slug}
                 onChange={(e) => setFormData((prev) => ({ ...prev, slug: e.target.value }))}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               />
             </div>
 
@@ -261,7 +261,7 @@ const CaseStudiesEditor: React.FC = () => {
                 type="text"
                 value={formData.subtitle}
                 onChange={(e) => setFormData((prev) => ({ ...prev, subtitle: e.target.value }))}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
               />
             </div>
 
@@ -271,7 +271,7 @@ const CaseStudiesEditor: React.FC = () => {
                 value={formData.problem}
                 onChange={(e) => setFormData((prev) => ({ ...prev, problem: e.target.value }))}
                 rows={4}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB] resize-none"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB] resize-none"
               />
             </div>
 
@@ -281,7 +281,7 @@ const CaseStudiesEditor: React.FC = () => {
                 value={formData.solution}
                 onChange={(e) => setFormData((prev) => ({ ...prev, solution: e.target.value }))}
                 rows={4}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB] resize-none"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB] resize-none"
               />
             </div>
 
@@ -291,7 +291,7 @@ const CaseStudiesEditor: React.FC = () => {
                 value={formData.architecture || ''}
                 onChange={(e) => setFormData((prev) => ({ ...prev, architecture: e.target.value }))}
                 rows={6}
-                className="w-full px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB] resize-none"
+                className="w-full px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB] resize-none"
                 placeholder="ASCII art or text diagram..."
               />
             </div>
@@ -313,7 +313,7 @@ const CaseStudiesEditor: React.FC = () => {
                   onChange={(e) => setTechInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTech())}
                   placeholder="Add tech..."
-                  className="flex-1 px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                  className="flex-1 px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
                 />
                 <button type="button" onClick={handleAddTech} className="px-4 py-2 bg-[#262626] hover:bg-[#333] text-white text-sm font-mono">Add</button>
               </div>
@@ -336,7 +336,7 @@ const CaseStudiesEditor: React.FC = () => {
                   onChange={(e) => setLessonInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddLesson())}
                   placeholder="Add lesson..."
-                  className="flex-1 px-4 py-2 bg-[#050505] border border-[#262626] text-white font-mono text-sm focus:outline-none focus:border-[#2563EB]"
+                  className="flex-1 px-4 py-2 bg-bg border border-[#262626] text-white font-mono text-sm focus:outline-hidden focus:border-[#2563EB]"
                 />
                 <button type="button" onClick={handleAddLesson} className="px-4 py-2 bg-[#262626] hover:bg-[#333] text-white text-sm font-mono">Add</button>
               </div>

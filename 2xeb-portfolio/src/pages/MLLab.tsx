@@ -36,7 +36,7 @@ const MLLab: React.FC = () => {
   ), [projects]);
 
   return (
-    <div ref={revealRef} className="min-h-screen pt-28 md:pt-36 pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto bg-[#050505]">
+    <div ref={revealRef} className="min-h-screen pt-28 md:pt-36 pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto bg-bg">
       <div className="grid lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12">
 
         {/* Left Column: Header & Projects */}
@@ -46,7 +46,7 @@ const MLLab: React.FC = () => {
             <h1 className="font-bold text-white font-space-grotesk mb-4 sm:mb-6 md:mb-8 tracking-tighter leading-[0.9]" style={{ fontSize: 'clamp(2.2rem, 6vw + 0.5rem, 8rem)' }}>
               MACHINE<br />LEARNING
             </h1>
-            <p className="text-[#A3A3A3] text-base sm:text-lg md:text-xl leading-relaxed font-light max-w-2xl border-l border-[#262626] pl-4 sm:pl-6">
+            <p className="text-[#A3A3A3] text-base sm:text-lg/7 md:text-xl/7 leading-relaxed font-light max-w-2xl border-l border-[#262626] pl-4 sm:pl-6">
               Exploring the intersection of generative AI and creative workflows. 
               Featuring experimental AI projects and the <strong>Portfolio Agent</strong> that powers this site.
             </p>
@@ -63,9 +63,9 @@ const MLLab: React.FC = () => {
 
         {/* Right Column: AI Widget sticky */}
         <div data-animate className="lg:col-span-5 lg:sticky lg:top-32 h-fit">
-          <div className="bg-[#0A0A0A] border border-[#1f2937] overflow-hidden shadow-xl relative">
+          <div className="bg-card border border-[#1f2937] overflow-hidden shadow-xl relative">
             {/* Blue accent line at top */}
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#2563EB] to-transparent" />
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-linear-to-r from-transparent via-[#2563EB] to-transparent" />
 
             {/* Collapsible Header */}
             <button
@@ -75,7 +75,7 @@ const MLLab: React.FC = () => {
               aria-controls="ml-widget-panel"
             >
               <div className="flex items-center gap-2.5 sm:gap-3">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 bg-[#0A0A0A] border border-[#1f2937] grid place-items-center">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 bg-card border border-[#1f2937] grid place-items-center">
                   <span className="text-[#2563EB] font-bold text-[9px] sm:text-[10px] font-space-grotesk tracking-tight">EB</span>
                 </div>
                 <span className="text-white text-[11px] font-bold font-space-grotesk uppercase tracking-[0.15em]">

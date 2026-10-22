@@ -109,7 +109,7 @@ const Video: React.FC = () => {
   const embedUrl = useMemo(() => getEmbedUrl(showreelProject?.videoUrl), [showreelProject?.videoUrl]);
 
   return (
-    <div ref={revealRef} className="min-h-screen pt-28 md:pt-32 pb-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto bg-[#050505]">
+    <div ref={revealRef} className="min-h-screen pt-28 md:pt-32 pb-20 px-4 sm:px-6 md:px-12 max-w-[1600px] mx-auto bg-bg">
       <div className="mb-20 md:mb-24 px-2 border-b border-[#262626] pb-10 md:pb-12">
         <span ref={kickerRef} data-animate className="text-[#2563EB] font-mono text-[11px] sm:text-xs uppercase tracking-widest block mb-3 sm:mb-4">Showreel</span>
         <h1
@@ -139,16 +139,16 @@ const Video: React.FC = () => {
                   </div>
           </div>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mt-4 text-[#525252] font-mono text-[10px] sm:text-[10px] uppercase tracking-widest w-full">
-             <span className="flex-1 pr-2 break-words">Featured: {showreelProject.title}</span>
-             <div className="flex items-center gap-3 sm:gap-4 shrink-0 flex-shrink-0">
+             <span className="flex-1 pr-2 wrap-break-word">Featured: {showreelProject.title}</span>
+             <div className="flex items-center gap-3 sm:gap-4 shrink-0 shrink-0">
                <button
                  onClick={shuffleFeatured}
-                 className="px-3 py-1.5 border border-[#525252] hover:border-white text-[#525252] hover:text-white pressable uppercase tracking-widest text-[10px] sm:text-[10px] whitespace-nowrap flex-shrink-0"
+                 className="px-3 py-1.5 border border-[#525252] hover:border-white text-[#525252] hover:text-white pressable uppercase tracking-widest text-[10px] sm:text-[10px] whitespace-nowrap shrink-0"
                  aria-label="Shuffle featured video"
                >
                  Shuffle
                </button>
-               <span className="whitespace-nowrap flex-shrink-0">Reel 2025</span>
+               <span className="whitespace-nowrap shrink-0">Reel 2025</span>
              </div>
           </div>
         </div>

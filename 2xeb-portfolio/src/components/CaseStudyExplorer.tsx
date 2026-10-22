@@ -20,7 +20,7 @@ const SectionHeader: React.FC<{
   <button
     onClick={onToggle}
     className={`w-full flex items-center justify-between p-4 border-b border-[#1f2937] transition-colors ${
-      expanded ? 'bg-[#0d0d0d]' : 'bg-[#080808] hover:bg-[#0a0a0a]'
+      expanded ? 'bg-[#0d0d0d]' : 'bg-[#080808] hover:bg-card'
     }`}
   >
     <div className="flex items-center gap-3">
@@ -45,7 +45,7 @@ const SectionContent: React.FC<{ expanded: boolean; children: React.ReactNode }>
     expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
   }`}>
     <div className="overflow-hidden">
-      <div className="p-5 bg-[#0a0a0a] border-b border-[#1f2937]">
+      <div className="p-5 bg-card border-b border-[#1f2937]">
         {children}
       </div>
     </div>
@@ -60,7 +60,7 @@ const CaseStudyExplorer: React.FC<CaseStudyExplorerProps> = ({ caseStudy, onClos
   };
 
   return (
-    <div className="bg-[#0A0A0A] border border-[#1f2937] max-w-4xl mx-auto">
+    <div className="bg-card border border-[#1f2937] max-w-4xl mx-auto">
       {/* Header */}
       <div className="p-6 border-b border-[#1f2937] flex items-start justify-between">
         <div>
@@ -168,7 +168,7 @@ const CaseStudyExplorer: React.FC<CaseStudyExplorerProps> = ({ caseStudy, onClos
           icon={<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M14 6H6v8h8V6z" /><path fillRule="evenodd" d="M9.25 3V1.75a.75.75 0 011.5 0V3h1.5V1.75a.75.75 0 011.5 0V3h.5A2.75 2.75 0 0117 5.75v.5h1.25a.75.75 0 010 1.5H17v1.5h1.25a.75.75 0 010 1.5H17v1.5h1.25a.75.75 0 010 1.5H17v.5A2.75 2.75 0 0114.25 17h-.5v1.25a.75.75 0 01-1.5 0V17h-1.5v1.25a.75.75 0 01-1.5 0V17h-1.5v1.25a.75.75 0 01-1.5 0V17h-.5A2.75 2.75 0 013 14.25v-.5H1.75a.75.75 0 010-1.5H3v-1.5H1.75a.75.75 0 010-1.5H3v-1.5H1.75a.75.75 0 010-1.5H3v-.5A2.75 2.75 0 015.75 3h.5V1.75a.75.75 0 011.5 0V3h1.5zM4.5 5.75c0-.69.56-1.25 1.25-1.25h8.5c.69 0 1.25.56 1.25 1.25v8.5c0 .69-.56 1.25-1.25 1.25h-8.5c-.69 0-1.25-.56-1.25-1.25v-8.5z" clipRule="evenodd" /></svg>}
         />
         <SectionContent expanded={expandedSection === 'architecture'}>
-          <pre className="bg-[#050505] border border-[#1f2937] p-4 overflow-x-auto text-[10px] text-[#a3a3a3] font-mono whitespace-pre">
+          <pre className="bg-bg border border-[#1f2937] p-4 overflow-x-auto text-[10px] text-[#a3a3a3] font-mono whitespace-pre">
             {caseStudy.architecture}
           </pre>
         </SectionContent>

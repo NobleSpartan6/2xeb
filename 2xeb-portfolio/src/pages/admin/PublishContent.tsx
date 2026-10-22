@@ -154,7 +154,7 @@ ${entries}
       </div>
 
       {/* How it works */}
-      <div className="mb-8 p-6 bg-[#0A0A0A] border border-[#262626]">
+      <div className="mb-8 p-6 bg-card border border-[#262626]">
         <h2 className="text-sm font-bold text-[#2563EB] uppercase tracking-widest mb-4">How This Works</h2>
         <ol className="text-sm text-[#A3A3A3] font-mono space-y-2">
           <li>1. Edit content in Projects/Experience editors</li>
@@ -187,7 +187,7 @@ ${entries}
       {generated && (
         <div className="space-y-8">
           {/* Projects */}
-          <div className="bg-[#0A0A0A] border border-[#262626]">
+          <div className="bg-card border border-[#262626]">
             <div className="flex items-center justify-between p-4 border-b border-[#262626]">
               <div>
                 <h3 className="text-white font-mono text-sm">projects.ts</h3>
@@ -214,7 +214,7 @@ ${entries}
           </div>
 
           {/* Experience */}
-          <div className="bg-[#0A0A0A] border border-[#262626]">
+          <div className="bg-card border border-[#262626]">
             <div className="flex items-center justify-between p-4 border-b border-[#262626]">
               <div>
                 <h3 className="text-white font-mono text-sm">timeline.ts</h3>
