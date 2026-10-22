@@ -17,6 +17,7 @@ Handles contact form submissions. Inserts into `contact_messages` table and send
 - **Input**: `{ name, email, message, reason?, source_page? }`
 - **Output**: `{ success: true }` or error
 - **Email**: Sends notification to email (requires `RESEND_API_KEY`)
+- **Security**: Every visitor field is HTML-escaped (`escapeHtml`) before it goes into the notification email; fields must be strings within `MAX_LENGTHS` (name 200, email 320, message 10,000, reason 100, source_page 200) or the request gets a 400
 
 ### ask-portfolio
 AI assistant for portfolio questions. **Groq primary, Cerebras 429 fallback**, with optional SSE streaming.
