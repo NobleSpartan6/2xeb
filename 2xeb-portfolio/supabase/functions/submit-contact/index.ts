@@ -17,6 +17,39 @@ interface ContactPayload {
   source_page?: string;
 }
 
+// contact_messages columns are unbounded text, so these are the only caps.
+const MAX_LENGTHS: Record<keyof ContactPayload, number> = {
+  name: 200,
+  email: 320,
+  message: 10_000,
+  reason: 100,
+  source_page: 200,
+};
+
+// Returns an error message if any field is not a string or exceeds its cap.
+function validateFields(payload: ContactPayload): string | null {
+  for (const field of Object.keys(MAX_LENGTHS) as (keyof ContactPayload)[]) {
+    // The body is untrusted JSON, so don't rely on the declared types.
+    const value: unknown = payload[field];
+    if (value === undefined || value === null) continue;
+    if (typeof value !== "string") return `Invalid ${field}`;
+    if (value.length > MAX_LENGTHS[field]) {
+      return `${field} is too long (max ${MAX_LENGTHS[field]} characters)`;
+    }
+  }
+  return null;
+}
+
+// Visitor input goes into the notification email's HTML, so escape it first.
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 async function sendEmailNotification(payload: ContactPayload): Promise<void> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   if (!resendApiKey) {
@@ -24,14 +57,20 @@ async function sendEmailNotification(payload: ContactPayload): Promise<void> {
     return;
   }
 
+  const name = escapeHtml(payload.name || "Anonymous");
+  const email = payload.email ? `(${escapeHtml(payload.email)})` : "";
+  const reason = escapeHtml(payload.reason || "General Inquiry");
+  const sourcePage = escapeHtml(payload.source_page || "Unknown");
+  const message = escapeHtml(payload.message).replace(/\n/g, "<br />");
+
   const emailHtml = `
     <h2>New Contact Form Submission</h2>
-    <p><strong>From:</strong> ${payload.name || "Anonymous"} ${payload.email ? `(${payload.email})` : ""}</p>
-    <p><strong>Subject:</strong> ${payload.reason || "General Inquiry"}</p>
-    <p><strong>Page:</strong> ${payload.source_page || "Unknown"}</p>
+    <p><strong>From:</strong> ${name} ${email}</p>
+    <p><strong>Subject:</strong> ${reason}</p>
+    <p><strong>Page:</strong> ${sourcePage}</p>
     <hr />
     <p><strong>Message:</strong></p>
-    <p>${payload.message.replace(/\n/g, "<br />")}</p>
+    <p>${message}</p>
   `;
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -70,6 +109,14 @@ Deno.serve(async (req: Request) => {
 
   try {
     const payload: ContactPayload = await req.json();
+
+    const fieldError = validateFields(payload);
+    if (fieldError) {
+      return new Response(
+        JSON.stringify({ error: fieldError }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Validate required field
     if (!payload.message || payload.message.trim().length === 0) {
