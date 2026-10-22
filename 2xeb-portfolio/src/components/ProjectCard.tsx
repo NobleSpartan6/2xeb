@@ -23,7 +23,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
   // dimming them like screenshots/photos muddies the artwork
   const isDesignedCover = project.imageUrl?.startsWith('data:image/svg') ?? false;
 
-  const CardContent = () => (
+  // A JSX value, not an inner component: hovering a card updates the shared
+  // console context, and a component type re-created each render would
+  // remount every card's body (image re-decode, hover zoom snapping).
+  const cardContent = (
     <>
       <div
         className="aspect-video w-full overflow-hidden bg-black relative"
@@ -120,7 +123,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <CardContent />
+        {cardContent}
       </a>
     );
   }
@@ -133,7 +136,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, index }) => {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <CardContent />
+      {cardContent}
     </Link>
   );
 };
